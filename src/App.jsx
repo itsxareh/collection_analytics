@@ -1,10 +1,8 @@
 import { useState, useMemo, useRef } from "react";
 import * as XLSX from "xlsx";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from "recharts";
 
 const DISP = {
-  // ──────────────────────────────────────────────
-  // CALL group
   "CALL - POS_UNATTENDED": { tp: "CALL", sg: "NEG" },
   "CALL - POS_KOR": { tp: "CALL", sg: "NEG" },
   "CALL - POS_DROPPED": { tp: "CALL", sg: "NEG" },
@@ -45,16 +43,11 @@ const DISP = {
   "CALL - KEPT_FULL UPDATE": { tp: "CALL", sg: "KEPT" },
   "CALL - KEPT_PUSH BACK": { tp: "CALL", sg: "KEPT" },
   "CALL - KEPT_PARTIAL": { tp: "CALL", sg: "KEPT" },
-
-  // Short call dispositions
   "BUSY": { tp: "CALL", sg: "NEG" },
   "DROPPED": { tp: "CALL", sg: "NEG" },
   "RNA": { tp: "CALL", sg: "NEG" },
   "PM": { tp: "CALL", sg: "NEG" },
   "PU": { tp: "CALL", sg: "NEG" },
-
-  // ──────────────────────────────────────────────
-  // CARAVAN → now FIELD
   "CARAVAN - UNLOCATED": { tp: "FIELD", sg: "NEG" },
   "CARAVAN - CLIENT UNKNOWN": { tp: "FIELD", sg: "NEG" },
   "CARAVAN - CLIENT OUT OF AREA": { tp: "FIELD", sg: "NEG" },
@@ -86,9 +79,6 @@ const DISP = {
   "CARAVAN - KEPT_FULL UPDATE": { tp: "FIELD", sg: "KEPT" },
   "CARAVAN - KEPT_PUSH BACK": { tp: "FIELD", sg: "KEPT" },
   "CARAVAN - KEPT_PARTIAL": { tp: "FIELD", sg: "KEPT" },
-
-  // ──────────────────────────────────────────────
-  // SKIP → now INTERNET
   "SKIP - NEGATIVE": { tp: "INTERNET", sg: "NEG" },
   "SKIP - SMEDIA ACCOUNT": { tp: "INTERNET", sg: "NEG" },
   "SKIP - NEW ADDRESS": { tp: "INTERNET", sg: "NEG" },
@@ -105,8 +95,6 @@ const DISP = {
   "SKIP - KEPT_FULL UPDATE": { tp: "INTERNET", sg: "KEPT" },
   "SKIP - KEPT_PUSH BACK": { tp: "INTERNET", sg: "KEPT" },
   "SKIP - KEPT_PARTIAL": { tp: "INTERNET", sg: "KEPT" },
-
-  // SMEDIA → now INTERNET
   "SMEDIA - NEG_SENT A MESSAGE": { tp: "INTERNET", sg: "NEG" },
   "SMEDIA - POS_SENT A MESSAGE": { tp: "INTERNET", sg: "POS" },
   "SMEDIA - RESPONSIVE": { tp: "INTERNET", sg: "RPC" },
@@ -131,9 +119,6 @@ const DISP = {
   "SMEDIA - KEPT_FULL UPDATE": { tp: "INTERNET", sg: "KEPT" },
   "SMEDIA - KEPT_PUSH BACK": { tp: "INTERNET", sg: "KEPT" },
   "SMEDIA - KEPT_PARTIAL": { tp: "INTERNET", sg: "KEPT" },
-
-  // ──────────────────────────────────────────────
-  // FIELD group (already FIELD)
   "FIELD - UNLOCATED": { tp: "FIELD", sg: "NEG" },
   "FIELD - CLIENT_UNKNOWN": { tp: "FIELD", sg: "NEG" },
   "FIELD - CLIENT_OUT OF AREA": { tp: "FIELD", sg: "NEG" },
@@ -165,9 +150,6 @@ const DISP = {
   "FIELD - KEPT_FULL UPDATE": { tp: "FIELD", sg: "KEPT" },
   "FIELD - KEPT_PUSH BACK": { tp: "FIELD", sg: "KEPT" },
   "FIELD - KEPT_PARTIAL": { tp: "FIELD", sg: "KEPT" },
-
-  // ──────────────────────────────────────────────
-  // EMAIL group
   "EMAIL - NO EMAIL": { tp: "EMAIL", sg: "NEG" },
   "EMAIL - NEG_SENT MESSAGE": { tp: "EMAIL", sg: "NEG" },
   "EMAIL - DECEASED": { tp: "EMAIL", sg: "NEG" },
@@ -196,9 +178,6 @@ const DISP = {
   "EMAIL - KEPT_FULL UPDATE": { tp: "EMAIL", sg: "KEPT" },
   "EMAIL - KEPT_PUSH BACK": { tp: "EMAIL", sg: "KEPT" },
   "EMAIL - KEPT_PARTIAL": { tp: "EMAIL", sg: "KEPT" },
-
-  // ──────────────────────────────────────────────
-  // SMS group
   "SMS - NEG_SENT MESSAGE": { tp: "SMS", sg: "NEG" },
   "SMS - DECEASED": { tp: "SMS", sg: "NEG" },
   "SMS - WRONG NUMBER": { tp: "SMS", sg: "NEG" },
@@ -228,9 +207,6 @@ const DISP = {
   "SMS - KEPT_PARTIAL": { tp: "SMS", sg: "KEPT" },
   "SMS SENT": { tp: "SMS", sg: "NEG" },
   "BULK SMS SENT": { tp: "SMS", sg: "NEG" },
-
-  // ──────────────────────────────────────────────
-  // VIBER group
   "VIBER - NO VIBER": { tp: "VIBER", sg: "NEG" },
   "VIBER - DELIVERED": { tp: "VIBER", sg: "NEG" },
   "VIBER - READ": { tp: "VIBER", sg: "NEG" },
@@ -260,9 +236,6 @@ const DISP = {
   "VIBER - KEPT_FULL UPDATE": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_PUSH BACK": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_PARTIAL": { tp: "VIBER", sg: "KEPT" },
-
-  // ──────────────────────────────────────────────
-  // CEASE COLLECTION
   "CEASE - POSSIBLE COMPLAINT": { tp: "CEASE COLLECTION", sg: "NEG" },
   "CEASE - PENDING COMPLAINT": { tp: "CEASE COLLECTION", sg: "NEG" },
   "CEASE - VALID COMPLAINT": { tp: "CEASE COLLECTION", sg: "NEG" },
@@ -270,16 +243,10 @@ const DISP = {
   "CEASE - CLAIMING PAID": { tp: "CEASE COLLECTION", sg: "RPC" },
   "CEASE - INSURANCE CLAIM": { tp: "CEASE COLLECTION", sg: "RPC" },
   "CEASE - REPOSSESSED BY OTHER ECA": { tp: "CEASE COLLECTION", sg: "NEG" },
-
-  // ──────────────────────────────────────────────
-  // FIELD REQUEST
   "FIELD REQUEST - OTS SURE REPO": { tp: "FIELD REQUEST", sg: "NEG" },
   "FIELD REQUEST - FOR REVISIT": { tp: "FIELD REQUEST", sg: "NEG" },
   "FIELD REQUEST - BP_NC": { tp: "FIELD REQUEST", sg: "NEG" },
   "FIELD REQUEST - NEW_ADDRESS": { tp: "FIELD REQUEST", sg: "NEG" },
-
-  // ──────────────────────────────────────────────
-  // REPO AI
   "REPO AI - PTP REPO": { tp: "REPO AI", sg: "PTP" },
   "REPO AI - PTP FULL UPDATE": { tp: "REPO AI", sg: "PTP" },
   "REPO AI - PTP PAY OFF": { tp: "REPO AI", sg: "PTP" },
@@ -293,99 +260,227 @@ const DISP = {
   "REPO AI - KEPT_PARTIAL": { tp: "REPO AI", sg: "KEPT" }
 };
 
-const GC={"NEG":"#c94537","RPC":"#3b82f6","KEPT":"#22c55e","PTP":"#f58c0b","FOLLOW UP":"#a78bfa","POS":"#06b6d4"};
-const PC=["#3b82f6","#22c55e","#f59e0b","#ef4444","#a78bfa","#06b6d4","#f97316","#84cc16","#ec4899","#14b8a6"];
-const DU={};Object.keys(DISP).forEach(k=>{DU[k.toUpperCase()]={...DISP[k],orig:k}});
-const fN=n=>n==null?"-":typeof n==="number"?n.toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2}):String(n);
-const parseAmt=v=>{
-  if(v==null||v==="")return NaN;
-  if(typeof v==="number")return v;
-  // string like "27,452.00" — strip commas, currency symbols, spaces
-  const cleaned=String(v).replace(/[₱$,\s]/g,"").trim();
-  const n=parseFloat(cleaned);
-  return n;
+const EXCLUDED_REMARKS = [
+  "New Assignment",
+  "System Auto Update Remarks For PD",
+  "Updates when case reassign to another collector",
+  "Sub Special Status Change",
+  "New files imported"
+];
+
+const GC = { "NEG": "#c94537", "RPC": "#3b82f6", "KEPT": "#22c55e", "PTP": "#f58c0b", "FOLLOW UP": "#a78bfa", "POS": "#06b6d4" };
+const PC = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#a78bfa", "#06b6d4", "#f97316", "#84cc16", "#ec4899", "#14b8a6"];
+const DU = {};
+Object.keys(DISP).forEach(k => { DU[k.toUpperCase()] = { ...DISP[k], orig: k }; });
+
+const fN = n => n == null ? "-" : typeof n === "number" ? n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(n);
+const parseAmt = v => {
+  if (v == null || v === "") return NaN;
+  if (typeof v === "number") return v;
+  const cleaned = String(v).replace(/[₱$,\s]/g, "").trim();
+  return parseFloat(cleaned);
+};
+const fD = v => {
+  if (!v) return null;
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toLocaleDateString("en-PH");
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("en-PH");
 };
 
-const fD=v=>{if(!v)return"-";if(v instanceof Date)return v.toLocaleDateString("en-PH");const d=new Date(v);return isNaN(d.getTime())?String(v):d.toLocaleDateString("en-PH")};
-const Pb=({pct,c})=><div style={{height:6,background:"#0f172a",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:Math.min(pct,100)+"%",background:c}}/></div>;
+// Check if a remark contains any excluded phrase
+const isExcludedRemark = (remarkVal) => {
+  if (!remarkVal) return false;
+  const s = String(remarkVal).toLowerCase();
+  return EXCLUDED_REMARKS.some(phrase => s.includes(phrase.toLowerCase()));
+};
 
-export default function App(){
-  const [data,setData]=useState(null);
-  const [err,setErr]=useState("");
-  const [loading,setLoading]=useState(false);
-  const [tab,setTab]=useState("overview");
-  const fRef=useRef();
+const Pb = ({ pct, c }) => (
+  <div style={{ height: 6, background: "#0f172a", borderRadius: 3, overflow: "hidden" }}>
+    <div style={{ height: "100%", borderRadius: 3, width: Math.min(pct, 100) + "%", background: c }} />
+  </div>
+);
 
-  const hf=file=>{
-    if(!file)return;
-    if(!file.name.match(/\.(xlsx|xls)$/i)){setErr("Error: File must be .xlsx or .xls");return;}
-    setLoading(true);setErr("");setData(null);
-    const r=new FileReader();
-    r.onload=e=>{
-      try{
-        const wb=XLSX.read(e.target.result,{type:"array",cellDates:true});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const raw=XLSX.utils.sheet_to_json(ws,{defval:null,raw:false}); 
-        if(!raw.length){setErr("Error: The uploaded file is empty.");setLoading(false);return;}
-        const keys=Object.keys(raw[0]);
-        const sk=keys.find(k=>k.trim().toLowerCase()==="status");
-        if(!sk){setErr("Error: The uploaded file does not contain a 'Status' column.");setLoading(false);return;}
-        const ak=keys.find(k=>k.toLowerCase().includes("account no")||k.toLowerCase().includes("acct no"));
-        const rk=keys.find(k=>k.toLowerCase().includes("remark by"));
-        const pak=keys.find(k=>k.toLowerCase().includes("ptp amount"));
-        const pdk=keys.find(k=>k.toLowerCase().includes("ptp date")&&!k.toLowerCase().includes("claim"));
-        const cak=keys.find(k=>k.toLowerCase().includes("claim paid amount"));
-        const cdk=keys.find(k=>k.toLowerCase().includes("claim paid date"));
-        const rows=raw
-          .map(r=>({...r,_su:r[sk]?String(r[sk]).trim().toUpperCase():null}))
-          .filter(r=>r._su&&DU[r._su])
-          .map(r=>({...r,_status:DU[r._su].orig,_d:DU[r._su]}));
-        if(!rows.length){setErr("Error: No valid recognized statuses found in the file.");setLoading(false);return;}
-        setData({rows,sk,ak,rk,pak,pdk,cak,cdk,totalRaw:raw.length});
-      }catch(ex){setErr("Error parsing file: "+ex.message);}
+const SG_GROUPS = ["NEG", "RPC", "PTP", "KEPT", "POS"];
+
+export default function App() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState("overview");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const fRef = useRef();
+
+  const hf = file => {
+    if (!file) return;
+    if (!file.name.match(/\.(xlsx|xls)$/i)) { setErr("Error: File must be .xlsx or .xls"); return; }
+    setLoading(true); setErr(""); setData(null);
+    const r = new FileReader();
+    r.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
+        if (!raw.length) { setErr("Error: The uploaded file is empty."); setLoading(false); return; }
+        const keys = Object.keys(raw[0]);
+        const sk = keys.find(k => k.trim().toLowerCase() === "status");
+        if (!sk) { setErr("Error: The uploaded file does not contain a 'Status' column."); setLoading(false); return; }
+        const ak = keys.find(k => k.toLowerCase().includes("account no") || k.toLowerCase().includes("acct no"));
+        const rk = keys.find(k => k.toLowerCase().includes("remark by"));
+        // Find Remarks/Notes column for exclusion filtering
+        const rmk = keys.find(k => {
+          const l = k.toLowerCase();
+          return (l.includes("remark") && !l.includes("remark by")) || l === "remarks" || l === "notes" || l.includes("note");
+        });
+        const pak = keys.find(k => k.toLowerCase().includes("ptp amount"));
+        const pdk = keys.find(k => k.toLowerCase().includes("ptp date") && !k.toLowerCase().includes("claim"));
+        const cak = keys.find(k => k.toLowerCase().includes("claim paid amount"));
+        const cdk = keys.find(k => k.toLowerCase().includes("claim paid date"));
+        // Detect Date/Time column
+        const dtk = keys.find(k => {
+          const l = k.toLowerCase();
+          return l === "date" || l === "time" || l === "date and time" || l === "datetime" || l === "date/time" || l === "remark date" || l === "activity date" || l === "log date";
+        });
+
+        const allRows = raw.map(r => ({ ...r, _su: r[sk] ? String(r[sk]).trim().toUpperCase() : null }));
+        const totalRaw = allRows.length;
+
+        // Apply remark exclusion: check the remarks column AND remark by column
+        const remarkExcludedCount = allRows.filter(r => {
+          const remarkCol = rmk ? r[rmk] : null;
+          const remarkByCol = rk ? r[rk] : null;
+          return isExcludedRemark(remarkCol) || isExcludedRemark(remarkByCol);
+        }).length;
+
+        const afterRemarkFilter = allRows.filter(r => {
+          const remarkCol = rmk ? r[rmk] : null;
+          const remarkByCol = rk ? r[rk] : null;
+          return !isExcludedRemark(remarkCol) && !isExcludedRemark(remarkByCol);
+        });
+
+        const rows = afterRemarkFilter
+          .filter(r => r._su && DU[r._su])
+          .map(r => ({ ...r, _status: DU[r._su].orig, _d: DU[r._su] }));
+
+        if (!rows.length) { setErr("Error: No valid recognized statuses found in the file."); setLoading(false); return; }
+        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, dtk, totalRaw, remarkExcludedCount });
+      } catch (ex) { setErr("Error parsing file: " + ex.message); }
       setLoading(false);
     };
     r.readAsArrayBuffer(file);
   };
 
-  const an=useMemo(()=>{
-    if(!data)return null;
-    const{rows,ak,rk,pak,pdk,cak,cdk}=data;
-    const sc={},gc={},tc={};
-    rows.forEach(r=>{
-      sc[r._status]=(sc[r._status]||0)+1;
-      gc[r._d.sg]=(gc[r._d.sg]||0)+1;
-      tc[r._d.tp]=(tc[r._d.tp]||0)+1;
+  const an = useMemo(() => {
+    if (!data) return null;
+    const { rows, ak, rk, pak, pdk, cak, cdk, dtk } = data;
+    const sc = {}, gc = {}, tc = {};
+    rows.forEach(r => {
+      sc[r._status] = (sc[r._status] || 0) + 1;
+      gc[r._d.sg] = (gc[r._d.sg] || 0) + 1;
+      tc[r._d.tp] = (tc[r._d.tp] || 0) + 1;
     });
-    const T=rows.length;
-    const rowGrp=s=>rows.find(r=>r._status===s)?._d||{};
-    const sd=Object.entries(sc).sort((a,b)=>b[1]-a[1]).map(([s,c])=>({
-      status:s,count:c,pct:((c/T)*100).toFixed(1),
-      grp:rowGrp(s).sg||"",tp:rowGrp(s).tp||""
+    const T = rows.length;
+    const rowGrp = s => rows.find(r => r._status === s)?._d || {};
+    const sd = Object.entries(sc).sort((a, b) => b[1] - a[1]).map(([s, c]) => ({
+      status: s, count: c, pct: ((c / T) * 100).toFixed(1),
+      grp: rowGrp(s).sg || "", tp: rowGrp(s).tp || ""
     }));
-    const gd=Object.entries(gc).sort((a,b)=>b[1]-a[1]).map(([g,c])=>({name:g,value:c,pct:((c/T)*100).toFixed(1)}));
-    const td=Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(([t,c])=>({name:t,count:c,pct:((c/T)*100).toFixed(1)}));
-    const ua=ak?new Set(rows.map(r=>r[ak]).filter(Boolean)).size:null;
-    const cm={};
-    if(rk)rows.forEach(r=>{const v=r[rk];if(v){const k=String(v).trim();cm[k]=(cm[k]||0)+1;}});
-    const cd=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([n,c])=>({name:n,count:c}));
-    let pt=0,pc=0;
-    if(pak)rows.forEach(r=>{const v=parseAmt(r[pak]);if(!isNaN(v)&&v>0){pt+=v;pc++;}});
-    let ct=0,cc=0;
-    if(cak)rows.forEach(r=>{const v=parseAmt(r[cak]);if(!isNaN(v)&&v>0){ct+=v;cc++;}});
-    const pdc={};
-    if(pdk)rows.forEach(r=>{const d=r[pdk];if(d){const k=fD(d);pdc[k]=(pdc[k]||0)+1;}});
-    const pdd=Object.entries(pdc).sort((a,b)=>new Date(a[0])-new Date(b[0])).slice(-15).map(([d,c])=>({date:d,count:c}));
-    const cdc={};
-    if(cdk)rows.forEach(r=>{const d=r[cdk];if(d){const k=fD(d);cdc[k]=(cdc[k]||0)+1;}});
-    const cdd=Object.entries(cdc).sort((a,b)=>new Date(a[0])-new Date(b[0])).slice(-15).map(([d,c])=>({date:d,count:c}));
-    return{sd,gd,td,ua,cd,pt,pc,ct,cc,pdd,cdd,T};
-  },[data]);
+    const gd = Object.entries(gc).sort((a, b) => b[1] - a[1]).map(([g, c]) => ({ name: g, value: c, pct: ((c / T) * 100).toFixed(1) }));
+    const td = Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([t, c]) => ({ name: t, count: c, pct: ((c / T) * 100).toFixed(1) }));
+    const ua = ak ? new Set(rows.map(r => r[ak]).filter(Boolean)).size : null;
+    const cm = {};
+    if (rk) rows.forEach(r => { const v = r[rk]; if (v) { const k = String(v).trim(); cm[k] = (cm[k] || 0) + 1; } });
+    const cd = Object.entries(cm).sort((a, b) => b[1] - a[1]).map(([n, c]) => ({ name: n, count: c }));
+    let pt = 0, pc = 0;
+    if (pak) rows.forEach(r => { const v = parseAmt(r[pak]); if (!isNaN(v) && v > 0) { pt += v; pc++; } });
+    let ct = 0, cc = 0;
+    if (cak) rows.forEach(r => { const v = parseAmt(r[cak]); if (!isNaN(v) && v > 0) { ct += v; cc++; } });
+    const pdc = {};
+    if (pdk) rows.forEach(r => { const d = r[pdk]; if (d) { const k = fD(d); if (k) pdc[k] = (pdc[k] || 0) + 1; } });
+    const pdd = Object.entries(pdc).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c }));
+    const cdc = {};
+    if (cdk) rows.forEach(r => { const d = r[cdk]; if (d) { const k = fD(d); if (k) cdc[k] = (cdc[k] || 0) + 1; } });
+    const cdd = Object.entries(cdc).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c }));
 
-  const TS={background:"#1e293b",border:"1px solid #334155",borderRadius:8,fontSize:12};
+    // ── Date/Time Analytics ──
+    let dateAnalytics = null;
+    if (dtk) {
+      // Build per-date map: { dateStr -> { total, NEG, RPC, PTP, KEPT, POS, byStatus:{} } }
+      const dateMap = {};
+      rows.forEach(r => {
+        const raw = r[dtk];
+        if (!raw) return;
+        const d = fD(raw);
+        if (!d) return;
+        if (!dateMap[d]) dateMap[d] = { total: 0, NEG: 0, RPC: 0, PTP: 0, KEPT: 0, POS: 0 };
+        dateMap[d].total++;
+        const sg = r._d.sg;
+        if (dateMap[d][sg] !== undefined) dateMap[d][sg]++;
+      });
+      const dateSorted = Object.entries(dateMap)
+        .sort((a, b) => {
+          const da = new Date(a[0]), db = new Date(b[0]);
+          return isNaN(da) || isNaN(db) ? a[0].localeCompare(b[0]) : da - db;
+        })
+        .map(([date, v]) => ({ date, ...v }));
 
-  return(
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#e2e8f0",fontFamily:"'DM Sans',sans-serif"}}>
+      // Hour distribution (if time info available)
+      const hourMap = {};
+      rows.forEach(r => {
+        const raw = r[dtk];
+        if (!raw) return;
+        let hr = null;
+        if (raw instanceof Date && !isNaN(raw.getTime())) {
+          hr = raw.getHours();
+        } else {
+          const s = String(raw);
+          const m = s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+          if (m) {
+            let h = parseInt(m[1]);
+            const ampm = m[4];
+            if (ampm) {
+              if (ampm.toLowerCase() === "pm" && h !== 12) h += 12;
+              if (ampm.toLowerCase() === "am" && h === 12) h = 0;
+            }
+            hr = h;
+          }
+        }
+        if (hr !== null && hr >= 0 && hr <= 23) {
+          hourMap[hr] = (hourMap[hr] || 0) + 1;
+        }
+      });
+      const hasHours = Object.keys(hourMap).length > 0;
+      const hourData = hasHours
+        ? Array.from({ length: 24 }, (_, h) => ({ hour: `${String(h).padStart(2, "0")}:00`, count: hourMap[h] || 0 }))
+        : [];
+
+      dateAnalytics = { dateSorted, hourData, hasHours, dateMap };
+    }
+
+    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics };
+  }, [data]);
+
+  const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
+
+  // Selected date detail rows
+  const selectedDateRows = useMemo(() => {
+    if (!selectedDate || !data || !an?.dateAnalytics) return null;
+    const { dtk } = data;
+    if (!dtk) return null;
+    const sc = {};
+    data.rows.forEach(r => {
+      const d = fD(r[dtk]);
+      if (d === selectedDate) {
+        sc[r._status] = (sc[r._status] || 0) + 1;
+      }
+    });
+    return Object.entries(sc).sort((a, b) => b[1] - a[1]).map(([s, c]) => {
+      const d = DU[s.toUpperCase()];
+      return { status: s, count: c, grp: d?.sg || "", tp: d?.tp || "" };
+    });
+  }, [selectedDate, data, an]);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f172a", color: "#e2e8f0", fontFamily: "'DM Sans',sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
@@ -403,256 +498,432 @@ export default function App(){
         .tb{background:none;border:none;cursor:pointer;padding:8px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s;color:#94a3b8;white-space:nowrap}
         .tb.ac{background:#1e40af;color:#fff}
         .tb:hover:not(.ac){background:#1e293b;color:#e2e8f0}
+        .dr{cursor:pointer;transition:background .15s}
+        .dr:hover td{background:#1e3a5f !important}
+        .dr.sel td{background:#172554 !important}
       `}</style>
 
       {/* Header */}
-      <div style={{background:"#0f172a",borderBottom:"1px solid #1e293b",padding:"16px 32px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-        <div style={{width:36,height:36,background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📊</div>
+      <div style={{ background: "#0f172a", borderBottom: "1px solid #1e293b", padding: "16px 32px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
         <div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:18,color:"#f1f5f9"}}>Collections Analytics</div>
-          <div style={{fontSize:12,color:"#64748b"}}>Status Disposition Intelligence System · 255 Recognized Dispositions</div>
+          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: "#f1f5f9" }}>Collections Analytics</div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>Status Disposition Intelligence System · 255 Recognized Dispositions</div>
         </div>
-        {data&&an&&<div style={{marginLeft:"auto",fontSize:12,color:"#22c55e",background:"#052e16",padding:"4px 12px",borderRadius:20,border:"1px solid #166534"}}>✓ {an.T.toLocaleString()} valid records loaded</div>}
+        {data && an && <div style={{ marginLeft: "auto", fontSize: 12, color: "#22c55e", background: "#052e16", padding: "4px 12px", borderRadius: 20, border: "1px solid #166534" }}>✓ {an.T.toLocaleString()} valid records loaded</div>}
       </div>
 
-      <div style={{maxWidth:1400,margin:"0 auto",padding:24}}>
-        {!data&&(
-          <div style={{maxWidth:540,margin:"80px auto"}}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
+        {!data && (
+          <div style={{ maxWidth: 540, margin: "80px auto" }}>
             <div className="card">
-              <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:22,marginBottom:8,color:"#f1f5f9"}}>Upload Collections File</div>
-              <div style={{fontSize:13,color:"#64748b",marginBottom:24}}>Upload an Excel file (.xlsx/.xls) with a <code style={{color:"#60a5fa",background:"#0f172a",padding:"1px 5px",borderRadius:4}}>Status</code> column. The system will automatically validate statuses against 255 recognized disposition codes.</div>
-              <div className="dz"
-                onClick={()=>fRef.current.click()}
-                onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor="#3b82f6"}}
-                onDragLeave={e=>{e.currentTarget.style.borderColor="#334155"}}
-                onDrop={e=>{e.preventDefault();e.currentTarget.style.borderColor="#334155";hf(e.dataTransfer.files[0])}}>
-                <div style={{fontSize:40,marginBottom:12}}>📂</div>
-                <div style={{fontWeight:600,fontSize:15,color:"#e2e8f0"}}>Drop your Excel file here</div>
-                <div style={{fontSize:13,color:"#64748b",marginTop:6}}>or click to browse · .xlsx / .xls accepted</div>
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 8, color: "#f1f5f9" }}>Upload Collections File</div>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 24 }}>
+                Upload an Excel file (.xlsx/.xls) with a <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 5px", borderRadius: 4 }}>Status</code> column.
+                Rows containing system remarks (e.g. <em>New Assignment</em>, <em>System Auto Update</em>) are automatically excluded.
               </div>
-              <input ref={fRef} type="file" accept=".xlsx,.xls" onChange={e=>hf(e.target.files[0])} />
-              {loading&&<div style={{marginTop:16,textAlign:"center",color:"#60a5fa",fontSize:14}}>⏳ Processing file...</div>}
-              {err&&<div style={{marginTop:16,background:"#450a0a",border:"1px solid #7f1d1d",borderRadius:8,padding:12,color:"#fca5a5",fontSize:13}}>{err}</div>}
-              <div style={{marginTop:20,padding:"12px 16px",background:"#0f172a",borderRadius:8,fontSize:12,color:"#475569"}}>
-                <div style={{fontWeight:600,color:"#64748b",marginBottom:6}}>Expected columns (auto-detected):</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {["Status","Account No.","Remark By","PTP Amount","PTP Date","Claim Paid Amount","Claim Paid Date"].map(c=><span key={c} style={{background:"#1e293b",padding:"2px 8px",borderRadius:4,color:"#94a3b8"}}>{c}</span>)}
+              <div className="dz"
+                onClick={() => fRef.current.click()}
+                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#3b82f6"; }}
+                onDragLeave={e => { e.currentTarget.style.borderColor = "#334155"; }}
+                onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#334155"; hf(e.dataTransfer.files[0]); }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📂</div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: "#e2e8f0" }}>Drop your Excel file here</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginTop: 6 }}>or click to browse · .xlsx / .xls accepted</div>
+              </div>
+              <input ref={fRef} type="file" accept=".xlsx,.xls" onChange={e => hf(e.target.files[0])} />
+              {loading && <div style={{ marginTop: 16, textAlign: "center", color: "#60a5fa", fontSize: 14 }}>⏳ Processing file...</div>}
+              {err && <div style={{ marginTop: 16, background: "#450a0a", border: "1px solid #7f1d1d", borderRadius: 8, padding: 12, color: "#fca5a5", fontSize: 13 }}>{err}</div>}
+              <div style={{ marginTop: 20, padding: "12px 16px", background: "#0f172a", borderRadius: 8, fontSize: 12, color: "#475569" }}>
+                <div style={{ fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Expected columns (auto-detected):</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {["Status", "Account No.", "Remark By", "Remarks", "PTP Amount", "PTP Date", "Claim Paid Amount", "Claim Paid Date", "Date / Time"].map(c => (
+                    <span key={c} style={{ background: "#1e293b", padding: "2px 8px", borderRadius: 4, color: "#94a3b8" }}>{c}</span>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {data&&an&&<>
+        {data && an && <>
           {/* KPI Row */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",gap:12,marginBottom:20}}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12, marginBottom: 20 }}>
             {[
-              {l:"Total Records",v:data.totalRaw.toLocaleString(),i:"📋",c:"#3b82f6"},
-              {l:"Valid Records",v:an.T.toLocaleString(),i:"✅",c:"#22c55e"},
-              {l:"Unique Statuses",v:an.sd.length,i:"🏷️",c:"#a78bfa"},
-              {l:"Unique Accounts",v:an.ua?.toLocaleString()??"N/A",i:"👤",c:"#f59e0b"},
-              {l:"Collectors",v:an.cd.length,i:"👥",c:"#06b6d4"},
-              {l:"PTP Amount",v:"₱"+fN(an.pt),i:"💰",c:"#22c55e"},
-              {l:"Claim Paid",v:"₱"+fN(an.ct),i:"💳",c:"#f97316"},
-            ].map(k=>(
+              { l: "Total Records", v: data.totalRaw.toLocaleString(), i: "📋", c: "#3b82f6" },
+              { l: "System Excluded", v: data.remarkExcludedCount.toLocaleString(), i: "🚫", c: "#94a3b8", sub: "auto-filtered remarks" },
+              { l: "Valid Records", v: an.T.toLocaleString(), i: "✅", c: "#22c55e" },
+              { l: "Unique Statuses", v: an.sd.length, i: "🏷️", c: "#a78bfa" },
+              { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
+              { l: "Collectors", v: an.cd.length, i: "👥", c: "#06b6d4" },
+              { l: "PTP Amount", v: "₱" + fN(an.pt), i: "💰", c: "#22c55e" },
+              { l: "Claim Paid", v: "₱" + fN(an.ct), i: "💳", c: "#f97316" },
+            ].map(k => (
               <div key={k.l} className="sc">
-                <div style={{fontSize:20,marginBottom:6}}>{k.i}</div>
-                <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600}}>{k.l}</div>
-                <div style={{fontSize:17,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2,wordBreak:"auto-phrase"}}>{k.v}</div>
+                <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
+                <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2, wordBreak: "auto-phrase" }}>{k.v}</div>
+                {k.sub && <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
               </div>
             ))}
           </div>
 
+          {/* Exclusion notice */}
+          {data.remarkExcludedCount > 0 && (
+            <div style={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#a8a29e", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16 }}>🚫</span>
+              <span><strong style={{ color: "#d6d3d1" }}>{data.remarkExcludedCount.toLocaleString()} rows</strong> were excluded because their remarks matched system-generated phrases: <em>New Assignment · System Auto Update Remarks For PD · Updates when case reassign to another collector · Sub Special Status Change · New files imported</em></span>
+            </div>
+          )}
+
           {/* Tabs */}
-          <div style={{display:"flex",gap:4,marginBottom:8,background:"#0f172a",padding:4,borderRadius:12,width:"fit-content",flexWrap:"wrap"}}>
-            {[["overview","📊 Overview"],["status","🏷️ Status Detail"],["collectors","👥 Collectors"],["ptp","💰 PTP & Claims"],["touch","📱 Touch Points"]].map(([t,l])=>(
-              <button key={t} className={`tb${tab===t?" ac":""}`} onClick={()=>setTab(t)}>{l}</button>
+          <div style={{ display: "flex", gap: 4, marginBottom: 8, background: "#0f172a", padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
+            {[
+              ["overview", "📊 Overview"],
+              ["status", "🏷️ Status Detail"],
+              ["collectors", "👥 Collectors"],
+              ["ptp", "💰 PTP & Claims"],
+              ["touch", "📱 Touch Points"],
+              ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : [])
+            ].map(([t, l]) => (
+              <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
             ))}
           </div>
-          <div style={{textAlign:"right",marginBottom:16}}>
-            <button onClick={()=>{setData(null);setErr("")}} style={{background:"#1e293b",border:"1px solid #334155",color:"#94a3b8",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:12}}>↩ Upload New File</button>
+          <div style={{ textAlign: "right", marginBottom: 16 }}>
+            <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); }} style={{ background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>↩ Upload New File</button>
           </div>
 
           {/* Overview */}
-          {tab==="overview"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          {tab === "overview" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card">
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Status Group Distribution</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Status Group Distribution</div>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
-                    {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]}/>)}
+                  <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, pct }) => `${name} ${pct}%`} labelLine={false}>
+                    {an.gd.map((e, i) => <Cell key={i} fill={GC[e.name] || PC[i % PC.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS}/>
-                  <Legend wrapperStyle={{fontSize:12}}/>
+                  <Tooltip formatter={(v, n, p) => [`${v.toLocaleString()} (${p.payload.pct}%)`, n]} contentStyle={TS} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="card">
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Top 15 Statuses by Count</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Top 15 Statuses by Count</div>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={an.sd.slice(0,15)} layout="vertical" margin={{left:0,right:16}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
-                  <XAxis type="number" tick={{fill:"#64748b",fontSize:11}}/>
-                  <YAxis type="category" dataKey="status" tick={{fill:"#94a3b8",fontSize:10}} width={180}/>
-                  <Tooltip contentStyle={TS}/>
-                  <Bar dataKey="count" radius={[0,4,4,0]}>
-                    {an.sd.slice(0,15).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]}/>)}
+                <BarChart data={an.sd.slice(0, 15)} layout="vertical" margin={{ left: 0, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <YAxis type="category" dataKey="status" tick={{ fill: "#94a3b8", fontSize: 10 }} width={180} />
+                  <Tooltip contentStyle={TS} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {an.sd.slice(0, 15).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="card" style={{gridColumn:"1/-1"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Group Summary</div>
+            <div className="card" style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Group Summary</div>
               <table>
-                <thead><tr><th>Group</th><th>Count</th><th>%</th><th style={{width:220}}>Distribution</th></tr></thead>
-                <tbody>{an.gd.map(g=><tr key={g.name}>
-                  <td><span className="bdg" style={{background:(GC[g.name]||"#3b82f6")+"33",color:GC[g.name]||"#94a3b8"}}>{g.name}</span></td>
-                  <td style={{fontWeight:600}}>{g.value.toLocaleString()}</td>
+                <thead><tr><th>Group</th><th>Count</th><th>%</th><th style={{ width: 220 }}>Distribution</th></tr></thead>
+                <tbody>{an.gd.map(g => <tr key={g.name}>
+                  <td><span className="bdg" style={{ background: (GC[g.name] || "#3b82f6") + "33", color: GC[g.name] || "#94a3b8" }}>{g.name}</span></td>
+                  <td style={{ fontWeight: 600 }}>{g.value.toLocaleString()}</td>
                   <td>{g.pct}%</td>
-                  <td><Pb pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"}/></td>
+                  <td><Pb pct={parseFloat(g.pct)} c={GC[g.name] || "#3b82f6"} /></td>
                 </tr>)}</tbody>
               </table>
             </div>
           </div>}
 
           {/* Status Detail */}
-          {tab==="status"&&<div className="card">
-            <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9"}}>Status Detail — {an.sd.length} Valid Statuses Found</div>
-            <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>Only statuses present in your file are shown. Statuses not in the 255-code master list are excluded.</div>
-            <div style={{overflowX:"auto"}}>
+          {tab === "status" && <div className="card">
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Only statuses present in your file are shown. Statuses not in the 255-code master list are excluded.</div>
+            <div style={{ overflowX: "auto" }}>
               <table>
-                <thead><tr><th>#</th><th>Status</th><th>Group</th><th>Touch Point</th><th>Count</th><th>%</th><th style={{width:100}}>Bar</th></tr></thead>
-                <tbody>{an.sd.map((s,i)=><tr key={s.status}>
-                  <td style={{color:"#475569"}}>{i+1}</td>
-                  <td style={{fontWeight:500,color:"#e2e8f0"}}>{s.status}</td>
-                  <td><span className="bdg" style={{background:(GC[s.grp]||"#3b82f6")+"33",color:GC[s.grp]||"#94a3b8"}}>{s.grp}</span></td>
-                  <td style={{color:"#94a3b8"}}>{s.tp}</td>
-                  <td style={{fontWeight:600,color:"#f1f5f9"}}>{s.count.toLocaleString()}</td>
-                  <td style={{color:"#60a5fa"}}>{s.pct}%</td>
-                  <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp]||"#3b82f6"}/></td>
+                <thead><tr><th>#</th><th>Status</th><th>Group</th><th>Touch Point</th><th>Count</th><th>%</th><th style={{ width: 100 }}>Bar</th></tr></thead>
+                <tbody>{an.sd.map((s, i) => <tr key={s.status}>
+                  <td style={{ color: "#475569" }}>{i + 1}</td>
+                  <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{s.status}</td>
+                  <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
+                  <td style={{ color: "#94a3b8" }}>{s.tp}</td>
+                  <td style={{ fontWeight: 600, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
+                  <td style={{ color: "#60a5fa" }}>{s.pct}%</td>
+                  <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
                 </tr>)}</tbody>
               </table>
             </div>
           </div>}
 
           {/* Collectors */}
-          {tab==="collectors"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-            <div className="card" style={{gridColumn:"1/-1"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9"}}>Collector Efforts (Remark By)</div>
-              {an.cd.length===0
-                ?<div style={{color:"#64748b",fontSize:13,marginTop:8}}>No "Remark By" column detected in the uploaded file.</div>
-                :<>
-                  <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>{an.cd.length} collectors · {an.T.toLocaleString()} total efforts</div>
-                  <div style={{maxHeight:380,overflowY:"auto"}}>
+          {tab === "collectors" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="card" style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Collector Efforts (Remark By)</div>
+              {an.cd.length === 0
+                ? <div style={{ color: "#64748b", fontSize: 13, marginTop: 8 }}>No "Remark By" column detected in the uploaded file.</div>
+                : <>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>{an.cd.length} collectors · {an.T.toLocaleString()} total efforts</div>
+                  <div style={{ maxHeight: 380, overflowY: "auto" }}>
                     <table>
-                      <thead><tr><th>Rank</th><th>Collector</th><th>Efforts</th><th>% Share</th><th style={{width:160}}>Bar</th></tr></thead>
-                      <tbody>{an.cd.map((c,i)=><tr key={c.name}>
-                        <td style={{color:"#475569"}}>{i+1}</td>
-                        <td style={{fontWeight:500,color:"#e2e8f0"}}>{c.name}</td>
-                        <td style={{fontWeight:700,color:"#22c55e"}}>{c.count.toLocaleString()}</td>
-                        <td style={{color:"#60a5fa"}}>{((c.count/an.T)*100).toFixed(1)}%</td>
-                        <td><Pb pct={(c.count/an.cd[0].count)*100} c="#3b82f6"/></td>
+                      <thead><tr><th>Rank</th><th>Collector</th><th>Efforts</th><th>% Share</th><th style={{ width: 160 }}>Bar</th></tr></thead>
+                      <tbody>{an.cd.map((c, i) => <tr key={c.name}>
+                        <td style={{ color: "#475569" }}>{i + 1}</td>
+                        <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{c.name}</td>
+                        <td style={{ fontWeight: 700, color: "#22c55e" }}>{c.count.toLocaleString()}</td>
+                        <td style={{ color: "#60a5fa" }}>{((c.count / an.T) * 100).toFixed(1)}%</td>
+                        <td><Pb pct={(c.count / an.cd[0].count) * 100} c="#3b82f6" /></td>
                       </tr>)}</tbody>
                     </table>
                   </div>
                 </>}
             </div>
-            {an.cd.length>0&&<div className="card" style={{gridColumn:"1/-1"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Top 20 Collectors by Efforts</div>
+            {an.cd.length > 0 && <div className="card" style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Top 20 Collectors by Efforts</div>
               <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={an.cd.slice(0,20)} margin={{bottom:90}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
-                  <XAxis dataKey="name" tick={{fill:"#64748b",fontSize:10}} angle={-40} textAnchor="end" interval={0}/>
-                  <YAxis tick={{fill:"#64748b",fontSize:11}}/>
-                  <Tooltip contentStyle={TS}/>
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4,4,0,0]} name="Efforts"/>
+                <BarChart data={an.cd.slice(0, 20)} margin={{ bottom: 90 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <Tooltip contentStyle={TS} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Efforts" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
           </div>}
 
           {/* PTP & Claims */}
-          {tab==="ptp"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          {tab === "ptp" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
-              {l:"PTP Records",v:an.pc.toLocaleString(),c:"#3b82f6",s:"rows with PTP amount > 0"},
-              {l:"Total PTP Amount",v:"₱"+fN(an.pt),c:"#22c55e"},
-              {l:"Claim Paid Records",v:an.cc.toLocaleString(),c:"#f59e0b",s:"rows with claim paid amount > 0"},
-              {l:"Total Claim Paid Amount",v:"₱"+fN(an.ct),c:"#f97316"},
-            ].map(k=><div key={k.l} className="sc">
-              <div style={{fontSize:12,color:"#64748b",textTransform:"uppercase",letterSpacing:".05em",fontWeight:600}}>{k.l}</div>
-              <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:26,fontWeight:700,color:k.c,marginTop:4}}>{k.v}</div>
-              {k.s&&<div style={{fontSize:12,color:"#475569",marginTop:4}}>{k.s}</div>}
+              { l: "PTP Records", v: an.pc.toLocaleString(), c: "#3b82f6", s: "rows with PTP amount > 0" },
+              { l: "Total PTP Amount", v: "₱" + fN(an.pt), c: "#22c55e" },
+              { l: "Claim Paid Records", v: an.cc.toLocaleString(), c: "#f59e0b", s: "rows with claim paid amount > 0" },
+              { l: "Total Claim Paid Amount", v: "₱" + fN(an.ct), c: "#f97316" },
+            ].map(k => <div key={k.l} className="sc">
+              <div style={{ fontSize: 12, color: "#64748b", textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{k.l}</div>
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 26, fontWeight: 700, color: k.c, marginTop: 4 }}>{k.v}</div>
+              {k.s && <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>{k.s}</div>}
             </div>)}
-            {an.pdd.length>0&&<div className="card" style={{gridColumn:"1/-1"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>PTP Date Trend (Last 15 Dates)</div>
+            {an.pdd.length > 0 && <div className="card" style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>PTP Date Trend (Last 15 Dates)</div>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={an.pdd} margin={{bottom:70}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
-                  <XAxis dataKey="date" tick={{fill:"#64748b",fontSize:10}} angle={-35} textAnchor="end" interval={0}/>
-                  <YAxis tick={{fill:"#64748b",fontSize:11}}/>
-                  <Tooltip contentStyle={TS}/>
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4,4,0,0]} name="PTP Records"/>
+                <BarChart data={an.pdd} margin={{ bottom: 70 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <Tooltip contentStyle={TS} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="PTP Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
-            {an.cdd.length>0&&<div className="card" style={{gridColumn:"1/-1"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Claim Paid Date Trend (Last 15 Dates)</div>
+            {an.cdd.length > 0 && <div className="card" style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Claim Paid Date Trend (Last 15 Dates)</div>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={an.cdd} margin={{bottom:70}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
-                  <XAxis dataKey="date" tick={{fill:"#64748b",fontSize:10}} angle={-35} textAnchor="end" interval={0}/>
-                  <YAxis tick={{fill:"#64748b",fontSize:11}}/>
-                  <Tooltip contentStyle={TS}/>
-                  <Bar dataKey="count" fill="#f97316" radius={[4,4,0,0]} name="Claim Records"/>
+                <BarChart data={an.cdd} margin={{ bottom: 70 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <Tooltip contentStyle={TS} />
+                  <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} name="Claim Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
-            {an.pdd.length===0&&an.cdd.length===0&&(
-              <div style={{gridColumn:"1/-1",color:"#64748b",fontSize:13,padding:"8px 0"}}>No PTP Date or Claim Paid Date columns detected in the uploaded file.</div>
+            {an.pdd.length === 0 && an.cdd.length === 0 && (
+              <div style={{ gridColumn: "1/-1", color: "#64748b", fontSize: 13, padding: "8px 0" }}>No PTP Date or Claim Paid Date columns detected in the uploaded file.</div>
             )}
           </div>}
 
           {/* Touch Points */}
-          {tab==="touch"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          {tab === "touch" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card">
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Touch Point Distribution</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Touch Point Distribution</div>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={an.td} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
-                    {an.td.map((e,i)=><Cell key={i} fill={PC[i%PC.length]}/>)}
+                  <Pie data={an.td} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, pct }) => `${name} ${pct}%`} labelLine={false}>
+                    {an.td.map((e, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS}/>
-                  <Legend wrapperStyle={{fontSize:12}}/>
+                  <Tooltip formatter={(v, n, p) => [`${v.toLocaleString()} (${p.payload.pct}%)`, n]} contentStyle={TS} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="card">
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Efforts by Touch Point</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Touch Point</div>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={an.td} layout="vertical" margin={{left:0,right:20}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
-                  <XAxis type="number" tick={{fill:"#64748b",fontSize:11}}/>
-                  <YAxis type="category" dataKey="name" tick={{fill:"#94a3b8",fontSize:11}} width={130}/>
-                  <Tooltip contentStyle={TS}/>
-                  <Bar dataKey="count" radius={[0,4,4,0]}>
-                    {an.td.map((e,i)=><Cell key={i} fill={PC[i%PC.length]}/>)}
+                <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
+                  <Tooltip contentStyle={TS} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {an.td.map((e, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="card" style={{gridColumn:"1/-1"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:16,color:"#f1f5f9"}}>Touch Point Summary</div>
+            <div className="card" style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Touch Point Summary</div>
               <table>
-                <thead><tr><th>Touch Point</th><th>Efforts</th><th>%</th><th style={{width:200}}>Bar</th></tr></thead>
-                <tbody>{an.td.map((t,i)=><tr key={t.name}>
-                  <td style={{fontWeight:500,color:"#e2e8f0"}}>{t.name}</td>
-                  <td style={{fontWeight:700,color:PC[i%PC.length]}}>{t.count.toLocaleString()}</td>
+                <thead><tr><th>Touch Point</th><th>Efforts</th><th>%</th><th style={{ width: 200 }}>Bar</th></tr></thead>
+                <tbody>{an.td.map((t, i) => <tr key={t.name}>
+                  <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{t.name}</td>
+                  <td style={{ fontWeight: 700, color: PC[i % PC.length] }}>{t.count.toLocaleString()}</td>
                   <td>{t.pct}%</td>
-                  <td><Pb pct={parseFloat(t.pct)} c={PC[i%PC.length]}/></td>
+                  <td><Pb pct={parseFloat(t.pct)} c={PC[i % PC.length]} /></td>
                 </tr>)}</tbody>
               </table>
             </div>
           </div>}
+
+          {/* ── Date & Time Tab ── */}
+          {tab === "datetime" && an.dateAnalytics && (() => {
+            const { dateSorted, hourData, hasHours } = an.dateAnalytics;
+            const totalDays = dateSorted.length;
+            const avgPerDay = totalDays > 0 ? (an.T / totalDays).toFixed(1) : 0;
+            const peakDay = dateSorted.reduce((a, b) => b.total > a.total ? b : a, dateSorted[0] || {});
+            const peakHour = hasHours ? hourData.reduce((a, b) => b.count > a.count ? b : a, hourData[0]) : null;
+
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                {/* Summary KPIs */}
+                {[
+                  { l: "Active Days", v: totalDays, i: "📅", c: "#3b82f6" },
+                  { l: "Avg / Day", v: avgPerDay, i: "📈", c: "#a78bfa" },
+                  { l: "Peak Day", v: peakDay?.date || "–", i: "🔝", c: "#f59e0b", sub: peakDay?.total ? peakDay.total.toLocaleString() + " records" : "" },
+                  { l: "Peak Hour", v: peakHour ? peakHour.hour : "N/A", i: "⏰", c: "#06b6d4", sub: peakHour ? peakHour.count.toLocaleString() + " records" : "No time data" },
+                ].map(k => (
+                  <div key={k.l} className="sc">
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
+                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                  </div>
+                ))}
+
+                {/* Overall daily trend line chart */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Overall Daily Efforts Trend</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>{totalDays} active days · All records over time</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={dateSorted} margin={{ left: 0, right: 16, bottom: dateSorted.length > 20 ? 70 : 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={dateSorted.length < 40} name="Total Records" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Stacked bar: group breakdown per day */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Daily Group Breakdown</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>NEG / RPC / PTP / KEPT / POS per day</div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={dateSorted} margin={{ left: 0, right: 16, bottom: dateSorted.length > 20 ? 70 : 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {SG_GROUPS.map(sg => (
+                        <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Hour of day distribution */}
+                {hasHours && (
+                  <div className="card" style={{ gridColumn: "1/-1" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Activity by Hour of Day</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>When are collectors most active?</div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={hourData} margin={{ left: 0, right: 16 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={1} />
+                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Bar dataKey="count" fill="#a78bfa" radius={[3, 3, 0, 0]} name="Records" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Per-date summary table — click row to drill in */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Per-Date Summary</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+                    Click any row to see the status breakdown for that date.
+                    {selectedDate && <button onClick={() => setSelectedDate(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>✕ Clear selection</button>}
+                  </div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>#</th><th>Date</th><th>Total</th>
+                          {SG_GROUPS.map(sg => <th key={sg}><span style={{ color: GC[sg] || "#94a3b8" }}>{sg}</span></th>)}
+                          <th style={{ width: 120 }}>Trend</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dateSorted.map((d, i) => (
+                          <tr key={d.date} className={`dr${selectedDate === d.date ? " sel" : ""}`} onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}>
+                            <td style={{ color: "#475569" }}>{i + 1}</td>
+                            <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{d.date}</td>
+                            <td style={{ fontWeight: 700, color: "#60a5fa" }}>{d.total.toLocaleString()}</td>
+                            {SG_GROUPS.map(sg => (
+                              <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>
+                            ))}
+                            <td><Pb pct={(d.total / (peakDay?.total || 1)) * 100} c="#3b82f6" /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Drill-down: selected date status breakdown */}
+                {selectedDate && selectedDateRows && (
+                  <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #1e40af" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>📅 Status Breakdown — {selectedDate}</div>
+                      <span style={{ background: "#172554", color: "#60a5fa", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedDateRows.reduce((a, b) => a + b.count, 0).toLocaleString()} records</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div style={{ overflowX: "auto" }}>
+                        <table>
+                          <thead><tr><th>#</th><th>Status</th><th>Grp</th><th>TP</th><th>Count</th><th>%</th></tr></thead>
+                          <tbody>{selectedDateRows.map((s, i) => {
+                            const dayTotal = selectedDateRows.reduce((a, b) => a + b.count, 0);
+                            return (
+                              <tr key={s.status}>
+                                <td style={{ color: "#475569" }}>{i + 1}</td>
+                                <td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td>
+                                <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
+                                <td style={{ color: "#64748b" }}>{s.tp}</td>
+                                <td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
+                                <td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td>
+                              </tr>
+                            );
+                          })}</tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <ResponsiveContainer width="100%" height={260}>
+                          <PieChart>
+                            <Pie data={selectedDateRows.slice(0, 10)} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name.split(" - ")[1] || name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                              {selectedDateRows.slice(0, 10).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
+                            </Pie>
+                            <Tooltip formatter={(v, n) => [v.toLocaleString(), n]} contentStyle={TS} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </>}
       </div>
     </div>

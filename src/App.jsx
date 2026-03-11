@@ -923,7 +923,7 @@ export default function App() {
                   <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
                   <YAxis type="category" dataKey="status" tick={{ fill: "#94a3b8", fontSize: 10 }} width={180} />
                   <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} fill="#f1f5F9">
                     {an.sd.slice(0, 15).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
                   </Bar>
                 </BarChart>
@@ -1510,7 +1510,7 @@ export default function App() {
                       <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Total Efforts">
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Total Efforts" fill="#f1f5f9">
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
                       </Bar>
                     </BarChart>

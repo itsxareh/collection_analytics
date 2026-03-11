@@ -849,7 +849,7 @@ export default function App() {
               { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
               { l: "Collectors", v: an.cd.length, i: "👥", c: "#06b6d4" },
               { l: "Clients", v: an.clientAnalytics ? an.clientAnalytics.clientList.length : "N/A", i: "🏢", c: "#a78bfa" },
-              { l: "Buckets", v: an.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A", i: "🪣", c: "#f97316" },
+              { l: "Buckets", v: an.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A", i: "📍", c: "#f97316" },
               { l: "PTP Amount", v: "₱" + fN(an.pt), i: "💰", c: "#22c55e" },
               { l: "Claim Paid", v: "₱" + fN(an.ct), i: "💳", c: "#f97316" },
             ].map(k => (
@@ -869,7 +869,7 @@ export default function App() {
             {data.timek && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>⏰ Time: <strong>{data.timek}</strong></span>}
             {data.dtk && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📅⏰ DateTime: <strong>{data.dtk}</strong></span>}
             {data.clk && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>🏢 Client: <strong>{data.clk}</strong></span>}
-            {data.oick && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>🪣 Bucket/IC: <strong>{data.oick}</strong></span>}
+            {data.oick && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📍 Bucket/IC: <strong>{data.oick}</strong></span>}
             {!data.datек && !data.timek && !data.dtk && <span style={{ color: "#64748b" }}>No date/time columns detected</span>}
             {!data.clk && <span style={{ color: "#64748b" }}>No client column detected</span>}
             {!data.oick && <span style={{ color: "#64748b" }}>No Old IC/Bucket column detected</span>}
@@ -892,7 +892,7 @@ export default function App() {
               ["touch", "📱 Touch Points"],
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
               ...(an.clientAnalytics ? [["clients", "🏢 Clients"]] : []),
-              ...(an.bucketAnalytics ? [["buckets", "🪣 Buckets"]] : []),
+              ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
             ].map(([t, l]) => (
               <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
             ))}
@@ -1472,7 +1472,7 @@ export default function App() {
 
                 {/* KPI cards */}
                 {[
-                  { l: "Total Buckets", v: bucketList.length, i: "🪣", c: "#f97316" },
+                  { l: "Total Buckets", v: bucketList.length, i: "📍", c: "#f97316" },
                   { l: "Highest Volume", v: topBucket?.name || "–", i: "🔝", c: "#3b82f6", sub: topBucket?.total.toLocaleString() + " records" },
                   { l: "Best PTP Amount", v: bestPTP?.name || "–", i: "💰", c: "#f59e0b", sub: "₱" + fN(bestPTP?.ptpAmt || 0) },
                   { l: "Best KEPT Rate", v: bestKept?.name || "–", i: "✅", c: "#22c55e", sub: (bestKept?.bySG?.KEPT || 0).toLocaleString() + " kept" },
@@ -1739,7 +1739,7 @@ export default function App() {
                 {selectedBucket && selectedBucketData && (
                   <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#334155"}44` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9" }}>🪣 {selectedBucket} — Deep Dive</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9" }}>📍 {selectedBucket} — Deep Dive</div>
                       <span style={{ background: (BUCKET_COLORS[selectedBucket] || "#64748b") + "22", color: BUCKET_COLORS[selectedBucket] || "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600, border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#64748b"}44` }}>
                         {selectedBucketData.total.toLocaleString()} total records
                       </span>

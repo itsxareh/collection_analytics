@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import * as XLSX from "xlsx";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, ScatterChart, Scatter, ZAxis } from "recharts";
 
 const DISP = {
   "CALL - POS_UNATTENDED": { tp: "CALL", sg: "NEG" },
@@ -260,29 +260,16 @@ const DISP = {
   "REPO AI - KEPT_PARTIAL": { tp: "REPO AI", sg: "KEPT" }
 };
 
-// ── Bucket/Placement mapping ────────────────────────────────────────────────
 const BUCKET_MAP = {
-  "01BDORA": "Bucket 1",
-  "01BDA":   "Bucket 1",
-  "02BDA":   "Bucket 2",
-  "05BDA":   "Bucket 5",
-  "06BDA":   "Bucket 6",
-  "01OASSA": "Sub Standard 1",
-  "02OASSA": "Sub Standard 2",
-  "03OASSA": "Substandard 3",
+  "01BDORA": "Bucket 1", "01BDA": "Bucket 1", "02BDA": "Bucket 2",
+  "05BDA": "Bucket 5", "06BDA": "Bucket 6",
+  "01OASSA": "Sub Standard 1", "02OASSA": "Sub Standard 2", "03OASSA": "Substandard 3",
   "04OAFWA": "Write Off",
-  "01OAFSA": "Bucket 1",
-  "02OAFSA": "Bucket 2",
-  "03OAFSA": "Bucket 3",
-  "04OAFSA": "Bucket 4",
-  "05OAFSA": "Bucket 5",
-  "06OAFSA": "Bucket 6",
-  "01BMIM":  "Regular",
-  "02BMIM":  "NPA",
-  "03BMIM":  "Write Off",
+  "01OAFSA": "Bucket 1", "02OAFSA": "Bucket 2", "03OAFSA": "Bucket 3",
+  "04OAFSA": "Bucket 4", "05OAFSA": "Bucket 5", "06OAFSA": "Bucket 6",
+  "01BMIM": "Regular", "02BMIM": "NPA", "03BMIM": "Write Off",
 };
 
-// Canonical bucket order for sorting
 const BUCKET_ORDER = [
   "Bucket 1","Bucket 2","Bucket 3","Bucket 4","Bucket 5","Bucket 6",
   "Sub Standard 1","Sub Standard 2","Substandard 3",
@@ -290,31 +277,20 @@ const BUCKET_ORDER = [
 ];
 
 const BUCKET_COLORS = {
-  "Bucket 1":       "#3b82f6",
-  "Bucket 2":       "#06b6d4",
-  "Bucket 3":       "#a78bfa",
-  "Bucket 4":       "#f59e0b",
-  "Bucket 5":       "#f97316",
-  "Bucket 6":       "#ef4444",
-  "Sub Standard 1": "#84cc16",
-  "Sub Standard 2": "#22c55e",
-  "Substandard 3":  "#14b8a6",
-  "Regular":        "#60a5fa",
-  "NPA":            "#fb923c",
-  "Write Off":      "#dc2626",
+  "Bucket 1": "#3b82f6", "Bucket 2": "#06b6d4", "Bucket 3": "#a78bfa",
+  "Bucket 4": "#f59e0b", "Bucket 5": "#f97316", "Bucket 6": "#ef4444",
+  "Sub Standard 1": "#84cc16", "Sub Standard 2": "#22c55e", "Substandard 3": "#14b8a6",
+  "Regular": "#60a5fa", "NPA": "#fb923c", "Write Off": "#dc2626",
 };
 
 const resolveBucket = (rawVal) => {
   if (!rawVal) return null;
   const s = String(rawVal).trim().toUpperCase();
-  // Direct match
   const direct = BUCKET_MAP[String(rawVal).trim()];
   if (direct) return direct;
-  // Try uppercase key match
   for (const [k, v] of Object.entries(BUCKET_MAP)) {
     if (k.toUpperCase() === s) return v;
   }
-  // Partial match: if the raw value contains one of the keys
   for (const [k, v] of Object.entries(BUCKET_MAP)) {
     if (s.includes(k.toUpperCase())) return v;
   }
@@ -322,15 +298,13 @@ const resolveBucket = (rawVal) => {
 };
 
 const EXCLUDED_REMARKS = [
-  "New Assignment",
-  "System Auto Update Remarks For PD",
+  "New Assignment", "System Auto Update Remarks For PD",
   "Updates when case reassign to another collector",
-  "Sub Special Status Change",
-  "New files imported"
+  "Sub Special Status Change", "New files imported"
 ];
 
 const GC = { "NEG": "#c94537", "RPC": "#3b82f6", "KEPT": "#22c55e", "PTP": "#f58c0b", "FOLLOW UP": "#a78bfa", "POS": "#06b6d4" };
-const PC = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#a78bfa", "#06b6d4", "#f97316", "#84cc16", "#ec4899", "#14b8a6", "#8b5cf6", "#fb7185"];
+const PC = ["#3b82f6","#22c55e","#f59e0b","#ef4444","#a78bfa","#06b6d4","#f97316","#84cc16","#ec4899","#14b8a6","#8b5cf6","#fb7185"];
 const TP_COLORS = {
   "CALL": "#3b82f6", "FIELD": "#22c55e", "SMS": "#f59e0b", "VIBER": "#a78bfa",
   "EMAIL": "#06b6d4", "INTERNET": "#f97316", "CEASE COLLECTION": "#ef4444",
@@ -405,6 +379,24 @@ const Pb = ({ pct, c }) => (
   </div>
 );
 
+// Penetration heatmap cell
+const HeatCell = ({ pct, max }) => {
+  const intensity = max > 0 ? pct / max : 0;
+  const bg = intensity === 0
+    ? "#0f172a"
+    : `rgba(59,130,246,${0.1 + intensity * 0.85})`;
+  const textColor = intensity > 0.5 ? "#fff" : "#94a3b8";
+  return (
+    <div style={{
+      background: bg, color: textColor, borderRadius: 4,
+      padding: "4px 6px", textAlign: "center", fontSize: 11, fontWeight: 600,
+      border: "1px solid #1e293b", minWidth: 54, transition: "background 0.2s"
+    }}>
+      {pct > 0 ? pct.toFixed(1) + "%" : "–"}
+    </div>
+  );
+};
+
 const SG_GROUPS = ["NEG", "RPC", "PTP", "KEPT", "POS"];
 const ALL_TP = ["CALL", "SMS", "VIBER", "EMAIL", "FIELD", "INTERNET", "CEASE COLLECTION", "FIELD REQUEST", "REPO AI"];
 
@@ -433,6 +425,8 @@ export default function App() {
   const [selectedCollector, setSelectedCollector] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedBucket, setSelectedBucket] = useState(null);
+  const [penetrationMode, setPenetrationMode] = useState("pct"); // "pct" | "efforts" | "accounts"
+  const [hourlyCollectorView, setHourlyCollectorView] = useState("heatmap"); // "heatmap" | "bar" | "top"
   const fRef = useRef();
 
   const [statusSort, setStatusSort] = useState({ key: "count", dir: "desc" });
@@ -510,7 +504,6 @@ export default function App() {
           const l = k.trim().toLowerCase();
           return l === "client" || l === "client type" || l === "client name" || l === "clienttype";
         });
-        // Old IC / Bucket column
         const oick = keys.find(k => {
           const l = k.trim().toLowerCase();
           return l === "old ic" || l === "oldic" || l === "old_ic" || l === "placement" || l === "bucket";
@@ -518,19 +511,16 @@ export default function App() {
 
         const allRows = raw.map(r => ({ ...r, _su: r[sk] ? String(r[sk]).trim().toUpperCase() : null }));
         const totalRaw = allRows.length;
-
         const remarkExcludedCount = allRows.filter(r => {
           const remarkCol = rmk ? r[rmk] : null;
           const remarkByCol = rk ? r[rk] : null;
           return isExcludedRemark(remarkCol) || isExcludedRemark(remarkByCol);
         }).length;
-
         const afterRemarkFilter = allRows.filter(r => {
           const remarkCol = rmk ? r[rmk] : null;
           const remarkByCol = rk ? r[rk] : null;
           return !isExcludedRemark(remarkCol) && !isExcludedRemark(remarkByCol);
         });
-
         const rows = afterRemarkFilter
           .filter(r => r._su && DU[r._su])
           .map(r => ({
@@ -636,7 +626,7 @@ export default function App() {
       clientAnalytics = { clientList, clientSGData };
     }
 
-    // ── Bucket Analytics ────────────────────────────────────────────────────
+    // ── Bucket Analytics ─────────────────────────────────────────────────────
     let bucketAnalytics = null;
     if (oick) {
       const bucketMap = {};
@@ -646,50 +636,42 @@ export default function App() {
         if (!bucketMap[b]) bucketMap[b] = {
           total: 0, byTP: {}, bySG: {},
           ptpAmt: 0, ptpCount: 0, claimAmt: 0, claimCount: 0,
-          ptpByDate: {}, claimByDate: {},
-          rawCodes: {},
+          ptpByDate: {}, claimByDate: {}, rawCodes: {},
+          // NEW: unique accounts overall and per-TP
+          accounts: new Set(),
+          accountsByTP: {},
         };
         bucketMap[b].total++;
         bucketMap[b].byTP[r._d.tp] = (bucketMap[b].byTP[r._d.tp] || 0) + 1;
         bucketMap[b].bySG[r._d.sg] = (bucketMap[b].bySG[r._d.sg] || 0) + 1;
-
-        // PTP
-        if (pak) {
-          const v = parseAmt(r[pak]);
-          if (!isNaN(v) && v > 0) { bucketMap[b].ptpAmt += v; bucketMap[b].ptpCount++; }
+        // Unique accounts
+        if (ak && r[ak]) {
+          const acct = String(r[ak]).trim();
+          bucketMap[b].accounts.add(acct);
+          if (!bucketMap[b].accountsByTP[r._d.tp]) bucketMap[b].accountsByTP[r._d.tp] = new Set();
+          bucketMap[b].accountsByTP[r._d.tp].add(acct);
         }
-        if (pdk) {
-          const d = fD(r[pdk]);
-          if (d) bucketMap[b].ptpByDate[d] = (bucketMap[b].ptpByDate[d] || 0) + 1;
-        }
-        // Claim
-        if (cak) {
-          const v = parseAmt(r[cak]);
-          if (!isNaN(v) && v > 0) { bucketMap[b].claimAmt += v; bucketMap[b].claimCount++; }
-        }
-        if (cdk) {
-          const d = fD(r[cdk]);
-          if (d) bucketMap[b].claimByDate[d] = (bucketMap[b].claimByDate[d] || 0) + 1;
-        }
-        // Raw code tracking
-        if (oick) {
-          const raw = String(r[oick] || "").trim();
-          bucketMap[b].rawCodes[raw] = (bucketMap[b].rawCodes[raw] || 0) + 1;
-        }
+        if (pak) { const v = parseAmt(r[pak]); if (!isNaN(v) && v > 0) { bucketMap[b].ptpAmt += v; bucketMap[b].ptpCount++; } }
+        if (pdk) { const d = fD(r[pdk]); if (d) bucketMap[b].ptpByDate[d] = (bucketMap[b].ptpByDate[d] || 0) + 1; }
+        if (cak) { const v = parseAmt(r[cak]); if (!isNaN(v) && v > 0) { bucketMap[b].claimAmt += v; bucketMap[b].claimCount++; } }
+        if (cdk) { const d = fD(r[cdk]); if (d) bucketMap[b].claimByDate[d] = (bucketMap[b].claimByDate[d] || 0) + 1; }
+        if (oick) { const raw = String(r[oick] || "").trim(); bucketMap[b].rawCodes[raw] = (bucketMap[b].rawCodes[raw] || 0) + 1; }
       });
 
-      // Sort by canonical order then alphabetically
       const bucketList = Object.entries(bucketMap)
         .sort((a, b) => {
           const ai = BUCKET_ORDER.indexOf(a[0]), bi = BUCKET_ORDER.indexOf(b[0]);
           if (ai === -1 && bi === -1) return a[0].localeCompare(b[0]);
-          if (ai === -1) return 1;
-          if (bi === -1) return -1;
+          if (ai === -1) return 1; if (bi === -1) return -1;
           return ai - bi;
         })
         .map(([name, v]) => ({
-          name,
-          ...v,
+          name, ...v,
+          uniqueAccounts: v.accounts.size,
+          // Per-TP unique accounts count
+          uniqueAccountsByTP: Object.fromEntries(
+            Object.entries(v.accountsByTP).map(([tp, s]) => [tp, s.size])
+          ),
           ptpByDateArr: Object.entries(v.ptpByDate).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c })),
           claimByDateArr: Object.entries(v.claimByDate).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c })),
           pctShare: ((v.total / T) * 100).toFixed(1),
@@ -698,7 +680,6 @@ export default function App() {
           keptRate: v.total > 0 ? (((v.bySG.KEPT || 0) / v.total) * 100).toFixed(1) : "0.0",
         }));
 
-      // Cross-bucket PTP & Claim trend by date
       const allDates = new Set();
       bucketList.forEach(b => b.ptpByDateArr.forEach(x => allDates.add(x.date)));
       const ptpTrendByBucket = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b)).map(date => {
@@ -715,22 +696,168 @@ export default function App() {
         return row;
       });
 
-      // Radar data: each bucket's SG distribution normalized %
       const radarData = SG_GROUPS.map(sg => {
         const row = { sg };
+        bucketList.forEach(b => { row[b.name] = b.total > 0 ? parseFloat(((b.bySG[sg] || 0) / b.total * 100).toFixed(1)) : 0; });
+        return row;
+      });
+
+      const unmappedCount = rows.filter(r => !r._bucket).length;
+
+      // ── Penetration matrix: bucket × touchpoint ──────────────────────────
+      // penetration% = unique accounts touched by TP in bucket / total unique accounts in bucket
+      const activeTPs = ALL_TP.filter(tp => bucketList.some(b => (b.byTP[tp] || 0) > 0));
+      const penetrationMatrix = bucketList.map(b => {
+        const row = { bucket: b.name, uniqueAccounts: b.uniqueAccounts, total: b.total };
+        activeTPs.forEach(tp => {
+          const effortCount = b.byTP[tp] || 0;
+          const uniqueWorked = b.uniqueAccountsByTP[tp] || 0;
+          const pct = b.uniqueAccounts > 0 ? (uniqueWorked / b.uniqueAccounts) * 100 : 0;
+          row[`${tp}_efforts`] = effortCount;
+          row[`${tp}_accounts`] = uniqueWorked;
+          row[`${tp}_pct`] = parseFloat(pct.toFixed(1));
+        });
+        // overall penetration: unique accounts with ANY effort / total unique accounts
+        row["overall_pct"] = b.uniqueAccounts > 0
+          ? parseFloat(((b.uniqueAccounts / b.uniqueAccounts) * 100).toFixed(1))
+          : 0;
+        return row;
+      });
+
+      // Max pct per TP column (for heatmap coloring)
+      const tpMaxPct = {};
+      activeTPs.forEach(tp => {
+        tpMaxPct[tp] = Math.max(...penetrationMatrix.map(r => r[`${tp}_pct`] || 0));
+      });
+
+      // ── Penetration chart data (stacked bar by TP across buckets) ─────────
+      const penetrationBarData = activeTPs.map(tp => {
+        const row = { tp };
         bucketList.forEach(b => {
-          row[b.name] = b.total > 0 ? parseFloat(((b.bySG[sg] || 0) / b.total * 100).toFixed(1)) : 0;
+          row[b.name] = parseFloat((b.uniqueAccounts > 0
+            ? ((b.uniqueAccountsByTP[tp] || 0) / b.uniqueAccounts * 100)
+            : 0).toFixed(1));
         });
         return row;
       });
 
-      // Unmapped rows count
-      const unmappedCount = rows.filter(r => !r._bucket).length;
-
-      bucketAnalytics = { bucketList, ptpTrendByBucket, claimTrendByBucket, radarData, unmappedCount };
+      bucketAnalytics = {
+        bucketList, ptpTrendByBucket, claimTrendByBucket, radarData, unmappedCount,
+        penetrationMatrix, tpMaxPct, penetrationBarData, activeTPs,
+        hasAccountData: !!ak,
+      };
     }
 
-    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, clientAnalytics, bucketAnalytics };
+    // ── Hourly Collector Analytics ───────────────────────────────────────────
+    let hourlyCollectorAnalytics = null;
+    const activeTimeKey = timek || dtk;
+    if (activeTimeKey && rk) {
+      // collector × hour matrix
+      const collectorHourMap = {}; // { collectorName: { h0..h23: count } }
+      const hourCollectorMap = {}; // { hour: { collectorName: count } }
+      rows.forEach(r => {
+        const collector = r[rk] ? String(r[rk]).trim() : null;
+        const tRaw = r[activeTimeKey];
+        if (!collector || !tRaw) return;
+        const hr = parseTimeHour(tRaw);
+        if (hr === null) return;
+        if (!collectorHourMap[collector]) collectorHourMap[collector] = {};
+        collectorHourMap[collector][hr] = (collectorHourMap[collector][hr] || 0) + 1;
+        if (!hourCollectorMap[hr]) hourCollectorMap[hr] = {};
+        hourCollectorMap[hr][collector] = (hourCollectorMap[hr][collector] || 0) + 1;
+      });
+
+      const allCollectors = Object.keys(collectorHourMap).sort((a, b) => {
+        const ta = Object.values(collectorHourMap[a]).reduce((s, v) => s + v, 0);
+        const tb = Object.values(collectorHourMap[b]).reduce((s, v) => s + v, 0);
+        return tb - ta;
+      });
+
+      // Heatmap data: array of { collector, h0..h23, total, peakHour }
+      const heatmapRows = allCollectors.slice(0, 30).map(col => {
+        const hours = collectorHourMap[col];
+        const total = Object.values(hours).reduce((s, v) => s + v, 0);
+        const peakHour = Object.entries(hours).sort((a, b) => b[1] - a[1])[0]?.[0];
+        const row = { collector: col, total, peakHour: peakHour != null ? `${String(peakHour).padStart(2, "0")}:00` : "–" };
+        for (let h = 0; h < 24; h++) row[`h${h}`] = hours[h] || 0;
+        return row;
+      });
+
+      // Per-hour top collectors bar data
+      const hourTopData = Array.from({ length: 24 }, (_, h) => {
+        const hMap = hourCollectorMap[h] || {};
+        const total = Object.values(hMap).reduce((s, v) => s + v, 0);
+        const topCol = Object.entries(hMap).sort((a, b) => b[1] - a[1])[0];
+        return {
+          hour: `${String(h).padStart(2, "0")}:00`,
+          total,
+          topCollector: topCol?.[0] || "–",
+          topCount: topCol?.[1] || 0,
+        };
+      });
+
+      // Collector peak hour distribution (for pie)
+      const peakHourDist = {};
+      heatmapRows.forEach(r => {
+        const ph = r.peakHour;
+        peakHourDist[ph] = (peakHourDist[ph] || 0) + 1;
+      });
+
+      // Max value for heatmap normalization
+      let heatmapMax = 0;
+      heatmapRows.forEach(r => {
+        for (let h = 0; h < 24; h++) { if (r[`h${h}`] > heatmapMax) heatmapMax = r[`h${h}`]; }
+      });
+
+      // Summary by shift: early (6-9), morning (9-12), afternoon (12-17), evening (17-21), night (21-24, 0-6)
+      const shiftMap = { "Early (6–9)": [6,7,8], "Morning (9–12)": [9,10,11], "Afternoon (12–17)": [12,13,14,15,16], "Evening (17–21)": [17,18,19,20], "Night (21–6)": [21,22,23,0,1,2,3,4,5] };
+      const shiftData = Object.entries(shiftMap).map(([label, hours]) => ({
+        name: label,
+        count: hours.reduce((s, h) => s + (Object.values(hourCollectorMap[h] || {}).reduce((a, b) => a + b, 0)), 0),
+      }));
+
+      // Hourly TP breakdown
+      const hourTPMap = {};
+      rows.forEach(r => {
+        const tRaw = r[activeTimeKey];
+        if (!tRaw) return;
+        const hr = parseTimeHour(tRaw);
+        if (hr === null) return;
+        if (!hourTPMap[hr]) hourTPMap[hr] = {};
+        hourTPMap[hr][r._d.tp] = (hourTPMap[hr][r._d.tp] || 0) + 1;
+      });
+      const hourTPData = Array.from({ length: 24 }, (_, h) => ({
+        hour: `${String(h).padStart(2, "0")}:00`,
+        ...hourTPMap[h] || {},
+      }));
+
+      hourlyCollectorAnalytics = {
+        heatmapRows, heatmapMax, hourTopData, peakHourDist, shiftData, hourTPData,
+        allCollectors, collectorHourMap,
+      };
+    } else if (activeTimeKey && !rk) {
+      // Only time available, no collector column – still compute hourly TP
+      const hourTPMap = {};
+      rows.forEach(r => {
+        const tRaw = r[activeTimeKey];
+        if (!tRaw) return;
+        const hr = parseTimeHour(tRaw);
+        if (hr === null) return;
+        if (!hourTPMap[hr]) hourTPMap[hr] = {};
+        hourTPMap[hr][r._d.tp] = (hourTPMap[hr][r._d.tp] || 0) + 1;
+      });
+      const hourTPData = Array.from({ length: 24 }, (_, h) => ({
+        hour: `${String(h).padStart(2, "0")}:00`,
+        ...hourTPMap[h] || {},
+      }));
+      const hourTopData = Array.from({ length: 24 }, (_, h) => ({
+        hour: `${String(h).padStart(2, "0")}:00`,
+        total: Object.values(hourTPMap[h] || {}).reduce((s, v) => s + v, 0),
+      }));
+      hourlyCollectorAnalytics = { heatmapRows: [], heatmapMax: 0, hourTopData, shiftData: [], hourTPData, allCollectors: [], collectorHourMap: {}, noCollector: true };
+    }
+
+    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics };
   }, [data]);
 
   const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
@@ -766,6 +893,16 @@ export default function App() {
     return an.bucketAnalytics.bucketList.find(b => b.name === selectedBucket) || null;
   }, [selectedBucket, an]);
 
+  // Heatmap color for hourly collector
+  const hourlyColor = (val, max) => {
+    if (!val || max === 0) return "#0f172a";
+    const i = val / max;
+    if (i < 0.25) return `rgba(59,130,246,${0.2 + i * 1.2})`;
+    if (i < 0.5) return `rgba(16,185,129,${0.3 + i})`;
+    if (i < 0.75) return `rgba(245,158,11,${0.4 + i * 0.8})`;
+    return `rgba(239,68,68,${0.5 + i * 0.5})`;
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a", color: "#e2e8f0", fontFamily: "'DM Sans',sans-serif" }}>
       <style>{`
@@ -794,6 +931,9 @@ export default function App() {
         .dr3.sel td{background:#2a1500 !important}
         .dr4:hover td{background:#1a1a2e !important}
         .dr4.sel td{background:#0d0d1f !important}
+        .mode-btn{background:none;border:1px solid #334155;cursor:pointer;padding:5px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:#64748b;transition:all .15s}
+        .mode-btn.active{background:#1e40af;border-color:#3b82f6;color:#fff}
+        .hm-cell{border-radius:3px;font-size:10px;font-weight:600;text-align:center;padding:3px 0;min-width:26px;transition:all .15s;cursor:default}
       `}</style>
 
       {/* Header */}
@@ -830,7 +970,7 @@ export default function App() {
               <div style={{ marginTop: 20, padding: "12px 16px", background: "#0f172a", borderRadius: 8, fontSize: 12, color: "#475569" }}>
                 <div style={{ fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Expected columns (auto-detected):</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {["Status", "Account No.", "Remark By", "Remarks", "PTP Amount", "PTP Date", "Claim Paid Amount", "Claim Paid Date", "Date", "Time", "Client", "Old IC"].map(c => (
+                  {["Status","Account No.","Remark By","Remarks","PTP Amount","PTP Date","Claim Paid Amount","Claim Paid Date","Date","Time","Client","Old IC"].map(c => (
                     <span key={c} style={{ background: "#1e293b", padding: "2px 8px", borderRadius: 4, color: "#94a3b8" }}>{c}</span>
                   ))}
                 </div>
@@ -893,6 +1033,8 @@ export default function App() {
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
               ...(an.clientAnalytics ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
+              ...(an.bucketAnalytics?.hasAccountData ? [["penetration", "🎯 Penetration"]] : []),
+              ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
             ].map(([t, l]) => (
               <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
             ))}
@@ -950,7 +1092,7 @@ export default function App() {
             return (
               <div className="card">
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Only statuses present in your file are shown. Click column headers to sort.</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Only statuses present in your file are shown.</div>
                 <SearchBar value={statusSearch} onChange={setStatusSearch} placeholder="Filter by status, group, or touch point..." />
                 <div style={{ fontSize: 12, color: "#475569", marginBottom: 8 }}>{ssd.length} of {an.sd.length} statuses shown</div>
                 <div style={{ overflowX: "auto" }}>
@@ -999,7 +1141,7 @@ export default function App() {
               <div className="card" style={{ gridColumn: "1/-1" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Collector Efforts with Touch Point Breakdown</div>
                 <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
-                  Click a row to drill down · Click column headers to sort.
+                  Click a row to drill down.
                   {selectedCollector && <button onClick={() => setSelectedCollector(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                 </div>
                 <SearchBar value={collectorSearch} onChange={setCollectorSearch} placeholder="Filter by collector name..." />
@@ -1071,15 +1213,6 @@ export default function App() {
                           <tr key={tp}><td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td></tr>
                         ))}</tbody>
                       </table>
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Details</div>
-                        <table>
-                          <thead><tr><th>Group</th><th>Count</th><th>%</th></tr></thead>
-                          <tbody>{Object.entries(selectedCollectorData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
-                            <tr key={sg}><td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td></tr>
-                          ))}</tbody>
-                        </table>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1149,7 +1282,6 @@ export default function App() {
                 </BarChart>
               </ResponsiveContainer>
             </div>}
-            {an.pdd.length === 0 && an.cdd.length === 0 && <div style={{ gridColumn: "1/-1", color: "#64748b", fontSize: 13 }}>No PTP Date or Claim Paid Date columns detected.</div>}
           </div>}
 
           {/* ── Touch Points Tab ── */}
@@ -1285,7 +1417,6 @@ export default function App() {
                             <th onClick={() => mkSort(dateSort, setDateSort)("date")} style={{ cursor: "pointer", userSelect: "none" }}>Date <DI col="date" /></th>
                             <th onClick={() => mkSort(dateSort, setDateSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <DI col="total" /></th>
                             {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(dateSort, setDateSort)(sg)} style={{ cursor: "pointer", userSelect: "none" }}><span style={{ color: GC[sg] || "#94a3b8" }}>{sg}</span> <DI col={sg} /></th>)}
-                            <th style={{ width: 120 }}>Trend</th>
                           </tr></thead>
                           <tbody>{filteredDates.map((d, i) => (
                             <tr key={d.date} className={`dr${selectedDate === d.date ? " sel" : ""}`} onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}>
@@ -1293,7 +1424,6 @@ export default function App() {
                               <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{d.date}</td>
                               <td style={{ fontWeight: 700, color: "#60a5fa" }}>{d.total.toLocaleString()}</td>
                               {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>)}
-                              <td><Pb pct={(d.total / (peakDay?.total || 1)) * 100} c="#3b82f6" /></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -1303,28 +1433,15 @@ export default function App() {
                 </div>
                 {selectedDate && selectedDateRows && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #1e40af" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>📅 Status Breakdown — {selectedDate}</div>
-                      <span style={{ background: "#172554", color: "#60a5fa", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedDateRows.reduce((a, b) => a + b.count, 0).toLocaleString()} records</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                      <div style={{ overflowX: "auto" }}>
-                        <table>
-                          <thead><tr><th>#</th><th>Status</th><th>Grp</th><th>TP</th><th>Count</th><th>%</th></tr></thead>
-                          <tbody>{selectedDateRows.map((s, i) => {
-                            const dayTotal = selectedDateRows.reduce((a, b) => a + b.count, 0);
-                            return <tr key={s.status}><td style={{ color: "#475569" }}>{i + 1}</td><td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td><td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td><td style={{ color: "#64748b" }}>{s.tp}</td><td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td></tr>;
-                          })}</tbody>
-                        </table>
-                      </div>
-                      <ResponsiveContainer width="100%" height={260}>
-                        <PieChart>
-                          <Pie data={selectedDateRows.slice(0, 10)} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${(name.split(" - ")[1] || name).substring(0, 12)} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                            {selectedDateRows.slice(0, 10).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
-                          </Pie>
-                          <Tooltip contentStyle={TS} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9", marginBottom: 12 }}>📅 Status Breakdown — {selectedDate}</div>
+                    <div style={{ overflowX: "auto" }}>
+                      <table>
+                        <thead><tr><th>#</th><th>Status</th><th>Grp</th><th>TP</th><th>Count</th><th>%</th></tr></thead>
+                        <tbody>{selectedDateRows.map((s, i) => {
+                          const dayTotal = selectedDateRows.reduce((a, b) => a + b.count, 0);
+                          return <tr key={s.status}><td style={{ color: "#475569" }}>{i + 1}</td><td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td><td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td><td style={{ color: "#64748b" }}>{s.tp}</td><td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td></tr>;
+                        })}</tbody>
+                      </table>
                     </div>
                   </div>
                 )}
@@ -1334,7 +1451,7 @@ export default function App() {
 
           {/* ── Clients Tab ── */}
           {tab === "clients" && an.clientAnalytics && (() => {
-            const { clientList, clientSGData } = an.clientAnalytics;
+            const { clientList } = an.clientAnalytics;
             const topClient = clientList[0];
             const bestPTPClient = [...clientList].sort((a, b) => (b.bySG.PTP || 0) - (a.bySG.PTP || 0))[0];
             const bestKEPTClient = [...clientList].sort((a, b) => (b.bySG.KEPT || 0) - (a.bySG.KEPT || 0))[0];
@@ -1353,30 +1470,6 @@ export default function App() {
                     {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
-                <div className="card" style={{ gridColumn: "1/3" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Client Distribution by Volume</div>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie data={clientList.slice(0, 10).map(c => ({ name: c.name, value: c.total }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                        {clientList.slice(0, 10).map((_, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
-                      </Pie>
-                      <Tooltip contentStyle={TS} />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="card" style={{ gridColumn: "3/5" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts per Client</div>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={clientList} layout="vertical" margin={{ left: 0, right: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={120} />
-                      <Tooltip contentStyle={TS} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>{clientList.map((_, i) => <Cell key={i} fill={PC[i % PC.length]} />)}</Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Summary Table</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
@@ -1386,7 +1479,7 @@ export default function App() {
                   <SearchBar value={clientSearch} onChange={setClientSearch} placeholder="Filter by client name..." />
                   {(() => {
                     const CLI = mkIcon(clientSort);
-                    const filteredClients = sortFilter(clientList.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1), NEG: c.bySG.NEG||0, RPC: c.bySG.RPC||0, PTP: c.bySG.PTP||0, KEPT: c.bySG.KEPT||0, POS: c.bySG.POS||0 })), clientSort, clientSearch, ["name"]);
+                    const filteredClients = sortFilter(clientList.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1) })), clientSort, clientSearch, ["name"]);
                     return (
                       <div style={{ overflowX: "auto" }}>
                         <table>
@@ -1395,7 +1488,7 @@ export default function App() {
                             <th onClick={() => mkSort(clientSort, setClientSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Client <CLI col="name" /></th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CLI col="total" /></th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% <CLI col="pctShare" /></th>
-                            {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(clientSort, setClientSort)(sg)} style={{ color: GC[sg], cursor: "pointer", userSelect: "none" }}>{sg} <CLI col={sg} /></th>)}
+                            {SG_GROUPS.map(sg => <th key={sg} style={{ color: GC[sg] }}>{sg}</th>)}
                             <th style={{ width: 120 }}>Bar</th>
                           </tr></thead>
                           <tbody>{filteredClients.map((c, i) => (
@@ -1415,11 +1508,8 @@ export default function App() {
                 </div>
                 {selectedClient && selectedClientData && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #78350f" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>🏢 {selectedClient} — Detailed Breakdown</div>
-                      <span style={{ background: "#1c0a00", color: "#f59e0b", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedClientData.total.toLocaleString()} total records</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9", marginBottom: 16 }}>🏢 {selectedClient} — Detailed Breakdown</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Touch Point</div>
                         <ResponsiveContainer width="100%" height={220}>
@@ -1442,15 +1532,6 @@ export default function App() {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Details</div>
-                        <table>
-                          <thead><tr><th>Group</th><th>Count</th><th>%</th></tr></thead>
-                          <tbody>{Object.entries(selectedClientData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
-                            <tr key={sg}><td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedClientData.total) * 100).toFixed(1)}%</td></tr>
-                          ))}</tbody>
-                        </table>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -1458,7 +1539,7 @@ export default function App() {
             );
           })()}
 
-          {/* ── BUCKETS TAB ── */}
+          {/* ── Buckets Tab ── */}
           {tab === "buckets" && an.bucketAnalytics && (() => {
             const { bucketList, ptpTrendByBucket, claimTrendByBucket, radarData, unmappedCount } = an.bucketAnalytics;
             const topBucket = bucketList[0];
@@ -1466,11 +1547,8 @@ export default function App() {
             const bestKept = [...bucketList].sort((a, b) => (b.bySG.KEPT || 0) - (a.bySG.KEPT || 0))[0];
             const bestRPC = [...bucketList].sort((a, b) => parseFloat(b.rpcRate) - parseFloat(a.rpcRate))[0];
             const activeTPs = ALL_TP.filter(tp => bucketList.some(b => b.byTP[tp]));
-
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
-
-                {/* KPI cards */}
                 {[
                   { l: "Total Buckets", v: bucketList.length, i: "📍", c: "#f97316" },
                   { l: "Highest Volume", v: topBucket?.name || "–", i: "🔝", c: "#3b82f6", sub: topBucket?.total.toLocaleString() + " records" },
@@ -1479,15 +1557,13 @@ export default function App() {
                   { l: "Best RPC Rate", v: bestRPC?.name || "–", i: "📞", c: "#06b6d4", sub: bestRPC?.rpcRate + "% RPC" },
                   { l: "Unmapped Rows", v: unmappedCount.toLocaleString(), i: "⚠️", c: "#64748b", sub: "no matching IC code" },
                 ].map(k => (
-                  <div key={k.l} className="sc" style={{ gridColumn: k.l === "Unmapped Rows" ? "" : "" }}>
+                  <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
                     <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
                     {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
-
-                {/* Bucket volume distribution — Pie */}
                 <div className="card" style={{ gridColumn: "1/3" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Bucket Volume Distribution</div>
                   <ResponsiveContainer width="100%" height={300}>
@@ -1495,13 +1571,11 @@ export default function App() {
                       <Pie data={bucketList.map(b => ({ name: b.name, value: b.total }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
                       </Pie>
-                      <Tooltip formatter={(v, n) => [v.toLocaleString(), n]} contentStyle={TS} />
+                      <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Bucket efforts bar */}
                 <div className="card" style={{ gridColumn: "3/5" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Bucket</div>
                   <ResponsiveContainer width="100%" height={300}>
@@ -1510,17 +1584,14 @@ export default function App() {
                       <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Total Efforts" fill="#f1f5f9">
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Outcome group per bucket — stacked bar */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Outcome Group Mix per Bucket</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>NEG / RPC / PTP / KEPT / POS breakdown — which buckets convert best?</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={bucketList.map(b => ({ name: b.name, NEG: b.bySG.NEG||0, RPC: b.bySG.RPC||0, PTP: b.bySG.PTP||0, KEPT: b.bySG.KEPT||0, POS: b.bySG.POS||0 }))} margin={{ bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1532,17 +1603,14 @@ export default function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* RPC / PTP / KEPT rates comparison */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Conversion Rates by Bucket (%)</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>RPC rate, PTP rate, and KEPT rate as % of total efforts per bucket</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={bucketList.map(b => ({ name: b.name, "RPC %": parseFloat(b.rpcRate), "PTP %": parseFloat(b.ptpRate), "KEPT %": parseFloat(b.keptRate) }))} margin={{ bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
                       <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" />
-                      <Tooltip contentStyle={TS} formatter={(v) => [v.toFixed(1) + "%"]} />
+                      <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       <Bar dataKey="RPC %" fill="#3b82f6" radius={[3, 3, 0, 0]} />
                       <Bar dataKey="PTP %" fill="#f58c0b" radius={[3, 3, 0, 0]} />
@@ -1550,11 +1618,8 @@ export default function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Touch Point per Bucket */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Touch Point Mix per Bucket</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Which channels are used per placement bucket?</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={bucketList.map(b => ({ name: b.name, ...b.byTP }))} margin={{ bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1566,84 +1631,37 @@ export default function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* PTP Amount per Bucket */}
                 <div className="card" style={{ gridColumn: "1/3" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>PTP Amount by Bucket</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v} />
+                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : v} />
                       <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={v => ["₱" + fN(v), "PTP Amount"]} />
-                      <Bar dataKey="ptpAmt" radius={[0, 4, 4, 0]} name="PTP Amount">
+                      <Bar dataKey="ptpAmt" radius={[0, 4, 4, 0]}>
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Claim Paid Amount per Bucket */}
                 <div className="card" style={{ gridColumn: "3/5" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Claim Paid Amount by Bucket</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v} />
+                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : v} />
                       <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={v => ["₱" + fN(v), "Claim Amount"]} />
-                      <Bar dataKey="claimAmt" radius={[0, 4, 4, 0]} name="Claim Paid">
+                      <Bar dataKey="claimAmt" radius={[0, 4, 4, 0]}>
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#f97316"} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* PTP Trend across buckets over time */}
-                {ptpTrendByBucket.length > 1 && (
-                  <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>PTP Trend by Bucket Over Time</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Daily PTP record counts per bucket — showing last 15 dates</div>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <LineChart data={ptpTrendByBucket.slice(-15)} margin={{ left: 0, right: 16, bottom: 50 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <Tooltip contentStyle={TS} />
-                        <Legend wrapperStyle={{ fontSize: 11 }} />
-                        {bucketList.map(b => (
-                          <Line key={b.name} type="monotone" dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} strokeWidth={2} dot={false} name={b.name} />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {/* Claim Paid Trend across buckets over time */}
-                {claimTrendByBucket.length > 1 && (
-                  <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Claim Paid Trend by Bucket Over Time</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Daily claim paid record counts per bucket — showing last 15 dates</div>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <LineChart data={claimTrendByBucket.slice(-15)} margin={{ left: 0, right: 16, bottom: 50 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <Tooltip contentStyle={TS} />
-                        <Legend wrapperStyle={{ fontSize: 11 }} />
-                        {bucketList.map(b => (
-                          <Line key={b.name} type="monotone" dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} strokeWidth={2} dot={false} name={b.name} />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {/* Radar chart — outcome profile per bucket */}
                 {bucketList.length >= 2 && (
                   <div className="card" style={{ gridColumn: "1/3" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Bucket Outcome Profile (Radar)</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>% of each outcome group per bucket — normalized view</div>
                     <ResponsiveContainer width="100%" height={300}>
                       <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={100}>
                         <PolarGrid stroke="#334155" />
@@ -1652,32 +1670,18 @@ export default function App() {
                           <Radar key={b.name} name={b.name} dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} fill={BUCKET_COLORS[b.name] || "#64748b"} fillOpacity={0.12} />
                         ))}
                         <Legend wrapperStyle={{ fontSize: 11 }} />
-                        <Tooltip contentStyle={TS} formatter={(v) => [v.toFixed(1) + "%"]} />
+                        <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
                 )}
-
-                {/* Bucket Summary Table */}
                 <div className="card" style={{ gridColumn: bucketList.length >= 2 ? "3/5" : "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Bucket PTP & Claim Summary</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#f1f5f9" }}>Bucket PTP & Claim Summary</div>
                   <table>
-                    <thead><tr>
-                      <th>Bucket</th>
-                      <th>Total</th>
-                      <th>PTP #</th>
-                      <th>PTP Amt</th>
-                      <th>Claim #</th>
-                      <th>Claim Amt</th>
-                      <th>RPC%</th>
-                      <th>PTP%</th>
-                      <th>KEPT%</th>
-                    </tr></thead>
+                    <thead><tr><th>Bucket</th><th>Total</th><th>PTP#</th><th>PTP Amt</th><th>Claim#</th><th>Claim Amt</th><th>RPC%</th><th>PTP%</th><th>KEPT%</th></tr></thead>
                     <tbody>{bucketList.map(b => (
                       <tr key={b.name}>
-                        <td>
-                          <span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span>
-                        </td>
+                        <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
                         <td style={{ fontWeight: 700 }}>{b.total.toLocaleString()}</td>
                         <td style={{ color: "#f58c0b" }}>{b.ptpCount.toLocaleString()}</td>
                         <td style={{ color: "#22c55e", fontSize: 12 }}>₱{fN(b.ptpAmt)}</td>
@@ -1690,8 +1694,7 @@ export default function App() {
                     ))}</tbody>
                   </table>
                 </div>
-
-                {/* Detailed bucket table with drill-down */}
+                {/* Drill-down table */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Detailed Bucket Table</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
@@ -1709,24 +1712,24 @@ export default function App() {
                             <th>#</th>
                             <th onClick={() => mkSort(bucketSort, setBucketSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Bucket <BI col="name" /></th>
                             <th onClick={() => mkSort(bucketSort, setBucketSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <BI col="total" /></th>
+                            <th onClick={() => mkSort(bucketSort, setBucketSort)("uniqueAccounts")} style={{ cursor: "pointer", userSelect: "none" }}>Unique Accts <BI col="uniqueAccounts" /></th>
                             <th onClick={() => mkSort(bucketSort, setBucketSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% <BI col="pctShare" /></th>
                             {SG_GROUPS.map(sg => <th key={sg} style={{ color: GC[sg] }}>{sg}</th>)}
                             <th style={{ color: "#3b82f6" }}>RPC%</th>
                             <th style={{ color: "#f58c0b" }}>PTP%</th>
                             <th style={{ color: "#22c55e" }}>KEPT%</th>
-                            <th style={{ width: 100 }}>Bar</th>
                           </tr></thead>
                           <tbody>{filteredBuckets.map((b, i) => (
                             <tr key={b.name} className={`dr4${selectedBucket === b.name ? " sel" : ""}`} onClick={() => setSelectedBucket(selectedBucket === b.name ? null : b.name)}>
                               <td style={{ color: "#475569" }}>{i + 1}</td>
                               <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
                               <td style={{ fontWeight: 700, color: BUCKET_COLORS[b.name] || "#f97316" }}>{b.total.toLocaleString()}</td>
+                              <td style={{ color: "#60a5fa" }}>{b.uniqueAccounts > 0 ? b.uniqueAccounts.toLocaleString() : "–"}</td>
                               <td style={{ color: "#60a5fa" }}>{b.pctShare}%</td>
                               {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(b.bySG[sg] || 0).toLocaleString()}</td>)}
                               <td style={{ color: "#3b82f6" }}>{b.rpcRate}%</td>
                               <td style={{ color: "#f58c0b" }}>{b.ptpRate}%</td>
                               <td style={{ color: "#22c55e" }}>{b.keptRate}%</td>
-                              <td><Pb pct={(b.total / bucketList[0].total) * 100} c={BUCKET_COLORS[b.name] || "#f97316"} /></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -1734,20 +1737,14 @@ export default function App() {
                     );
                   })()}
                 </div>
-
-                {/* Bucket drill-down */}
                 {selectedBucket && selectedBucketData && (
                   <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#334155"}44` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
                       <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9" }}>📍 {selectedBucket} — Deep Dive</div>
-                      <span style={{ background: (BUCKET_COLORS[selectedBucket] || "#64748b") + "22", color: BUCKET_COLORS[selectedBucket] || "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600, border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#64748b"}44` }}>
-                        {selectedBucketData.total.toLocaleString()} total records
-                      </span>
-                      <span style={{ background: "#172010", color: "#22c55e", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>₱{fN(selectedBucketData.ptpAmt)} PTP</span>
-                      <span style={{ background: "#1a1008", color: "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>₱{fN(selectedBucketData.claimAmt)} Claimed</span>
+                      <span style={{ background: (BUCKET_COLORS[selectedBucket] || "#64748b") + "22", color: BUCKET_COLORS[selectedBucket] || "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedBucketData.total.toLocaleString()} records</span>
+                      {selectedBucketData.uniqueAccounts > 0 && <span style={{ background: "#172554", color: "#60a5fa", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>{selectedBucketData.uniqueAccounts.toLocaleString()} unique accounts</span>}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-                      {/* TP pie */}
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Breakdown</div>
                         <ResponsiveContainer width="100%" height={220}>
@@ -1759,7 +1756,6 @@ export default function App() {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      {/* SG pie */}
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Group Breakdown</div>
                         <ResponsiveContainer width="100%" height={220}>
@@ -1771,58 +1767,473 @@ export default function App() {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      {/* Details table */}
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Details</div>
                         <table>
-                          <thead><tr><th>Touch Point</th><th>Count</th><th>%</th></tr></thead>
+                          <thead><tr><th>TP</th><th>Efforts</th><th>%</th></tr></thead>
                           <tbody>{Object.entries(selectedBucketData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
                             <tr key={tp}><td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedBucketData.total) * 100).toFixed(1)}%</td></tr>
                           ))}</tbody>
                         </table>
-                        <div style={{ marginTop: 12 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Details</div>
-                          <table>
-                            <thead><tr><th>Group</th><th>Count</th><th>%</th></tr></thead>
-                            <tbody>{Object.entries(selectedBucketData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
-                              <tr key={sg}><td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedBucketData.total) * 100).toFixed(1)}%</td></tr>
-                            ))}</tbody>
-                          </table>
-                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              ── 🎯 PENETRATION TAB (NEW) ──
+          ═══════════════════════════════════════════════════════════════ */}
+          {tab === "penetration" && an.bucketAnalytics?.hasAccountData && (() => {
+            const { bucketList, penetrationMatrix, tpMaxPct, penetrationBarData, activeTPs } = an.bucketAnalytics;
+
+            // Highest / lowest penetration per TP
+            const topPenetrations = activeTPs.map(tp => {
+              const best = penetrationMatrix.reduce((a, b) => (b[`${tp}_pct`] || 0) > (a[`${tp}_pct`] || 0) ? b : a, penetrationMatrix[0]);
+              return { tp, bucket: best?.bucket, pct: best?.[`${tp}_pct`] || 0 };
+            }).sort((a, b) => b.pct - a.pct);
+
+            const overallPenetration = penetrationMatrix.map(r => {
+              const totalWorked = activeTPs.reduce((s, tp) => s + (r[`${tp}_accounts`] || 0), 0);
+              // unique across all TPs can't exceed r.uniqueAccounts
+              return { ...r, overallPenetration: r.uniqueAccounts > 0 ? 100 : 0 };
+            });
+
+            // Bar chart data: for each bucket, penetration % per TP
+            const bucketPenetrationChartData = bucketList.map(b => {
+              const row = { name: b.name };
+              activeTPs.forEach(tp => {
+                const idx = penetrationMatrix.find(r => r.bucket === b.name);
+                row[tp] = idx ? (idx[`${tp}_pct`] || 0) : 0;
+              });
+              return row;
+            });
+
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                {/* Summary KPIs */}
+                <div className="card" style={{ gridColumn: "1/-1", background: "linear-gradient(135deg,#0f1f3d,#0f172a)", border: "1px solid #1e3a5f" }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9", marginBottom: 6 }}>🎯 Touch Point Penetration per Bucket</div>
+                  <div style={{ fontSize: 13, color: "#64748b", marginBottom: 0 }}>
+                    Penetration % = Unique accounts touched by each touch point ÷ Total unique accounts in that bucket.
+                    A higher % means more accounts in that bucket were reached via that channel.
+                  </div>
+                </div>
+
+                {/* View mode toggle */}
+                <div style={{ gridColumn: "1/-1", display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>Display mode:</span>
+                  {[["pct", "Penetration %"], ["efforts", "Total Efforts"], ["accounts", "Unique Accounts"]].map(([k, l]) => (
+                    <button key={k} className={`mode-btn${penetrationMode === k ? " active" : ""}`} onClick={() => setPenetrationMode(k)}>{l}</button>
+                  ))}
+                </div>
+
+                {/* Heatmap matrix */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>
+                    Penetration Heatmap — Bucket × Touch Point
+                    {penetrationMode === "pct" && <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b", marginLeft: 8 }}>Blue intensity = penetration %. Darker = higher reach.</span>}
+                    {penetrationMode === "efforts" && <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b", marginLeft: 8 }}>Total effort count per bucket × TP combination.</span>}
+                    {penetrationMode === "accounts" && <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b", marginLeft: 8 }}>Unique accounts worked per bucket × TP combination.</span>}
+                  </div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ minWidth: 120, position: "sticky", left: 0, background: "#0f172a", zIndex: 2 }}>Bucket</th>
+                          <th style={{ color: "#60a5fa" }}>Unique Accts</th>
+                          <th style={{ color: "#94a3b8" }}>Total Efforts</th>
+                          {activeTPs.map(tp => (
+                            <th key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8", textAlign: "center", minWidth: 70 }}>{tp}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {penetrationMatrix.map(row => (
+                          <tr key={row.bucket}>
+                            <td style={{ fontWeight: 600, position: "sticky", left: 0, background: "#1e293b", zIndex: 1 }}>
+                              <span className="bdg" style={{ background: (BUCKET_COLORS[row.bucket] || "#64748b") + "33", color: BUCKET_COLORS[row.bucket] || "#94a3b8" }}>{row.bucket}</span>
+                            </td>
+                            <td style={{ color: "#60a5fa", fontWeight: 700 }}>{row.uniqueAccounts.toLocaleString()}</td>
+                            <td style={{ color: "#94a3b8" }}>{row.total.toLocaleString()}</td>
+                            {activeTPs.map(tp => {
+                              const pct = row[`${tp}_pct`] || 0;
+                              const efforts = row[`${tp}_efforts`] || 0;
+                              const accounts = row[`${tp}_accounts`] || 0;
+                              const displayVal = penetrationMode === "pct" ? (pct > 0 ? pct.toFixed(1) + "%" : "–")
+                                : penetrationMode === "efforts" ? (efforts > 0 ? efforts.toLocaleString() : "–")
+                                : (accounts > 0 ? accounts.toLocaleString() : "–");
+                              const intensity = tpMaxPct[tp] > 0 ? pct / tpMaxPct[tp] : 0;
+                              const bg = penetrationMode === "pct"
+                                ? (pct === 0 ? "#0f172a" : `rgba(59,130,246,${0.08 + intensity * 0.82})`)
+                                : (efforts === 0 ? "#0f172a" : `rgba(34,197,94,${0.08 + (efforts / Math.max(...penetrationMatrix.map(r => r[`${tp}_efforts`] || 0))) * 0.82})`);
+                              const textColor = intensity > 0.55 ? "#fff" : "#94a3b8";
+                              return (
+                                <td key={tp} style={{ padding: "6px 8px", textAlign: "center" }}>
+                                  <div style={{
+                                    background: bg, color: textColor, borderRadius: 5,
+                                    padding: "4px 2px", fontWeight: 600, fontSize: 11,
+                                    border: "1px solid #1e293b", minWidth: 54,
+                                    transition: "all 0.2s"
+                                  }}>
+                                    {displayVal}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Bar chart: penetration % per TP grouped by bucket */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Penetration % by Touch Point across Buckets</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Each group = one touch point. Bars = penetration % per bucket. Higher = more accounts reached in that bucket via that channel.</div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={penetrationBarData} margin={{ bottom: 50 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="tp" tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
+                      <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {bucketList.map(b => (
+                        <Bar key={b.name} dataKey={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} name={b.name} radius={[2, 2, 0, 0]} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Per-bucket penetration bar chart (grouped by TP) */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Penetration % per Bucket by Touch Point</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Each group = one bucket. Bars = penetration % per touch point within that bucket.</div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={bucketPenetrationChartData} margin={{ bottom: 50 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -20 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
+                      <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {activeTPs.map(tp => (
+                        <Bar key={tp} dataKey={tp} fill={TP_COLORS[tp] || "#64748b"} name={tp} radius={[2, 2, 0, 0]} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Top penetrations summary */}
+                <div className="card" style={{ gridColumn: "1/3" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>🏆 Highest Penetration by Touch Point</div>
+                  <table>
+                    <thead><tr><th>Touch Point</th><th>Best Bucket</th><th>Penetration %</th><th style={{ width: 100 }}>Bar</th></tr></thead>
+                    <tbody>{topPenetrations.map((t, i) => (
+                      <tr key={t.tp}>
+                        <td style={{ color: TP_COLORS[t.tp] || "#94a3b8", fontWeight: 600 }}>{t.tp}</td>
+                        <td>
+                          {t.bucket ? <span className="bdg" style={{ background: (BUCKET_COLORS[t.bucket] || "#64748b") + "33", color: BUCKET_COLORS[t.bucket] || "#94a3b8" }}>{t.bucket}</span> : "–"}
+                        </td>
+                        <td style={{ color: "#3b82f6", fontWeight: 700 }}>{t.pct.toFixed(1)}%</td>
+                        <td><Pb pct={t.pct} c={TP_COLORS[t.tp] || PC[i % PC.length]} /></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+
+                {/* Detailed full table */}
+                <div className="card" style={{ gridColumn: "3/5" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>📊 Accounts Worked per Bucket</div>
+                  <table>
+                    <thead><tr><th>Bucket</th><th>Unique Accts</th><th>Total Efforts</th><th>Efforts/Acct</th></tr></thead>
+                    <tbody>{bucketList.map(b => (
+                      <tr key={b.name}>
+                        <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
+                        <td style={{ color: "#60a5fa", fontWeight: 700 }}>{b.uniqueAccounts > 0 ? b.uniqueAccounts.toLocaleString() : "–"}</td>
+                        <td style={{ color: "#94a3b8" }}>{b.total.toLocaleString()}</td>
+                        <td style={{ color: "#f59e0b", fontWeight: 600 }}>
+                          {b.uniqueAccounts > 0 ? (b.total / b.uniqueAccounts).toFixed(1) : "–"}
+                        </td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                  <div style={{ marginTop: 12, fontSize: 11, color: "#475569" }}>Efforts/Acct = avg number of attempts per unique account in each bucket.</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              ── ⏱️ HOURLY EFFORTS TAB (NEW) ──
+          ═══════════════════════════════════════════════════════════════ */}
+          {tab === "hourly" && an.hourlyCollectorAnalytics && (() => {
+            const { heatmapRows, heatmapMax, hourTopData, shiftData, hourTPData, allCollectors, noCollector } = an.hourlyCollectorAnalytics;
+            const peakHourObj = hourTopData.reduce((a, b) => b.total > a.total ? b : a, hourTopData[0]);
+            const totalWithTime = hourTopData.reduce((s, r) => s + r.total, 0);
+            const activeTPs_hourly = ALL_TP.filter(tp => hourTPData.some(r => r[tp] > 0));
+            const topShift = shiftData.length > 0 ? shiftData.reduce((a, b) => b.count > a.count ? b : a, shiftData[0]) : null;
+
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                {/* KPIs */}
+                {[
+                  { l: "Records w/ Time", v: totalWithTime.toLocaleString(), i: "⏱️", c: "#a78bfa" },
+                  { l: "Peak Hour", v: peakHourObj?.hour || "–", i: "🔝", c: "#f59e0b", sub: peakHourObj?.total.toLocaleString() + " efforts" },
+                  { l: "Busiest Shift", v: topShift?.name || "–", i: "📊", c: "#3b82f6", sub: topShift?.count.toLocaleString() + " efforts" },
+                  { l: "Collectors Tracked", v: noCollector ? "N/A" : allCollectors.length, i: "👥", c: "#06b6d4", sub: noCollector ? "No Remark By col" : "" },
+                ].map(k => (
+                  <div key={k.l} className="sc">
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
+                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                  </div>
+                ))}
+
+                {/* Total efforts by hour */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Total Efforts by Hour of Day</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>When does the most collection activity happen?</div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={hourTopData} margin={{ left: 0, right: 16 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={1} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} formatter={(v, n, p) => [v.toLocaleString() + " efforts", p.payload.hour]} />
+                      <Bar dataKey="total" radius={[3, 3, 0, 0]} name="Efforts">
+                        {hourTopData.map((h, i) => {
+                          const intensity = heatmapMax > 0 ? h.total / Math.max(...hourTopData.map(x => x.total)) : 0;
+                          const color = h.total === 0 ? "#1e293b"
+                            : intensity > 0.8 ? "#ef4444"
+                            : intensity > 0.6 ? "#f97316"
+                            : intensity > 0.4 ? "#f59e0b"
+                            : intensity > 0.2 ? "#3b82f6"
+                            : "#1d4ed8";
+                          return <Cell key={i} fill={color} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Shift breakdown */}
+                {shiftData.length > 0 && (
+                  <div className="card" style={{ gridColumn: "1/3" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Shift Window</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={shiftData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={120} />
+                        <Tooltip contentStyle={TS} />
+                        <Bar dataKey="count" fill="#a78bfa" radius={[0, 4, 4, 0]} name="Efforts">
+                          {shiftData.map((s, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Touch point by hour stacked */}
+                <div className="card" style={{ gridColumn: shiftData.length > 0 ? "3/5" : "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Touch Point Mix by Hour</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Which channels are active at each hour?</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={hourTPData} margin={{ left: 0, right: 16 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 9 }} interval={2} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      {activeTPs_hourly.map(tp => <Bar key={tp} dataKey={tp} stackId="h" fill={TP_COLORS[tp] || "#64748b"} name={tp} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Hourly line trend stacked */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Hourly Touch Point Trend (Lines)</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>See how each channel's activity rises and falls across the day.</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={hourTPData} margin={{ left: 0, right: 16 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={1} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {activeTPs_hourly.map(tp => <Line key={tp} type="monotone" dataKey={tp} stroke={TP_COLORS[tp] || "#64748b"} strokeWidth={2} dot={false} name={tp} />)}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* ── COLLECTOR HEATMAP (only if rk available) ── */}
+                {!noCollector && heatmapRows.length > 0 && <>
+                  <div className="card" style={{ gridColumn: "1/-1" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 12, flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>🔥 Collector × Hour Heatmap</div>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>Each cell = efforts for that collector at that hour. Color intensity = volume relative to max.</div>
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        {[["heatmap","🟦 Heatmap"],["bar","📊 Bar"],["top","🏆 Top by Hour"]].map(([k, l]) => (
+                          <button key={k} className={`mode-btn${hourlyCollectorView === k ? " active" : ""}`} onClick={() => setHourlyCollectorView(k)}>{l}</button>
+                        ))}
                       </div>
                     </div>
 
-                    {/* PTP trend for this bucket */}
-                    {selectedBucketData.ptpByDateArr.length > 0 && (
-                      <div style={{ marginTop: 20 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>PTP Trend — {selectedBucket}</div>
-                        <ResponsiveContainer width="100%" height={180}>
-                          <BarChart data={selectedBucketData.ptpByDateArr} margin={{ bottom: 50 }}>
+                    {/* Color legend */}
+                    <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>Intensity:</span>
+                      {[["0", "#1e293b"],["Low","rgba(59,130,246,0.3)"],["Med","rgba(16,185,129,0.6)"],["High","rgba(245,158,11,0.8)"],["Peak","rgba(239,68,68,0.9)"]].map(([l, c]) => (
+                        <span key={l} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#94a3b8" }}>
+                          <span style={{ width: 14, height: 14, borderRadius: 3, background: c, display: "inline-block", border: "1px solid #334155" }} />{l}
+                        </span>
+                      ))}
+                    </div>
+
+                    {hourlyCollectorView === "heatmap" && (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ fontSize: 11, borderCollapse: "separate", borderSpacing: 2 }}>
+                          <thead>
+                            <tr>
+                              <th style={{ position: "sticky", left: 0, background: "#0f172a", minWidth: 130, zIndex: 2, textAlign: "left" }}>Collector</th>
+                              <th style={{ color: "#22c55e", minWidth: 60 }}>Total</th>
+                              <th style={{ color: "#a78bfa", minWidth: 60 }}>Peak Hr</th>
+                              {Array.from({ length: 24 }, (_, h) => (
+                                <th key={h} style={{ color: "#475569", minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
+                                  {String(h).padStart(2,"0")}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {heatmapRows.map(row => (
+                              <tr key={row.collector}>
+                                <td style={{ position: "sticky", left: 0, background: "#1e293b", fontWeight: 600, color: "#e2e8f0", padding: "4px 8px", zIndex: 1 }}>{row.collector}</td>
+                                <td style={{ color: "#22c55e", fontWeight: 700, textAlign: "center" }}>{row.total.toLocaleString()}</td>
+                                <td style={{ color: "#a78bfa", textAlign: "center" }}>{row.peakHour}</td>
+                                {Array.from({ length: 24 }, (_, h) => {
+                                  const val = row[`h${h}`] || 0;
+                                  const bg = hourlyColor(val, heatmapMax);
+                                  return (
+                                    <td key={h} style={{ padding: "2px" }}>
+                                      <div className="hm-cell" style={{
+                                        background: bg,
+                                        color: val > heatmapMax * 0.5 ? "#fff" : "#64748b",
+                                        title: `${row.collector} @ ${String(h).padStart(2,"0")}:00 — ${val} efforts`
+                                      }}>
+                                        {val > 0 ? val : ""}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {hourlyCollectorView === "bar" && (
+                      <div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Top 15 collectors — stacked bar showing effort distribution across hours</div>
+                        <ResponsiveContainer width="100%" height={Math.max(300, heatmapRows.slice(0,15).length * 22 + 80)}>
+                          <BarChart data={heatmapRows.slice(0, 15).map(r => {
+                            const row = { name: r.collector };
+                            // Group into time buckets for readability
+                            row["00-06"] = Array.from({length:6},(_,h)=>r[`h${h}`]||0).reduce((s,v)=>s+v,0);
+                            row["06-09"] = Array.from({length:3},(_,h)=>r[`h${h+6}`]||0).reduce((s,v)=>s+v,0);
+                            row["09-12"] = Array.from({length:3},(_,h)=>r[`h${h+9}`]||0).reduce((s,v)=>s+v,0);
+                            row["12-15"] = Array.from({length:3},(_,h)=>r[`h${h+12}`]||0).reduce((s,v)=>s+v,0);
+                            row["15-18"] = Array.from({length:3},(_,h)=>r[`h${h+15}`]||0).reduce((s,v)=>s+v,0);
+                            row["18-21"] = Array.from({length:3},(_,h)=>r[`h${h+18}`]||0).reduce((s,v)=>s+v,0);
+                            row["21-24"] = Array.from({length:3},(_,h)=>r[`h${h+21}`]||0).reduce((s,v)=>s+v,0);
+                            return row;
+                          })} layout="vertical" margin={{ left: 10, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                            <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                            <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
                             <Tooltip contentStyle={TS} />
-                            <Bar dataKey="count" fill={BUCKET_COLORS[selectedBucket] || "#f58c0b"} radius={[3, 3, 0, 0]} name="PTP Records" />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            {["00-06","06-09","09-12","12-15","15-18","18-21","21-24"].map((slot, i) => (
+                              <Bar key={slot} dataKey={slot} stackId="t" fill={PC[i % PC.length]} name={slot} />
+                            ))}
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     )}
 
-                    {/* Claim trend for this bucket */}
-                    {selectedBucketData.claimByDateArr.length > 0 && (
-                      <div style={{ marginTop: 20 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Claim Paid Trend — {selectedBucket}</div>
-                        <ResponsiveContainer width="100%" height={180}>
-                          <BarChart data={selectedBucketData.claimByDateArr} margin={{ bottom: 50 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-                            <Tooltip contentStyle={TS} />
-                            <Bar dataKey="count" fill="#f97316" radius={[3, 3, 0, 0]} name="Claim Records" />
-                          </BarChart>
-                        </ResponsiveContainer>
+                    {hourlyCollectorView === "top" && (
+                      <div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>For each hour, the collector with the most efforts.</div>
+                        <table>
+                          <thead><tr><th>Hour</th><th>Total Efforts</th><th>Top Collector</th><th>Their Count</th><th>Share</th><th style={{ width: 120 }}>Bar</th></tr></thead>
+                          <tbody>{hourTopData.map(h => (
+                            <tr key={h.hour}>
+                              <td style={{ fontWeight: 700, color: "#a78bfa" }}>{h.hour}</td>
+                              <td style={{ color: "#94a3b8" }}>{h.total.toLocaleString()}</td>
+                              <td style={{ color: "#e2e8f0", fontWeight: 500 }}>{h.total > 0 ? h.topCollector : "–"}</td>
+                              <td style={{ color: "#22c55e" }}>{h.topCount > 0 ? h.topCount.toLocaleString() : "–"}</td>
+                              <td style={{ color: "#60a5fa" }}>{h.total > 0 && h.topCount > 0 ? ((h.topCount / h.total) * 100).toFixed(1) + "%" : "–"}</td>
+                              <td><Pb pct={peakHourObj?.total > 0 ? (h.total / peakHourObj.total) * 100 : 0} c="#a78bfa" /></td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
                       </div>
                     )}
+                  </div>
+
+                  {/* Collector peak hour distribution */}
+                  <div className="card" style={{ gridColumn: "1/3" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Collector Peak Hour Distribution</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>How many collectors peak at each hour of the day?</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={Array.from({length:24},(_,h)=>({
+                        hour: `${String(h).padStart(2,"0")}:00`,
+                        collectors: heatmapRows.filter(r => r.peakHour === `${String(h).padStart(2,"0")}:00`).length
+                      }))} margin={{ left: 0, right: 16 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 9 }} interval={2} />
+                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} formatter={v => [v + " collectors"]} />
+                        <Bar dataKey="collectors" fill="#f59e0b" radius={[3, 3, 0, 0]} name="Collectors peaking" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Top collectors table with peak hours */}
+                  <div className="card" style={{ gridColumn: "3/5" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>Collector Summary — Hourly Profile</div>
+                    <div style={{ overflowY: "auto", maxHeight: 280 }}>
+                      <table>
+                        <thead><tr><th>#</th><th>Collector</th><th>Total</th><th>Peak Hr</th><th>06-12</th><th>12-18</th><th>18-24</th></tr></thead>
+                        <tbody>{heatmapRows.map((r, i) => {
+                          const am = Array.from({length:6},(_,h)=>r[`h${h+6}`]||0).reduce((s,v)=>s+v,0);
+                          const pm = Array.from({length:6},(_,h)=>r[`h${h+12}`]||0).reduce((s,v)=>s+v,0);
+                          const eve = Array.from({length:6},(_,h)=>r[`h${h+18}`]||0).reduce((s,v)=>s+v,0);
+                          return (
+                            <tr key={r.collector}>
+                              <td style={{ color: "#475569" }}>{i + 1}</td>
+                              <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{r.collector}</td>
+                              <td style={{ color: "#22c55e", fontWeight: 700 }}>{r.total.toLocaleString()}</td>
+                              <td style={{ color: "#a78bfa" }}>{r.peakHour}</td>
+                              <td style={{ color: "#3b82f6" }}>{am}</td>
+                              <td style={{ color: "#f59e0b" }}>{pm}</td>
+                              <td style={{ color: "#f97316" }}>{eve}</td>
+                            </tr>
+                          );
+                        })}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>}
+
+                {noCollector && (
+                  <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #44403c" }}>
+                    <div style={{ color: "#78716c", fontSize: 13, textAlign: "center", padding: 20 }}>
+                      ℹ️ No "Remark By" column detected — collector-level hourly heatmap unavailable. The hourly charts above still show total efforts and touch point breakdown by hour.
+                    </div>
                   </div>
                 )}
               </div>

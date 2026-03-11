@@ -285,11 +285,37 @@ const parseAmt = v => {
   const cleaned = String(v).replace(/[₱$,\s]/g, "").trim();
   return parseFloat(cleaned);
 };
+// Always outputs MM/DD/YYYY. Handles Date objects, dd-mm-yyyy, dd/mm/yyyy, mm/dd/yyyy strings.
 const fD = v => {
   if (!v) return null;
-  if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toLocaleDateString("en-PH");
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("en-PH");
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return null;
+    const mo = String(v.getMonth() + 1).padStart(2, "0");
+    const dy = String(v.getDate()).padStart(2, "0");
+    const yr = v.getFullYear();
+    return `${mo}/${dy}/${yr}`;
+  }
+  const s = String(v).trim();
+  // Match dd-mm-yyyy or dd/mm/yyyy (day first, unambiguous when day > 12)
+  const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmyMatch) {
+    const [, a, b, yr] = dmyMatch;
+    // If first part > 12 it must be day; otherwise assume dd/mm/yyyy (Philippine convention)
+    const day = parseInt(a), mon = parseInt(b);
+    if (day > 12 || (day <= 12 && mon <= 12)) {
+      // treat as dd/mm/yyyy
+      return `${String(mon).padStart(2, "0")}/${String(day).padStart(2, "0")}/${yr}`;
+    }
+  }
+  // Try native Date parse (handles ISO, mm/dd/yyyy, etc.)
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const dy = String(d.getDate()).padStart(2, "0");
+    const yr = d.getFullYear();
+    return `${mo}/${dy}/${yr}`;
+  }
+  return s; // fallback: return as-is
 };
 
 const parseTimeHour = (v) => {
@@ -328,6 +354,27 @@ const Pb = ({ pct, c }) => (
 const SG_GROUPS = ["NEG", "RPC", "PTP", "KEPT", "POS"];
 const ALL_TP = ["CALL", "SMS", "VIBER", "EMAIL", "FIELD", "INTERNET", "CEASE COLLECTION", "FIELD REQUEST", "REPO AI"];
 
+// ── Sort/Filter helpers ──────────────────────────────────────────────────────
+
+
+const SearchBar = ({ value, onChange, placeholder = "Search..." }) => (
+  <div style={{ position: "relative", marginBottom: 10 }}>
+    <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: 13 }}>🔍</span>
+    <input
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      style={{
+        width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 8,
+        color: "#e2e8f0", fontSize: 13, padding: "7px 10px 7px 32px", fontFamily: "inherit", outline: "none"
+      }}
+    />
+    {value && <button onClick={() => onChange("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14 }}>x</button>}
+  </div>
+);
+
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function App() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -337,6 +384,40 @@ export default function App() {
   const [selectedCollector, setSelectedCollector] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const fRef = useRef();
+
+  // ── Per-table sort & filter state ──
+  const [statusSort, setStatusSort] = useState({ key: "count", dir: "desc" });
+  const [statusSearch, setStatusSearch] = useState("");
+  const [collectorSort, setCollectorSort] = useState({ key: "total", dir: "desc" });
+  const [collectorSearch, setCollectorSearch] = useState("");
+  const [dateSort, setDateSort] = useState({ key: "total", dir: "desc" });
+  const [dateSearch, setDateSearch] = useState("");
+  const [clientSort, setClientSort] = useState({ key: "total", dir: "desc" });
+  const [clientSearch, setClientSearch] = useState("");
+  const [touchSort, setTouchSort] = useState({ key: "count", dir: "desc" });
+  const [touchSearch, setTouchSearch] = useState("");
+
+  const mkSort = (ss, setSS) => (key) => setSS(prev => ({ key, dir: prev.key === key && prev.dir === "desc" ? "asc" : "desc" }));
+  const mkIcon = (ss) => ({ col }) => col !== ss.key
+    ? <span style={{ color: "#334155", marginLeft: 4, cursor: "pointer" }}>⇅</span>
+    : <span style={{ color: "#60a5fa", marginLeft: 4, cursor: "pointer" }}>{ss.dir === "asc" ? "↑" : "↓"}</span>;
+
+  const sortFilter = (arr, ss, search, fields) => {
+    let rows = arr || [];
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(r => fields.some(f => r[f] != null && String(r[f]).toLowerCase().includes(q)));
+    }
+    if (ss.key) {
+      rows = [...rows].sort((a, b) => {
+        const av = a[ss.key], bv = b[ss.key];
+        const na = parseFloat(av), nb = parseFloat(bv);
+        const cmp = !isNaN(na) && !isNaN(nb) ? na - nb : String(av ?? "").localeCompare(String(bv ?? ""));
+        return ss.dir === "asc" ? cmp : -cmp;
+      });
+    }
+    return rows;
+  };
 
   const hf = file => {
     if (!file) return;
@@ -731,24 +812,40 @@ export default function App() {
           </div>}
 
           {/* Status Detail */}
-          {tab === "status" && <div className="card">
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
-            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Only statuses present in your file are shown.</div>
-            <div style={{ overflowX: "auto" }}>
-              <table>
-                <thead><tr><th>#</th><th>Status</th><th>Group</th><th>Touch Point</th><th>Count</th><th>%</th><th style={{ width: 100 }}>Bar</th></tr></thead>
-                <tbody>{an.sd.map((s, i) => <tr key={s.status}>
-                  <td style={{ color: "#475569" }}>{i + 1}</td>
-                  <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{s.status}</td>
-                  <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
-                  <td style={{ color: "#94a3b8" }}>{s.tp}</td>
-                  <td style={{ fontWeight: 600, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
-                  <td style={{ color: "#60a5fa" }}>{s.pct}%</td>
-                  <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
-                </tr>)}</tbody>
-              </table>
+          {tab === "status" && (() => {
+            const SI = mkIcon(statusSort);
+            const ssd = sortFilter(an.sd, statusSort, statusSearch, ["status", "grp", "tp"]);
+            return (
+            <div className="card">
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Only statuses present in your file are shown. Click column headers to sort.</div>
+              <SearchBar value={statusSearch} onChange={setStatusSearch} placeholder="Filter by status, group, or touch point..." />
+              <div style={{ fontSize: 12, color: "#475569", marginBottom: 8 }}>{ssd.length} of {an.sd.length} statuses shown</div>
+              <div style={{ overflowX: "auto" }}>
+                <table>
+                  <thead><tr>
+                    <th>#</th>
+                    <th onClick={() => mkSort(statusSort, setStatusSort)("status")} style={{ cursor: "pointer", userSelect: "none" }}>Status <SI col="status" /></th>
+                    <th onClick={() => mkSort(statusSort, setStatusSort)("grp")} style={{ cursor: "pointer", userSelect: "none" }}>Group <SI col="grp" /></th>
+                    <th onClick={() => mkSort(statusSort, setStatusSort)("tp")} style={{ cursor: "pointer", userSelect: "none" }}>Touch Point <SI col="tp" /></th>
+                    <th onClick={() => mkSort(statusSort, setStatusSort)("count")} style={{ cursor: "pointer", userSelect: "none" }}>Count <SI col="count" /></th>
+                    <th onClick={() => mkSort(statusSort, setStatusSort)("pct")} style={{ cursor: "pointer", userSelect: "none" }}>% <SI col="pct" /></th>
+                    <th style={{ width: 100 }}>Bar</th>
+                  </tr></thead>
+                  <tbody>{ssd.map((s, i) => <tr key={s.status}>
+                    <td style={{ color: "#475569" }}>{i + 1}</td>
+                    <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{s.status}</td>
+                    <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
+                    <td style={{ color: "#94a3b8" }}>{s.tp}</td>
+                    <td style={{ fontWeight: 600, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
+                    <td style={{ color: "#60a5fa" }}>{s.pct}%</td>
+                    <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
+                  </tr>)}</tbody>
+                </table>
+              </div>
             </div>
-          </div>}
+            );
+          })()}
 
           {/* ── Collectors Tab (now with touchpoint breakdown) ── */}
           {tab === "collectors" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -772,40 +869,52 @@ export default function App() {
             {an.cd.length > 0 && <>
               <div className="card" style={{ gridColumn: "1/-1" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Collector Efforts with Touch Point Breakdown</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                  Click a row to see that collector's touch point & outcome details.
-                  {selectedCollector && <button onClick={() => setSelectedCollector(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>✕ Clear</button>}
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                  Click a row to drill down · Click column headers to sort.
+                  {selectedCollector && <button onClick={() => setSelectedCollector(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                 </div>
-                <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>#</th><th>Collector</th><th>Total</th><th>% Share</th>
-                        {ALL_TP.filter(tp => an.cd.some(c => c.byTP[tp])).map(tp => (
-                          <th key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{tp}</th>
-                        ))}
-                        <th style={{ width: 100 }}>Bar</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {an.cd.map((c, i) => {
-                        const activeTPs = ALL_TP.filter(tp => an.cd.some(col => col.byTP[tp]));
-                        return (
+                <SearchBar value={collectorSearch} onChange={setCollectorSearch} placeholder="Filter by collector name..." />
+                {(() => {
+                  const CI = mkIcon(collectorSort);
+                  const activeTPs = ALL_TP.filter(tp => an.cd.some(col => col.byTP[tp]));
+                  const filteredCD = sortFilter(
+                    an.cd.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1) })),
+                    collectorSort, collectorSearch, ["name"]
+                  );
+                  return (
+                  <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                    <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredCD.length} of {an.cd.length} collectors shown</div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th onClick={() => mkSort(collectorSort, setCollectorSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Collector <CI col="name" /></th>
+                          <th onClick={() => mkSort(collectorSort, setCollectorSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CI col="total" /></th>
+                          <th onClick={() => mkSort(collectorSort, setCollectorSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% Share <CI col="pctShare" /></th>
+                          {activeTPs.map(tp => (
+                            <th key={tp} onClick={() => mkSort(collectorSort, setCollectorSort)(`byTP.${tp}`)} style={{ color: TP_COLORS[tp] || "#94a3b8", cursor: "pointer", userSelect: "none" }}>{tp}</th>
+                          ))}
+                          <th style={{ width: 100 }}>Bar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredCD.map((c, i) => (
                           <tr key={c.name} className={`dr${selectedCollector === c.name ? " sel" : ""}`} onClick={() => setSelectedCollector(selectedCollector === c.name ? null : c.name)}>
                             <td style={{ color: "#475569" }}>{i + 1}</td>
                             <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
                             <td style={{ fontWeight: 700, color: "#22c55e" }}>{c.total.toLocaleString()}</td>
-                            <td style={{ color: "#60a5fa" }}>{((c.total / an.T) * 100).toFixed(1)}%</td>
+                            <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
                             {activeTPs.map(tp => (
                               <td key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{(c.byTP[tp] || 0).toLocaleString()}</td>
                             ))}
                             <td><Pb pct={(c.total / an.cd[0].total) * 100} c="#3b82f6" /></td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  );
+                })()}
               </div>
 
               {/* Collector drill-down */}
@@ -995,16 +1104,28 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <div className="card" style={{ gridColumn: "1/-1" }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Touch Point Summary</div>
-              <table>
-                <thead><tr><th>Touch Point</th><th>Efforts</th><th>%</th><th style={{ width: 200 }}>Bar</th></tr></thead>
-                <tbody>{an.td.map((t, i) => <tr key={t.name}>
-                  <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{t.name}</td>
-                  <td style={{ fontWeight: 700, color: TP_COLORS[t.name] || PC[i % PC.length] }}>{t.count.toLocaleString()}</td>
-                  <td>{t.pct}%</td>
-                  <td><Pb pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
-                </tr>)}</tbody>
-              </table>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#f1f5f9" }}>Touch Point Summary</div>
+              <SearchBar value={touchSearch} onChange={setTouchSearch} placeholder="Filter by touch point..." />
+              {(() => {
+                const TI = mkIcon(touchSort);
+                const filteredTP = sortFilter(an.td, touchSort, touchSearch, ["name"]);
+                return (
+                <table>
+                  <thead><tr>
+                    <th onClick={() => mkSort(touchSort, setTouchSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Touch Point <TI col="name" /></th>
+                    <th onClick={() => mkSort(touchSort, setTouchSort)("count")} style={{ cursor: "pointer", userSelect: "none" }}>Efforts <TI col="count" /></th>
+                    <th onClick={() => mkSort(touchSort, setTouchSort)("pct")} style={{ cursor: "pointer", userSelect: "none" }}>% <TI col="pct" /></th>
+                    <th style={{ width: 200 }}>Bar</th>
+                  </tr></thead>
+                  <tbody>{filteredTP.map((t, i) => <tr key={t.name}>
+                    <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{t.name}</td>
+                    <td style={{ fontWeight: 700, color: TP_COLORS[t.name] || PC[i % PC.length] }}>{t.count.toLocaleString()}</td>
+                    <td>{t.pct}%</td>
+                    <td><Pb pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
+                  </tr>)}</tbody>
+                </table>
+                );
+              })()}
             </div>
           </div>}
 
@@ -1087,34 +1208,44 @@ export default function App() {
 
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Per-Date Summary</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                    Click any row to see the status breakdown for that date.
-                    {selectedDate && <button onClick={() => setSelectedDate(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>✕ Clear</button>}
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                    Click any row to drill into that date · Click column headers to sort.
+                    {selectedDate && <button onClick={() => setSelectedDate(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                   </div>
-                  <div style={{ overflowX: "auto" }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>#</th><th>Date</th><th>Total</th>
-                          {SG_GROUPS.map(sg => <th key={sg}><span style={{ color: GC[sg] || "#94a3b8" }}>{sg}</span></th>)}
-                          <th style={{ width: 120 }}>Trend</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dateSorted.map((d, i) => (
-                          <tr key={d.date} className={`dr${selectedDate === d.date ? " sel" : ""}`} onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}>
-                            <td style={{ color: "#475569" }}>{i + 1}</td>
-                            <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{d.date}</td>
-                            <td style={{ fontWeight: 700, color: "#60a5fa" }}>{d.total.toLocaleString()}</td>
-                            {SG_GROUPS.map(sg => (
-                              <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>
-                            ))}
-                            <td><Pb pct={(d.total / (peakDay?.total || 1)) * 100} c="#3b82f6" /></td>
+                  <SearchBar value={dateSearch} onChange={setDateSearch} placeholder="Filter by date..." />
+                  {(() => {
+                    const DI = mkIcon(dateSort);
+                    const filteredDates = sortFilter(dateSorted, dateSort, dateSearch, ["date"]);
+                    return (
+                    <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredDates.length} of {dateSorted.length} dates shown</div>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th onClick={() => mkSort(dateSort, setDateSort)("date")} style={{ cursor: "pointer", userSelect: "none" }}>Date <DI col="date" /></th>
+                            <th onClick={() => mkSort(dateSort, setDateSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <DI col="total" /></th>
+                            {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(dateSort, setDateSort)(sg)} style={{ cursor: "pointer", userSelect: "none" }}><span style={{ color: GC[sg] || "#94a3b8" }}>{sg}</span> <DI col={sg} /></th>)}
+                            <th style={{ width: 120 }}>Trend</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {filteredDates.map((d, i) => (
+                            <tr key={d.date} className={`dr${selectedDate === d.date ? " sel" : ""}`} onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}>
+                              <td style={{ color: "#475569" }}>{i + 1}</td>
+                              <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{d.date}</td>
+                              <td style={{ fontWeight: 700, color: "#60a5fa" }}>{d.total.toLocaleString()}</td>
+                              {SG_GROUPS.map(sg => (
+                                <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>
+                              ))}
+                              <td><Pb pct={(d.total / (peakDay?.total || 1)) * 100} c="#3b82f6" /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    );
+                  })()}
                 </div>
 
                 {selectedDate && selectedDateRows && (
@@ -1252,35 +1383,49 @@ export default function App() {
                 {/* Client table with click to drill down */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Summary Table</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                    Click a row to see detailed breakdown.
-                    {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>✕ Clear</button>}
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                    Click a row to drill down · Click column headers to sort.
+                    {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                   </div>
-                  <div style={{ overflowX: "auto" }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>#</th><th>Client</th><th>Total</th><th>%</th>
-                          {SG_GROUPS.map(sg => <th key={sg} style={{ color: GC[sg] }}>{sg}</th>)}
-                          <th style={{ width: 120 }}>Bar</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clientList.map((c, i) => (
-                          <tr key={c.name} className={`dr3${selectedClient === c.name ? " sel" : ""}`} onClick={() => setSelectedClient(selectedClient === c.name ? null : c.name)}>
-                            <td style={{ color: "#475569" }}>{i + 1}</td>
-                            <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
-                            <td style={{ fontWeight: 700, color: PC[i % PC.length] }}>{c.total.toLocaleString()}</td>
-                            <td style={{ color: "#60a5fa" }}>{((c.total / an.T) * 100).toFixed(1)}%</td>
-                            {SG_GROUPS.map(sg => (
-                              <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(c.bySG[sg] || 0).toLocaleString()}</td>
-                            ))}
-                            <td><Pb pct={(c.total / clientList[0].total) * 100} c={PC[i % PC.length]} /></td>
+                  <SearchBar value={clientSearch} onChange={setClientSearch} placeholder="Filter by client name..." />
+                  {(() => {
+                    const CLI = mkIcon(clientSort);
+                    const filteredClients = sortFilter(
+                      clientList.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1), NEG: c.bySG.NEG||0, RPC: c.bySG.RPC||0, PTP: c.bySG.PTP||0, KEPT: c.bySG.KEPT||0, POS: c.bySG.POS||0 })),
+                      clientSort, clientSearch, ["name"]
+                    );
+                    return (
+                    <div style={{ overflowX: "auto" }}>
+                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredClients.length} of {clientList.length} clients shown</div>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th onClick={() => mkSort(clientSort, setClientSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Client <CLI col="name" /></th>
+                            <th onClick={() => mkSort(clientSort, setClientSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CLI col="total" /></th>
+                            <th onClick={() => mkSort(clientSort, setClientSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% <CLI col="pctShare" /></th>
+                            {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(clientSort, setClientSort)(sg)} style={{ color: GC[sg], cursor: "pointer", userSelect: "none" }}>{sg} <CLI col={sg} /></th>)}
+                            <th style={{ width: 120 }}>Bar</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {filteredClients.map((c, i) => (
+                            <tr key={c.name} className={`dr3${selectedClient === c.name ? " sel" : ""}`} onClick={() => setSelectedClient(selectedClient === c.name ? null : c.name)}>
+                              <td style={{ color: "#475569" }}>{i + 1}</td>
+                              <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
+                              <td style={{ fontWeight: 700, color: PC[i % PC.length] }}>{c.total.toLocaleString()}</td>
+                              <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
+                              {SG_GROUPS.map(sg => (
+                                <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(c.bySG[sg] || 0).toLocaleString()}</td>
+                              ))}
+                              <td><Pb pct={(c.total / clientList[0].total) * 100} c={PC[i % PC.length]} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Client drill-down */}

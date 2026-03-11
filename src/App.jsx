@@ -260,6 +260,67 @@ const DISP = {
   "REPO AI - KEPT_PARTIAL": { tp: "REPO AI", sg: "KEPT" }
 };
 
+// ── Bucket/Placement mapping ────────────────────────────────────────────────
+const BUCKET_MAP = {
+  "01BDORA": "Bucket 1",
+  "01BDA":   "Bucket 1",
+  "02BDA":   "Bucket 2",
+  "05BDA":   "Bucket 5",
+  "06BDA":   "Bucket 6",
+  "01OASSA": "Sub Standard 1",
+  "02OASSA": "Sub Standard 2",
+  "03OASSA": "Substandard 3",
+  "04OAFWA": "Write Off",
+  "01OAFSA": "Bucket 1",
+  "02OAFSA": "Bucket 2",
+  "03OAFSA": "Bucket 3",
+  "04OAFSA": "Bucket 4",
+  "05OAFSA": "Bucket 5",
+  "06OAFSA": "Bucket 6",
+  "01BMIM":  "Regular",
+  "02BMIM":  "NPA",
+  "03BMIM":  "Write Off",
+};
+
+// Canonical bucket order for sorting
+const BUCKET_ORDER = [
+  "Bucket 1","Bucket 2","Bucket 3","Bucket 4","Bucket 5","Bucket 6",
+  "Sub Standard 1","Sub Standard 2","Substandard 3",
+  "Regular","NPA","Write Off"
+];
+
+const BUCKET_COLORS = {
+  "Bucket 1":       "#3b82f6",
+  "Bucket 2":       "#06b6d4",
+  "Bucket 3":       "#a78bfa",
+  "Bucket 4":       "#f59e0b",
+  "Bucket 5":       "#f97316",
+  "Bucket 6":       "#ef4444",
+  "Sub Standard 1": "#84cc16",
+  "Sub Standard 2": "#22c55e",
+  "Substandard 3":  "#14b8a6",
+  "Regular":        "#60a5fa",
+  "NPA":            "#fb923c",
+  "Write Off":      "#dc2626",
+};
+
+const resolveBucket = (rawVal) => {
+  if (!rawVal) return null;
+  const s = String(rawVal).trim().toUpperCase();
+  // Direct match
+  const direct = BUCKET_MAP[String(rawVal).trim()];
+  if (direct) return direct;
+  // Try uppercase key match
+  for (const [k, v] of Object.entries(BUCKET_MAP)) {
+    if (k.toUpperCase() === s) return v;
+  }
+  // Partial match: if the raw value contains one of the keys
+  for (const [k, v] of Object.entries(BUCKET_MAP)) {
+    if (s.includes(k.toUpperCase())) return v;
+  }
+  return null;
+};
+
 const EXCLUDED_REMARKS = [
   "New Assignment",
   "System Auto Update Remarks For PD",
@@ -285,7 +346,6 @@ const parseAmt = v => {
   const cleaned = String(v).replace(/[₱$,\s]/g, "").trim();
   return parseFloat(cleaned);
 };
-// Always outputs MM/DD/YYYY. Handles Date objects, dd-mm-yyyy, dd/mm/yyyy, mm/dd/yyyy strings.
 const fD = v => {
   if (!v) return null;
   if (v instanceof Date) {
@@ -296,18 +356,14 @@ const fD = v => {
     return `${mo}/${dy}/${yr}`;
   }
   const s = String(v).trim();
-  // Match dd-mm-yyyy or dd/mm/yyyy (day first, unambiguous when day > 12)
   const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (dmyMatch) {
     const [, a, b, yr] = dmyMatch;
-    // If first part > 12 it must be day; otherwise assume dd/mm/yyyy (Philippine convention)
     const day = parseInt(a), mon = parseInt(b);
     if (day > 12 || (day <= 12 && mon <= 12)) {
-      // treat as dd/mm/yyyy
       return `${String(mon).padStart(2, "0")}/${String(day).padStart(2, "0")}/${yr}`;
     }
   }
-  // Try native Date parse (handles ISO, mm/dd/yyyy, etc.)
   const d = new Date(s);
   if (!isNaN(d.getTime())) {
     const mo = String(d.getMonth() + 1).padStart(2, "0");
@@ -315,14 +371,13 @@ const fD = v => {
     const yr = d.getFullYear();
     return `${mo}/${dy}/${yr}`;
   }
-  return s; // fallback: return as-is
+  return s;
 };
 
 const parseTimeHour = (v) => {
   if (!v) return null;
   if (v instanceof Date && !isNaN(v.getTime())) return v.getHours();
   const s = String(v).trim();
-  // Try HH:MM or H:MM with optional AM/PM
   const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
   if (m) {
     let h = parseInt(m[1]);
@@ -333,7 +388,6 @@ const parseTimeHour = (v) => {
     }
     if (h >= 0 && h <= 23) return h;
   }
-  // Try parsing as date string that might have time
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.getHours();
   return null;
@@ -354,9 +408,6 @@ const Pb = ({ pct, c }) => (
 const SG_GROUPS = ["NEG", "RPC", "PTP", "KEPT", "POS"];
 const ALL_TP = ["CALL", "SMS", "VIBER", "EMAIL", "FIELD", "INTERNET", "CEASE COLLECTION", "FIELD REQUEST", "REPO AI"];
 
-// ── Sort/Filter helpers ──────────────────────────────────────────────────────
-
-
 const SearchBar = ({ value, onChange, placeholder = "Search..." }) => (
   <div style={{ position: "relative", marginBottom: 10 }}>
     <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: 13 }}>🔍</span>
@@ -373,8 +424,6 @@ const SearchBar = ({ value, onChange, placeholder = "Search..." }) => (
   </div>
 );
 
-// ────────────────────────────────────────────────────────────────────────────
-
 export default function App() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -383,9 +432,9 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedCollector, setSelectedCollector] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedBucket, setSelectedBucket] = useState(null);
   const fRef = useRef();
 
-  // ── Per-table sort & filter state ──
   const [statusSort, setStatusSort] = useState({ key: "count", dir: "desc" });
   const [statusSearch, setStatusSearch] = useState("");
   const [collectorSort, setCollectorSort] = useState({ key: "total", dir: "desc" });
@@ -396,6 +445,8 @@ export default function App() {
   const [clientSearch, setClientSearch] = useState("");
   const [touchSort, setTouchSort] = useState({ key: "count", dir: "desc" });
   const [touchSearch, setTouchSearch] = useState("");
+  const [bucketSort, setBucketSort] = useState({ key: "total", dir: "desc" });
+  const [bucketSearch, setBucketSearch] = useState("");
 
   const mkSort = (ss, setSS) => (key) => setSS(prev => ({ key, dir: prev.key === key && prev.dir === "desc" ? "asc" : "desc" }));
   const mkIcon = (ss) => ({ col }) => col !== ss.key
@@ -443,7 +494,6 @@ export default function App() {
         const pdk = keys.find(k => k.toLowerCase().includes("ptp date") && !k.toLowerCase().includes("claim"));
         const cak = keys.find(k => k.toLowerCase().includes("claim paid amount"));
         const cdk = keys.find(k => k.toLowerCase().includes("claim paid date"));
-        // Separate date and time columns
         const datек = keys.find(k => {
           const l = k.trim().toLowerCase();
           return l === "date" || l === "remark date" || l === "activity date" || l === "log date";
@@ -452,15 +502,18 @@ export default function App() {
           const l = k.trim().toLowerCase();
           return l === "time" || l === "remark time" || l === "activity time" || l === "log time";
         });
-        // Combined datetime fallback
         const dtk = (!datек && !timek) ? keys.find(k => {
           const l = k.toLowerCase();
           return l === "date and time" || l === "datetime" || l === "date/time";
         }) : null;
-        // Client column
         const clk = keys.find(k => {
           const l = k.trim().toLowerCase();
           return l === "client" || l === "client type" || l === "client name" || l === "clienttype";
+        });
+        // Old IC / Bucket column
+        const oick = keys.find(k => {
+          const l = k.trim().toLowerCase();
+          return l === "old ic" || l === "oldic" || l === "old_ic" || l === "placement" || l === "bucket";
         });
 
         const allRows = raw.map(r => ({ ...r, _su: r[sk] ? String(r[sk]).trim().toUpperCase() : null }));
@@ -480,10 +533,15 @@ export default function App() {
 
         const rows = afterRemarkFilter
           .filter(r => r._su && DU[r._su])
-          .map(r => ({ ...r, _status: DU[r._su].orig, _d: DU[r._su] }));
+          .map(r => ({
+            ...r,
+            _status: DU[r._su].orig,
+            _d: DU[r._su],
+            _bucket: oick ? resolveBucket(r[oick]) : null,
+          }));
 
         if (!rows.length) { setErr("Error: No valid recognized statuses found in the file."); setLoading(false); return; }
-        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, datек, timek, dtk, clk, totalRaw, remarkExcludedCount });
+        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, totalRaw, remarkExcludedCount });
       } catch (ex) { setErr("Error parsing file: " + ex.message); }
       setLoading(false);
     };
@@ -492,7 +550,7 @@ export default function App() {
 
   const an = useMemo(() => {
     if (!data) return null;
-    const { rows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk } = data;
+    const { rows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick } = data;
     const sc = {}, gc = {}, tc = {};
     rows.forEach(r => {
       sc[r._status] = (sc[r._status] || 0) + 1;
@@ -509,24 +567,19 @@ export default function App() {
     const td = Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([t, c]) => ({ name: t, count: c, pct: ((c / T) * 100).toFixed(1) }));
     const ua = ak ? new Set(rows.map(r => r[ak]).filter(Boolean)).size : null;
 
-    // Collector map: name -> { total, byTP: {}, bySG: {} }
     const collectorMap = {};
     if (rk) {
       rows.forEach(r => {
-        const v = r[rk];
-        if (!v) return;
+        const v = r[rk]; if (!v) return;
         const name = String(v).trim();
         if (!collectorMap[name]) collectorMap[name] = { total: 0, byTP: {}, bySG: {} };
         collectorMap[name].total++;
-        const tp = r._d.tp;
-        const sg = r._d.sg;
-        collectorMap[name].byTP[tp] = (collectorMap[name].byTP[tp] || 0) + 1;
-        collectorMap[name].bySG[sg] = (collectorMap[name].bySG[sg] || 0) + 1;
+        collectorMap[name].byTP[r._d.tp] = (collectorMap[name].byTP[r._d.tp] || 0) + 1;
+        collectorMap[name].bySG[r._d.sg] = (collectorMap[name].bySG[r._d.sg] || 0) + 1;
       });
     }
     const cd = Object.entries(collectorMap).sort((a, b) => b[1].total - a[1].total).map(([name, v]) => ({ name, ...v }));
 
-    // PTP / Claims
     let pt = 0, pc = 0;
     if (pak) rows.forEach(r => { const v = parseAmt(r[pak]); if (!isNaN(v) && v > 0) { pt += v; pc++; } });
     let ct = 0, cc = 0;
@@ -538,9 +591,8 @@ export default function App() {
     if (cdk) rows.forEach(r => { const d = r[cdk]; if (d) { const k = fD(d); if (k) cdc[k] = (cdc[k] || 0) + 1; } });
     const cdd = Object.entries(cdc).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c }));
 
-    // ── Date & Time Analytics (separate columns) ──
     let dateAnalytics = null;
-    const activeDateKey = datек || dtk; // prefer dedicated date col
+    const activeDateKey = datек || dtk;
     if (activeDateKey || timek) {
       const dateMap = {};
       rows.forEach(r => {
@@ -554,13 +606,8 @@ export default function App() {
         }
       });
       const dateSorted = Object.entries(dateMap)
-        .sort((a, b) => {
-          const da = new Date(a[0]), db = new Date(b[0]);
-          return isNaN(da) || isNaN(db) ? a[0].localeCompare(b[0]) : da - db;
-        })
+        .sort((a, b) => { const da = new Date(a[0]), db = new Date(b[0]); return isNaN(da) || isNaN(db) ? a[0].localeCompare(b[0]) : da - db; })
         .map(([date, v]) => ({ date, ...v }));
-
-      // Hour distribution from dedicated time column or datetime col
       const hourMap = {};
       rows.forEach(r => {
         const tRaw = timek ? r[timek] : (dtk ? r[dtk] : null);
@@ -569,43 +616,121 @@ export default function App() {
         if (hr !== null) hourMap[hr] = (hourMap[hr] || 0) + 1;
       });
       const hasHours = Object.keys(hourMap).length > 0;
-      const hourData = hasHours
-        ? Array.from({ length: 24 }, (_, h) => ({ hour: `${String(h).padStart(2, "0")}:00`, count: hourMap[h] || 0 }))
-        : [];
-
+      const hourData = hasHours ? Array.from({ length: 24 }, (_, h) => ({ hour: `${String(h).padStart(2, "0")}:00`, count: hourMap[h] || 0 })) : [];
       dateAnalytics = { dateSorted, hourData, hasHours, dateMap };
     }
 
-    // ── Client Analytics ──
     let clientAnalytics = null;
     if (clk) {
       const clientMap = {};
       rows.forEach(r => {
-        const v = r[clk];
-        if (!v) return;
+        const v = r[clk]; if (!v) return;
         const name = String(v).trim();
         if (!clientMap[name]) clientMap[name] = { total: 0, byTP: {}, bySG: {} };
         clientMap[name].total++;
-        const tp = r._d.tp;
-        const sg = r._d.sg;
-        clientMap[name].byTP[tp] = (clientMap[name].byTP[tp] || 0) + 1;
-        clientMap[name].bySG[sg] = (clientMap[name].bySG[sg] || 0) + 1;
+        clientMap[name].byTP[r._d.tp] = (clientMap[name].byTP[r._d.tp] || 0) + 1;
+        clientMap[name].bySG[r._d.sg] = (clientMap[name].bySG[r._d.sg] || 0) + 1;
       });
       const clientList = Object.entries(clientMap).sort((a, b) => b[1].total - a[1].total).map(([name, v]) => ({ name, ...v }));
-      // For bar chart: each client's SG breakdown
-      const clientSGData = clientList.map(c => ({
-        name: c.name,
-        total: c.total,
-        NEG: c.bySG.NEG || 0,
-        RPC: c.bySG.RPC || 0,
-        PTP: c.bySG.PTP || 0,
-        KEPT: c.bySG.KEPT || 0,
-        POS: c.bySG.POS || 0,
-      }));
+      const clientSGData = clientList.map(c => ({ name: c.name, total: c.total, NEG: c.bySG.NEG||0, RPC: c.bySG.RPC||0, PTP: c.bySG.PTP||0, KEPT: c.bySG.KEPT||0, POS: c.bySG.POS||0 }));
       clientAnalytics = { clientList, clientSGData };
     }
 
-    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, clientAnalytics };
+    // ── Bucket Analytics ────────────────────────────────────────────────────
+    let bucketAnalytics = null;
+    if (oick) {
+      const bucketMap = {};
+      rows.forEach(r => {
+        const b = r._bucket;
+        if (!b) return;
+        if (!bucketMap[b]) bucketMap[b] = {
+          total: 0, byTP: {}, bySG: {},
+          ptpAmt: 0, ptpCount: 0, claimAmt: 0, claimCount: 0,
+          ptpByDate: {}, claimByDate: {},
+          rawCodes: {},
+        };
+        bucketMap[b].total++;
+        bucketMap[b].byTP[r._d.tp] = (bucketMap[b].byTP[r._d.tp] || 0) + 1;
+        bucketMap[b].bySG[r._d.sg] = (bucketMap[b].bySG[r._d.sg] || 0) + 1;
+
+        // PTP
+        if (pak) {
+          const v = parseAmt(r[pak]);
+          if (!isNaN(v) && v > 0) { bucketMap[b].ptpAmt += v; bucketMap[b].ptpCount++; }
+        }
+        if (pdk) {
+          const d = fD(r[pdk]);
+          if (d) bucketMap[b].ptpByDate[d] = (bucketMap[b].ptpByDate[d] || 0) + 1;
+        }
+        // Claim
+        if (cak) {
+          const v = parseAmt(r[cak]);
+          if (!isNaN(v) && v > 0) { bucketMap[b].claimAmt += v; bucketMap[b].claimCount++; }
+        }
+        if (cdk) {
+          const d = fD(r[cdk]);
+          if (d) bucketMap[b].claimByDate[d] = (bucketMap[b].claimByDate[d] || 0) + 1;
+        }
+        // Raw code tracking
+        if (oick) {
+          const raw = String(r[oick] || "").trim();
+          bucketMap[b].rawCodes[raw] = (bucketMap[b].rawCodes[raw] || 0) + 1;
+        }
+      });
+
+      // Sort by canonical order then alphabetically
+      const bucketList = Object.entries(bucketMap)
+        .sort((a, b) => {
+          const ai = BUCKET_ORDER.indexOf(a[0]), bi = BUCKET_ORDER.indexOf(b[0]);
+          if (ai === -1 && bi === -1) return a[0].localeCompare(b[0]);
+          if (ai === -1) return 1;
+          if (bi === -1) return -1;
+          return ai - bi;
+        })
+        .map(([name, v]) => ({
+          name,
+          ...v,
+          ptpByDateArr: Object.entries(v.ptpByDate).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c })),
+          claimByDateArr: Object.entries(v.claimByDate).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c })),
+          pctShare: ((v.total / T) * 100).toFixed(1),
+          rpcRate: v.total > 0 ? (((v.bySG.RPC || 0) / v.total) * 100).toFixed(1) : "0.0",
+          ptpRate: v.total > 0 ? (((v.bySG.PTP || 0) / v.total) * 100).toFixed(1) : "0.0",
+          keptRate: v.total > 0 ? (((v.bySG.KEPT || 0) / v.total) * 100).toFixed(1) : "0.0",
+        }));
+
+      // Cross-bucket PTP & Claim trend by date
+      const allDates = new Set();
+      bucketList.forEach(b => b.ptpByDateArr.forEach(x => allDates.add(x.date)));
+      const ptpTrendByBucket = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b)).map(date => {
+        const row = { date };
+        bucketList.forEach(b => { row[b.name] = b.ptpByDate[date] || 0; });
+        return row;
+      });
+
+      const allClaimDates = new Set();
+      bucketList.forEach(b => b.claimByDateArr.forEach(x => allClaimDates.add(x.date)));
+      const claimTrendByBucket = Array.from(allClaimDates).sort((a, b) => new Date(a) - new Date(b)).map(date => {
+        const row = { date };
+        bucketList.forEach(b => { row[b.name] = b.claimByDate[date] || 0; });
+        return row;
+      });
+
+      // Radar data: each bucket's SG distribution normalized %
+      const radarData = SG_GROUPS.map(sg => {
+        const row = { sg };
+        bucketList.forEach(b => {
+          row[b.name] = b.total > 0 ? parseFloat(((b.bySG[sg] || 0) / b.total * 100).toFixed(1)) : 0;
+        });
+        return row;
+      });
+
+      // Unmapped rows count
+      const unmappedCount = rows.filter(r => !r._bucket).length;
+
+      bucketAnalytics = { bucketList, ptpTrendByBucket, claimTrendByBucket, radarData, unmappedCount };
+    }
+
+    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, clientAnalytics, bucketAnalytics };
   }, [data]);
 
   const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
@@ -618,9 +743,7 @@ export default function App() {
     const sc = {};
     data.rows.forEach(r => {
       const d = fD(r[activeKey]);
-      if (d === selectedDate) {
-        sc[r._status] = (sc[r._status] || 0) + 1;
-      }
+      if (d === selectedDate) { sc[r._status] = (sc[r._status] || 0) + 1; }
     });
     return Object.entries(sc).sort((a, b) => b[1] - a[1]).map(([s, c]) => {
       const d = DU[s.toUpperCase()];
@@ -628,17 +751,20 @@ export default function App() {
     });
   }, [selectedDate, data, an]);
 
-  // Collector drill-down
   const selectedCollectorData = useMemo(() => {
     if (!selectedCollector || !an) return null;
     return an.cd.find(c => c.name === selectedCollector) || null;
   }, [selectedCollector, an]);
 
-  // Client drill-down
   const selectedClientData = useMemo(() => {
     if (!selectedClient || !an?.clientAnalytics) return null;
     return an.clientAnalytics.clientList.find(c => c.name === selectedClient) || null;
   }, [selectedClient, an]);
+
+  const selectedBucketData = useMemo(() => {
+    if (!selectedBucket || !an?.bucketAnalytics) return null;
+    return an.bucketAnalytics.bucketList.find(b => b.name === selectedBucket) || null;
+  }, [selectedBucket, an]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a", color: "#e2e8f0", fontFamily: "'DM Sans',sans-serif" }}>
@@ -666,6 +792,8 @@ export default function App() {
         .dr2.sel td{background:#0f2a0f !important}
         .dr3:hover td{background:#2e1a0f !important}
         .dr3.sel td{background:#2a1500 !important}
+        .dr4:hover td{background:#1a1a2e !important}
+        .dr4.sel td{background:#0d0d1f !important}
       `}</style>
 
       {/* Header */}
@@ -702,7 +830,7 @@ export default function App() {
               <div style={{ marginTop: 20, padding: "12px 16px", background: "#0f172a", borderRadius: 8, fontSize: 12, color: "#475569" }}>
                 <div style={{ fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Expected columns (auto-detected):</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {["Status", "Account No.", "Remark By", "Remarks", "PTP Amount", "PTP Date", "Claim Paid Amount", "Claim Paid Date", "Date", "Time", "Client"].map(c => (
+                  {["Status", "Account No.", "Remark By", "Remarks", "PTP Amount", "PTP Date", "Claim Paid Amount", "Claim Paid Date", "Date", "Time", "Client", "Old IC"].map(c => (
                     <span key={c} style={{ background: "#1e293b", padding: "2px 8px", borderRadius: 4, color: "#94a3b8" }}>{c}</span>
                   ))}
                 </div>
@@ -721,6 +849,7 @@ export default function App() {
               { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
               { l: "Collectors", v: an.cd.length, i: "👥", c: "#06b6d4" },
               { l: "Clients", v: an.clientAnalytics ? an.clientAnalytics.clientList.length : "N/A", i: "🏢", c: "#a78bfa" },
+              { l: "Buckets", v: an.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A", i: "🪣", c: "#f97316" },
               { l: "PTP Amount", v: "₱" + fN(an.pt), i: "💰", c: "#22c55e" },
               { l: "Claim Paid", v: "₱" + fN(an.ct), i: "💳", c: "#f97316" },
             ].map(k => (
@@ -740,8 +869,10 @@ export default function App() {
             {data.timek && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>⏰ Time: <strong>{data.timek}</strong></span>}
             {data.dtk && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📅⏰ DateTime: <strong>{data.dtk}</strong></span>}
             {data.clk && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>🏢 Client: <strong>{data.clk}</strong></span>}
+            {data.oick && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>🪣 Bucket/IC: <strong>{data.oick}</strong></span>}
             {!data.datек && !data.timek && !data.dtk && <span style={{ color: "#64748b" }}>No date/time columns detected</span>}
             {!data.clk && <span style={{ color: "#64748b" }}>No client column detected</span>}
+            {!data.oick && <span style={{ color: "#64748b" }}>No Old IC/Bucket column detected</span>}
           </div>
 
           {data.remarkExcludedCount > 0 && (
@@ -761,15 +892,16 @@ export default function App() {
               ["touch", "📱 Touch Points"],
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
               ...(an.clientAnalytics ? [["clients", "🏢 Clients"]] : []),
+              ...(an.bucketAnalytics ? [["buckets", "🪣 Buckets"]] : []),
             ].map(([t, l]) => (
               <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
             ))}
           </div>
           <div style={{ textAlign: "right", marginBottom: 16 }}>
-            <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); }} style={{ background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>↩ Upload New File</button>
+            <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }} style={{ background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>↩ Upload New File</button>
           </div>
 
-          {/* Overview */}
+          {/* ── Overview Tab ── */}
           {tab === "overview" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Status Group Distribution</div>
@@ -811,45 +943,44 @@ export default function App() {
             </div>
           </div>}
 
-          {/* Status Detail */}
+          {/* ── Status Detail Tab ── */}
           {tab === "status" && (() => {
             const SI = mkIcon(statusSort);
             const ssd = sortFilter(an.sd, statusSort, statusSearch, ["status", "grp", "tp"]);
             return (
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
-              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Only statuses present in your file are shown. Click column headers to sort.</div>
-              <SearchBar value={statusSearch} onChange={setStatusSearch} placeholder="Filter by status, group, or touch point..." />
-              <div style={{ fontSize: 12, color: "#475569", marginBottom: 8 }}>{ssd.length} of {an.sd.length} statuses shown</div>
-              <div style={{ overflowX: "auto" }}>
-                <table>
-                  <thead><tr>
-                    <th>#</th>
-                    <th onClick={() => mkSort(statusSort, setStatusSort)("status")} style={{ cursor: "pointer", userSelect: "none" }}>Status <SI col="status" /></th>
-                    <th onClick={() => mkSort(statusSort, setStatusSort)("grp")} style={{ cursor: "pointer", userSelect: "none" }}>Group <SI col="grp" /></th>
-                    <th onClick={() => mkSort(statusSort, setStatusSort)("tp")} style={{ cursor: "pointer", userSelect: "none" }}>Touch Point <SI col="tp" /></th>
-                    <th onClick={() => mkSort(statusSort, setStatusSort)("count")} style={{ cursor: "pointer", userSelect: "none" }}>Count <SI col="count" /></th>
-                    <th onClick={() => mkSort(statusSort, setStatusSort)("pct")} style={{ cursor: "pointer", userSelect: "none" }}>% <SI col="pct" /></th>
-                    <th style={{ width: 100 }}>Bar</th>
-                  </tr></thead>
-                  <tbody>{ssd.map((s, i) => <tr key={s.status}>
-                    <td style={{ color: "#475569" }}>{i + 1}</td>
-                    <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{s.status}</td>
-                    <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
-                    <td style={{ color: "#94a3b8" }}>{s.tp}</td>
-                    <td style={{ fontWeight: 600, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
-                    <td style={{ color: "#60a5fa" }}>{s.pct}%</td>
-                    <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
-                  </tr>)}</tbody>
-                </table>
+              <div className="card">
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Only statuses present in your file are shown. Click column headers to sort.</div>
+                <SearchBar value={statusSearch} onChange={setStatusSearch} placeholder="Filter by status, group, or touch point..." />
+                <div style={{ fontSize: 12, color: "#475569", marginBottom: 8 }}>{ssd.length} of {an.sd.length} statuses shown</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table>
+                    <thead><tr>
+                      <th>#</th>
+                      <th onClick={() => mkSort(statusSort, setStatusSort)("status")} style={{ cursor: "pointer", userSelect: "none" }}>Status <SI col="status" /></th>
+                      <th onClick={() => mkSort(statusSort, setStatusSort)("grp")} style={{ cursor: "pointer", userSelect: "none" }}>Group <SI col="grp" /></th>
+                      <th onClick={() => mkSort(statusSort, setStatusSort)("tp")} style={{ cursor: "pointer", userSelect: "none" }}>Touch Point <SI col="tp" /></th>
+                      <th onClick={() => mkSort(statusSort, setStatusSort)("count")} style={{ cursor: "pointer", userSelect: "none" }}>Count <SI col="count" /></th>
+                      <th onClick={() => mkSort(statusSort, setStatusSort)("pct")} style={{ cursor: "pointer", userSelect: "none" }}>% <SI col="pct" /></th>
+                      <th style={{ width: 100 }}>Bar</th>
+                    </tr></thead>
+                    <tbody>{ssd.map((s, i) => <tr key={s.status}>
+                      <td style={{ color: "#475569" }}>{i + 1}</td>
+                      <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{s.status}</td>
+                      <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
+                      <td style={{ color: "#94a3b8" }}>{s.tp}</td>
+                      <td style={{ fontWeight: 600, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
+                      <td style={{ color: "#60a5fa" }}>{s.pct}%</td>
+                      <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
+                    </tr>)}</tbody>
+                  </table>
+                </div>
               </div>
-            </div>
             );
           })()}
 
-          {/* ── Collectors Tab (now with touchpoint breakdown) ── */}
+          {/* ── Collectors Tab ── */}
           {tab === "collectors" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {/* Top collectors chart */}
             <div className="card" style={{ gridColumn: "1/-1" }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Top 20 Collectors by Total Efforts</div>
               {an.cd.length === 0
@@ -864,8 +995,6 @@ export default function App() {
                   </BarChart>
                 </ResponsiveContainer>}
             </div>
-
-            {/* Collector table with click to drill down */}
             {an.cd.length > 0 && <>
               <div className="card" style={{ gridColumn: "1/-1" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Collector Efforts with Touch Point Breakdown</div>
@@ -877,47 +1006,34 @@ export default function App() {
                 {(() => {
                   const CI = mkIcon(collectorSort);
                   const activeTPs = ALL_TP.filter(tp => an.cd.some(col => col.byTP[tp]));
-                  const filteredCD = sortFilter(
-                    an.cd.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1) })),
-                    collectorSort, collectorSearch, ["name"]
-                  );
+                  const filteredCD = sortFilter(an.cd.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1) })), collectorSort, collectorSearch, ["name"]);
                   return (
-                  <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
-                    <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredCD.length} of {an.cd.length} collectors shown</div>
-                    <table>
-                      <thead>
-                        <tr>
+                    <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredCD.length} of {an.cd.length} collectors shown</div>
+                      <table>
+                        <thead><tr>
                           <th>#</th>
                           <th onClick={() => mkSort(collectorSort, setCollectorSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Collector <CI col="name" /></th>
                           <th onClick={() => mkSort(collectorSort, setCollectorSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CI col="total" /></th>
                           <th onClick={() => mkSort(collectorSort, setCollectorSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% Share <CI col="pctShare" /></th>
-                          {activeTPs.map(tp => (
-                            <th key={tp} onClick={() => mkSort(collectorSort, setCollectorSort)(`byTP.${tp}`)} style={{ color: TP_COLORS[tp] || "#94a3b8", cursor: "pointer", userSelect: "none" }}>{tp}</th>
-                          ))}
+                          {activeTPs.map(tp => <th key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{tp}</th>)}
                           <th style={{ width: 100 }}>Bar</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredCD.map((c, i) => (
+                        </tr></thead>
+                        <tbody>{filteredCD.map((c, i) => (
                           <tr key={c.name} className={`dr${selectedCollector === c.name ? " sel" : ""}`} onClick={() => setSelectedCollector(selectedCollector === c.name ? null : c.name)}>
                             <td style={{ color: "#475569" }}>{i + 1}</td>
                             <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
                             <td style={{ fontWeight: 700, color: "#22c55e" }}>{c.total.toLocaleString()}</td>
                             <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
-                            {activeTPs.map(tp => (
-                              <td key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{(c.byTP[tp] || 0).toLocaleString()}</td>
-                            ))}
+                            {activeTPs.map(tp => <td key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{(c.byTP[tp] || 0).toLocaleString()}</td>)}
                             <td><Pb pct={(c.total / an.cd[0].total) * 100} c="#3b82f6" /></td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))}</tbody>
+                      </table>
+                    </div>
                   );
                 })()}
               </div>
-
-              {/* Collector drill-down */}
               {selectedCollector && selectedCollectorData && (
                 <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #1e40af" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -925,81 +1041,51 @@ export default function App() {
                     <span style={{ background: "#172554", color: "#60a5fa", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedCollectorData.total.toLocaleString()} total efforts</span>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-                    {/* Touch Point pie */}
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Touch Point</div>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
-                          <Pie
-                            data={Object.entries(selectedCollectorData.byTP).map(([k, v]) => ({ name: k, value: v }))}
-                            dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
-                          >
-                            {Object.entries(selectedCollectorData.byTP).map(([tp], i) => (
-                              <Cell key={i} fill={TP_COLORS[tp] || PC[i % PC.length]} />
-                            ))}
+                          <Pie data={Object.entries(selectedCollectorData.byTP).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                            {Object.entries(selectedCollectorData.byTP).map(([tp], i) => <Cell key={i} fill={TP_COLORS[tp] || PC[i % PC.length]} />)}
                           </Pie>
                           <Tooltip contentStyle={TS} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                    {/* Outcome group pie */}
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Outcome Group</div>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
-                          <Pie
-                            data={Object.entries(selectedCollectorData.bySG).map(([k, v]) => ({ name: k, value: v }))}
-                            dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
-                          >
-                            {Object.entries(selectedCollectorData.bySG).map(([sg], i) => (
-                              <Cell key={i} fill={GC[sg] || PC[i % PC.length]} />
-                            ))}
+                          <Pie data={Object.entries(selectedCollectorData.bySG).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                            {Object.entries(selectedCollectorData.bySG).map(([sg], i) => <Cell key={i} fill={GC[sg] || PC[i % PC.length]} />)}
                           </Pie>
                           <Tooltip contentStyle={TS} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                    {/* TP breakdown table */}
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Details</div>
                       <table>
                         <thead><tr><th>Touch Point</th><th>Count</th><th>%</th></tr></thead>
-                        <tbody>
-                          {Object.entries(selectedCollectorData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
-                            <tr key={tp}>
-                              <td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td>
-                              <td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td>
-                              <td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
+                        <tbody>{Object.entries(selectedCollectorData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
+                          <tr key={tp}><td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td></tr>
+                        ))}</tbody>
                       </table>
                       <div style={{ marginTop: 12 }}>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Details</div>
                         <table>
                           <thead><tr><th>Group</th><th>Count</th><th>%</th></tr></thead>
-                          <tbody>
-                            {Object.entries(selectedCollectorData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
-                              <tr key={sg}>
-                                <td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td>
-                                <td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td>
-                                <td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td>
-                              </tr>
-                            ))}
-                          </tbody>
+                          <tbody>{Object.entries(selectedCollectorData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
+                            <tr key={sg}><td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td></tr>
+                          ))}</tbody>
                         </table>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* Stacked bar: collector touch point mix for top 15 */}
               <div className="card" style={{ gridColumn: "1/-1" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Top 15 Collectors — Touch Point Mix</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Stacked view of each collector's touch point distribution</div>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={an.cd.slice(0, 15).map(c => ({ name: c.name, ...c.byTP }))} margin={{ bottom: 90 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1007,17 +1093,12 @@ export default function App() {
                     <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {ALL_TP.filter(tp => an.cd.some(c => c.byTP[tp])).map(tp => (
-                      <Bar key={tp} dataKey={tp} stackId="a" fill={TP_COLORS[tp] || "#64748b"} name={tp} />
-                    ))}
+                    {ALL_TP.filter(tp => an.cd.some(c => c.byTP[tp])).map(tp => <Bar key={tp} dataKey={tp} stackId="a" fill={TP_COLORS[tp] || "#64748b"} name={tp} />)}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Stacked bar: collector outcome mix */}
               <div className="card" style={{ gridColumn: "1/-1" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Top 15 Collectors — Outcome Group Mix</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>NEG / RPC / PTP / KEPT / POS per collector</div>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={an.cd.slice(0, 15).map(c => ({ name: c.name, ...c.bySG }))} margin={{ bottom: 90 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1025,16 +1106,14 @@ export default function App() {
                     <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {SG_GROUPS.map(sg => (
-                      <Bar key={sg} dataKey={sg} stackId="b" fill={GC[sg] || "#64748b"} name={sg} />
-                    ))}
+                    {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="b" fill={GC[sg] || "#64748b"} name={sg} />)}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </>}
           </div>}
 
-          {/* PTP & Claims */}
+          {/* ── PTP & Claims Tab ── */}
           {tab === "ptp" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
               { l: "PTP Records", v: an.pc.toLocaleString(), c: "#3b82f6", s: "rows with PTP amount > 0" },
@@ -1070,12 +1149,10 @@ export default function App() {
                 </BarChart>
               </ResponsiveContainer>
             </div>}
-            {an.pdd.length === 0 && an.cdd.length === 0 && (
-              <div style={{ gridColumn: "1/-1", color: "#64748b", fontSize: 13 }}>No PTP Date or Claim Paid Date columns detected.</div>
-            )}
+            {an.pdd.length === 0 && an.cdd.length === 0 && <div style={{ gridColumn: "1/-1", color: "#64748b", fontSize: 13 }}>No PTP Date or Claim Paid Date columns detected.</div>}
           </div>}
 
-          {/* Touch Points */}
+          {/* ── Touch Points Tab ── */}
           {tab === "touch" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Touch Point Distribution</div>
@@ -1110,20 +1187,20 @@ export default function App() {
                 const TI = mkIcon(touchSort);
                 const filteredTP = sortFilter(an.td, touchSort, touchSearch, ["name"]);
                 return (
-                <table>
-                  <thead><tr>
-                    <th onClick={() => mkSort(touchSort, setTouchSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Touch Point <TI col="name" /></th>
-                    <th onClick={() => mkSort(touchSort, setTouchSort)("count")} style={{ cursor: "pointer", userSelect: "none" }}>Efforts <TI col="count" /></th>
-                    <th onClick={() => mkSort(touchSort, setTouchSort)("pct")} style={{ cursor: "pointer", userSelect: "none" }}>% <TI col="pct" /></th>
-                    <th style={{ width: 200 }}>Bar</th>
-                  </tr></thead>
-                  <tbody>{filteredTP.map((t, i) => <tr key={t.name}>
-                    <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{t.name}</td>
-                    <td style={{ fontWeight: 700, color: TP_COLORS[t.name] || PC[i % PC.length] }}>{t.count.toLocaleString()}</td>
-                    <td>{t.pct}%</td>
-                    <td><Pb pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
-                  </tr>)}</tbody>
-                </table>
+                  <table>
+                    <thead><tr>
+                      <th onClick={() => mkSort(touchSort, setTouchSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Touch Point <TI col="name" /></th>
+                      <th onClick={() => mkSort(touchSort, setTouchSort)("count")} style={{ cursor: "pointer", userSelect: "none" }}>Efforts <TI col="count" /></th>
+                      <th onClick={() => mkSort(touchSort, setTouchSort)("pct")} style={{ cursor: "pointer", userSelect: "none" }}>% <TI col="pct" /></th>
+                      <th style={{ width: 200 }}>Bar</th>
+                    </tr></thead>
+                    <tbody>{filteredTP.map((t, i) => <tr key={t.name}>
+                      <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{t.name}</td>
+                      <td style={{ fontWeight: 700, color: TP_COLORS[t.name] || PC[i % PC.length] }}>{t.count.toLocaleString()}</td>
+                      <td>{t.pct}%</td>
+                      <td><Pb pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
+                    </tr>)}</tbody>
+                  </table>
                 );
               })()}
             </div>
@@ -1136,14 +1213,13 @@ export default function App() {
             const avgPerDay = totalDays > 0 ? (an.T / totalDays).toFixed(1) : 0;
             const peakDay = dateSorted.length > 0 ? dateSorted.reduce((a, b) => b.total > a.total ? b : a, dateSorted[0]) : {};
             const peakHour = hasHours ? hourData.reduce((a, b) => b.count > a.count ? b : a, hourData[0]) : null;
-
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                 {[
                   { l: "Active Days", v: totalDays, i: "📅", c: "#3b82f6" },
                   { l: "Avg / Day", v: avgPerDay, i: "📈", c: "#a78bfa" },
                   { l: "Peak Day", v: peakDay?.date || "–", i: "🔝", c: "#f59e0b", sub: peakDay?.total ? peakDay.total.toLocaleString() + " records" : "" },
-                  { l: "Peak Hour", v: peakHour ? peakHour.hour : "N/A", i: "⏰", c: "#06b6d4", sub: peakHour ? peakHour.count.toLocaleString() + " records" : (data.timek ? "No time data" : "No time column") },
+                  { l: "Peak Hour", v: peakHour ? peakHour.hour : "N/A", i: "⏰", c: "#06b6d4", sub: peakHour ? peakHour.count.toLocaleString() + " records" : "" },
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
@@ -1152,10 +1228,8 @@ export default function App() {
                     {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
-
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Overall Daily Efforts Trend</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>{totalDays} active days · from <strong>{data.datек || data.dtk}</strong> column</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={dateSorted} margin={{ left: 0, right: 16, bottom: dateSorted.length > 20 ? 70 : 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1166,10 +1240,8 @@ export default function App() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Daily Group Breakdown</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>NEG / RPC / PTP / KEPT / POS per day</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={dateSorted} margin={{ left: 0, right: 16, bottom: dateSorted.length > 20 ? 70 : 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1177,17 +1249,13 @@ export default function App() {
                       <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => (
-                        <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />
-                      ))}
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
                 {hasHours && (
                   <div className="card" style={{ gridColumn: "1/-1" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Activity by Hour of Day</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>From <strong>{data.timek || data.dtk}</strong> column · When are collectors most active?</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={hourData} margin={{ left: 0, right: 16 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1199,17 +1267,10 @@ export default function App() {
                     </ResponsiveContainer>
                   </div>
                 )}
-
-                {!hasHours && data.timek && (
-                  <div className="card" style={{ gridColumn: "1/-1", color: "#64748b", fontSize: 13 }}>
-                    ⚠️ Time column <strong>{data.timek}</strong> was detected but no parseable hour values were found.
-                  </div>
-                )}
-
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Per-Date Summary</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
-                    Click any row to drill into that date · Click column headers to sort.
+                    Click any row to drill into that date.
                     {selectedDate && <button onClick={() => setSelectedDate(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                   </div>
                   <SearchBar value={dateSearch} onChange={setDateSearch} placeholder="Filter by date..." />
@@ -1217,37 +1278,29 @@ export default function App() {
                     const DI = mkIcon(dateSort);
                     const filteredDates = sortFilter(dateSorted, dateSort, dateSearch, ["date"]);
                     return (
-                    <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
-                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredDates.length} of {dateSorted.length} dates shown</div>
-                      <table>
-                        <thead>
-                          <tr>
+                      <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                        <table>
+                          <thead><tr>
                             <th>#</th>
                             <th onClick={() => mkSort(dateSort, setDateSort)("date")} style={{ cursor: "pointer", userSelect: "none" }}>Date <DI col="date" /></th>
                             <th onClick={() => mkSort(dateSort, setDateSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <DI col="total" /></th>
                             {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(dateSort, setDateSort)(sg)} style={{ cursor: "pointer", userSelect: "none" }}><span style={{ color: GC[sg] || "#94a3b8" }}>{sg}</span> <DI col={sg} /></th>)}
                             <th style={{ width: 120 }}>Trend</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredDates.map((d, i) => (
+                          </tr></thead>
+                          <tbody>{filteredDates.map((d, i) => (
                             <tr key={d.date} className={`dr${selectedDate === d.date ? " sel" : ""}`} onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}>
                               <td style={{ color: "#475569" }}>{i + 1}</td>
                               <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{d.date}</td>
                               <td style={{ fontWeight: 700, color: "#60a5fa" }}>{d.total.toLocaleString()}</td>
-                              {SG_GROUPS.map(sg => (
-                                <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>
-                              ))}
+                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>)}
                               <td><Pb pct={(d.total / (peakDay?.total || 1)) * 100} c="#3b82f6" /></td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          ))}</tbody>
+                        </table>
+                      </div>
                     );
                   })()}
                 </div>
-
                 {selectedDate && selectedDateRows && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #1e40af" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -1260,29 +1313,18 @@ export default function App() {
                           <thead><tr><th>#</th><th>Status</th><th>Grp</th><th>TP</th><th>Count</th><th>%</th></tr></thead>
                           <tbody>{selectedDateRows.map((s, i) => {
                             const dayTotal = selectedDateRows.reduce((a, b) => a + b.count, 0);
-                            return (
-                              <tr key={s.status}>
-                                <td style={{ color: "#475569" }}>{i + 1}</td>
-                                <td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td>
-                                <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
-                                <td style={{ color: "#64748b" }}>{s.tp}</td>
-                                <td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
-                                <td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td>
-                              </tr>
-                            );
+                            return <tr key={s.status}><td style={{ color: "#475569" }}>{i + 1}</td><td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td><td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td><td style={{ color: "#64748b" }}>{s.tp}</td><td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td></tr>;
                           })}</tbody>
                         </table>
                       </div>
-                      <div>
-                        <ResponsiveContainer width="100%" height={260}>
-                          <PieChart>
-                            <Pie data={selectedDateRows.slice(0, 10)} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name.split(" - ")[1] || name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                              {selectedDateRows.slice(0, 10).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
-                            </Pie>
-                            <Tooltip formatter={(v, n) => [v.toLocaleString(), n]} contentStyle={TS} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
+                      <ResponsiveContainer width="100%" height={260}>
+                        <PieChart>
+                          <Pie data={selectedDateRows.slice(0, 10)} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${(name.split(" - ")[1] || name).substring(0, 12)} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                            {selectedDateRows.slice(0, 10).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
+                          </Pie>
+                          <Tooltip contentStyle={TS} />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 )}
@@ -1296,10 +1338,8 @@ export default function App() {
             const topClient = clientList[0];
             const bestPTPClient = [...clientList].sort((a, b) => (b.bySG.PTP || 0) - (a.bySG.PTP || 0))[0];
             const bestKEPTClient = [...clientList].sort((a, b) => (b.bySG.KEPT || 0) - (a.bySG.KEPT || 0))[0];
-
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
-                {/* KPIs */}
                 {[
                   { l: "Total Clients", v: clientList.length, i: "🏢", c: "#a78bfa" },
                   { l: "Highest Volume", v: topClient?.name || "–", i: "🔝", c: "#3b82f6", sub: topClient?.total.toLocaleString() + " records" },
@@ -1313,8 +1353,6 @@ export default function App() {
                     {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
-
-                {/* Client distribution pie */}
                 <div className="card" style={{ gridColumn: "1/3" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Client Distribution by Volume</div>
                   <ResponsiveContainer width="100%" height={280}>
@@ -1327,8 +1365,6 @@ export default function App() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Client bar chart */}
                 <div className="card" style={{ gridColumn: "3/5" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts per Client</div>
                   <ResponsiveContainer width="100%" height={280}>
@@ -1337,98 +1373,46 @@ export default function App() {
                       <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={120} />
                       <Tooltip contentStyle={TS} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-                        {clientList.map((_, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
-                      </Bar>
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>{clientList.map((_, i) => <Cell key={i} fill={PC[i % PC.length]} />)}</Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Stacked by outcome */}
-                <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Outcome Group Mix</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>NEG / RPC / PTP / KEPT / POS breakdown per client</div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={clientSGData} margin={{ bottom: clientList.length > 6 ? 70 : 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={clientList.length > 6 ? -35 : 0} textAnchor={clientList.length > 6 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <Tooltip contentStyle={TS} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => (
-                        <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Client touch point stacked */}
-                <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Touch Point Mix</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>What channels are used per client?</div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={clientList.map(c => ({ name: c.name, ...c.byTP }))} margin={{ bottom: clientList.length > 6 ? 70 : 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={clientList.length > 6 ? -35 : 0} textAnchor={clientList.length > 6 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <Tooltip contentStyle={TS} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {ALL_TP.filter(tp => clientList.some(c => c.byTP[tp])).map(tp => (
-                        <Bar key={tp} dataKey={tp} stackId="b" fill={TP_COLORS[tp] || "#64748b"} name={tp} />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Client table with click to drill down */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Summary Table</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
-                    Click a row to drill down · Click column headers to sort.
+                    Click a row to drill down.
                     {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                   </div>
                   <SearchBar value={clientSearch} onChange={setClientSearch} placeholder="Filter by client name..." />
                   {(() => {
                     const CLI = mkIcon(clientSort);
-                    const filteredClients = sortFilter(
-                      clientList.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1), NEG: c.bySG.NEG||0, RPC: c.bySG.RPC||0, PTP: c.bySG.PTP||0, KEPT: c.bySG.KEPT||0, POS: c.bySG.POS||0 })),
-                      clientSort, clientSearch, ["name"]
-                    );
+                    const filteredClients = sortFilter(clientList.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1), NEG: c.bySG.NEG||0, RPC: c.bySG.RPC||0, PTP: c.bySG.PTP||0, KEPT: c.bySG.KEPT||0, POS: c.bySG.POS||0 })), clientSort, clientSearch, ["name"]);
                     return (
-                    <div style={{ overflowX: "auto" }}>
-                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredClients.length} of {clientList.length} clients shown</div>
-                      <table>
-                        <thead>
-                          <tr>
+                      <div style={{ overflowX: "auto" }}>
+                        <table>
+                          <thead><tr>
                             <th>#</th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Client <CLI col="name" /></th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CLI col="total" /></th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% <CLI col="pctShare" /></th>
                             {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(clientSort, setClientSort)(sg)} style={{ color: GC[sg], cursor: "pointer", userSelect: "none" }}>{sg} <CLI col={sg} /></th>)}
                             <th style={{ width: 120 }}>Bar</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredClients.map((c, i) => (
+                          </tr></thead>
+                          <tbody>{filteredClients.map((c, i) => (
                             <tr key={c.name} className={`dr3${selectedClient === c.name ? " sel" : ""}`} onClick={() => setSelectedClient(selectedClient === c.name ? null : c.name)}>
                               <td style={{ color: "#475569" }}>{i + 1}</td>
                               <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
                               <td style={{ fontWeight: 700, color: PC[i % PC.length] }}>{c.total.toLocaleString()}</td>
                               <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
-                              {SG_GROUPS.map(sg => (
-                                <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(c.bySG[sg] || 0).toLocaleString()}</td>
-                              ))}
+                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(c.bySG[sg] || 0).toLocaleString()}</td>)}
                               <td><Pb pct={(c.total / clientList[0].total) * 100} c={PC[i % PC.length]} /></td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          ))}</tbody>
+                        </table>
+                      </div>
                     );
                   })()}
                 </div>
-
-                {/* Client drill-down */}
                 {selectedClient && selectedClientData && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #78350f" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -1440,14 +1424,8 @@ export default function App() {
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Touch Point</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
-                            <Pie
-                              data={Object.entries(selectedClientData.byTP).map(([k, v]) => ({ name: k, value: v }))}
-                              dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
-                            >
-                              {Object.entries(selectedClientData.byTP).map(([tp], i) => (
-                                <Cell key={i} fill={TP_COLORS[tp] || PC[i % PC.length]} />
-                              ))}
+                            <Pie data={Object.entries(selectedClientData.byTP).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                              {Object.entries(selectedClientData.byTP).map(([tp], i) => <Cell key={i} fill={TP_COLORS[tp] || PC[i % PC.length]} />)}
                             </Pie>
                             <Tooltip contentStyle={TS} />
                           </PieChart>
@@ -1457,50 +1435,394 @@ export default function App() {
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Outcome Group</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
-                            <Pie
-                              data={Object.entries(selectedClientData.bySG).map(([k, v]) => ({ name: k, value: v }))}
-                              dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
-                            >
-                              {Object.entries(selectedClientData.bySG).map(([sg], i) => (
-                                <Cell key={i} fill={GC[sg] || PC[i % PC.length]} />
-                              ))}
+                            <Pie data={Object.entries(selectedClientData.bySG).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                              {Object.entries(selectedClientData.bySG).map(([sg], i) => <Cell key={i} fill={GC[sg] || PC[i % PC.length]} />)}
                             </Pie>
                             <Tooltip contentStyle={TS} />
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
                       <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Details</div>
+                        <table>
+                          <thead><tr><th>Group</th><th>Count</th><th>%</th></tr></thead>
+                          <tbody>{Object.entries(selectedClientData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
+                            <tr key={sg}><td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedClientData.total) * 100).toFixed(1)}%</td></tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── BUCKETS TAB ── */}
+          {tab === "buckets" && an.bucketAnalytics && (() => {
+            const { bucketList, ptpTrendByBucket, claimTrendByBucket, radarData, unmappedCount } = an.bucketAnalytics;
+            const topBucket = bucketList[0];
+            const bestPTP = [...bucketList].sort((a, b) => b.ptpAmt - a.ptpAmt)[0];
+            const bestKept = [...bucketList].sort((a, b) => (b.bySG.KEPT || 0) - (a.bySG.KEPT || 0))[0];
+            const bestRPC = [...bucketList].sort((a, b) => parseFloat(b.rpcRate) - parseFloat(a.rpcRate))[0];
+            const activeTPs = ALL_TP.filter(tp => bucketList.some(b => b.byTP[tp]));
+
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+
+                {/* KPI cards */}
+                {[
+                  { l: "Total Buckets", v: bucketList.length, i: "🪣", c: "#f97316" },
+                  { l: "Highest Volume", v: topBucket?.name || "–", i: "🔝", c: "#3b82f6", sub: topBucket?.total.toLocaleString() + " records" },
+                  { l: "Best PTP Amount", v: bestPTP?.name || "–", i: "💰", c: "#f59e0b", sub: "₱" + fN(bestPTP?.ptpAmt || 0) },
+                  { l: "Best KEPT Rate", v: bestKept?.name || "–", i: "✅", c: "#22c55e", sub: (bestKept?.bySG?.KEPT || 0).toLocaleString() + " kept" },
+                  { l: "Best RPC Rate", v: bestRPC?.name || "–", i: "📞", c: "#06b6d4", sub: bestRPC?.rpcRate + "% RPC" },
+                  { l: "Unmapped Rows", v: unmappedCount.toLocaleString(), i: "⚠️", c: "#64748b", sub: "no matching IC code" },
+                ].map(k => (
+                  <div key={k.l} className="sc" style={{ gridColumn: k.l === "Unmapped Rows" ? "" : "" }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
+                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                  </div>
+                ))}
+
+                {/* Bucket volume distribution — Pie */}
+                <div className="card" style={{ gridColumn: "1/3" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Bucket Volume Distribution</div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={bucketList.map(b => ({ name: b.name, value: b.total }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
+                      </Pie>
+                      <Tooltip formatter={(v, n) => [v.toLocaleString(), n]} contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Bucket efforts bar */}
+                <div className="card" style={{ gridColumn: "3/5" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Bucket</div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                      <Tooltip contentStyle={TS} />
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Total Efforts">
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Outcome group per bucket — stacked bar */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Outcome Group Mix per Bucket</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>NEG / RPC / PTP / KEPT / POS breakdown — which buckets convert best?</div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={bucketList.map(b => ({ name: b.name, NEG: b.bySG.NEG||0, RPC: b.bySG.RPC||0, PTP: b.bySG.PTP||0, KEPT: b.bySG.KEPT||0, POS: b.bySG.POS||0 }))} margin={{ bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* RPC / PTP / KEPT rates comparison */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Conversion Rates by Bucket (%)</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>RPC rate, PTP rate, and KEPT rate as % of total efforts per bucket</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={bucketList.map(b => ({ name: b.name, "RPC %": parseFloat(b.rpcRate), "PTP %": parseFloat(b.ptpRate), "KEPT %": parseFloat(b.keptRate) }))} margin={{ bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" />
+                      <Tooltip contentStyle={TS} formatter={(v) => [v.toFixed(1) + "%"]} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="RPC %" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="PTP %" fill="#f58c0b" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="KEPT %" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Touch Point per Bucket */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Touch Point Mix per Bucket</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Which channels are used per placement bucket?</div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={bucketList.map(b => ({ name: b.name, ...b.byTP }))} margin={{ bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {activeTPs.map(tp => <Bar key={tp} dataKey={tp} stackId="b" fill={TP_COLORS[tp] || "#64748b"} name={tp} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* PTP Amount per Bucket */}
+                <div className="card" style={{ gridColumn: "1/3" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>PTP Amount by Bucket</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                      <Tooltip contentStyle={TS} formatter={v => ["₱" + fN(v), "PTP Amount"]} />
+                      <Bar dataKey="ptpAmt" radius={[0, 4, 4, 0]} name="PTP Amount">
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Claim Paid Amount per Bucket */}
+                <div className="card" style={{ gridColumn: "3/5" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Claim Paid Amount by Bucket</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                      <Tooltip contentStyle={TS} formatter={v => ["₱" + fN(v), "Claim Amount"]} />
+                      <Bar dataKey="claimAmt" radius={[0, 4, 4, 0]} name="Claim Paid">
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#f97316"} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* PTP Trend across buckets over time */}
+                {ptpTrendByBucket.length > 1 && (
+                  <div className="card" style={{ gridColumn: "1/-1" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>PTP Trend by Bucket Over Time</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Daily PTP record counts per bucket — showing last 15 dates</div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={ptpTrendByBucket.slice(-15)} margin={{ left: 0, right: 16, bottom: 50 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {bucketList.map(b => (
+                          <Line key={b.name} type="monotone" dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} strokeWidth={2} dot={false} name={b.name} />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Claim Paid Trend across buckets over time */}
+                {claimTrendByBucket.length > 1 && (
+                  <div className="card" style={{ gridColumn: "1/-1" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Claim Paid Trend by Bucket Over Time</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Daily claim paid record counts per bucket — showing last 15 dates</div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={claimTrendByBucket.slice(-15)} margin={{ left: 0, right: 16, bottom: 50 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {bucketList.map(b => (
+                          <Line key={b.name} type="monotone" dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} strokeWidth={2} dot={false} name={b.name} />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Radar chart — outcome profile per bucket */}
+                {bucketList.length >= 2 && (
+                  <div className="card" style={{ gridColumn: "1/3" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Bucket Outcome Profile (Radar)</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>% of each outcome group per bucket — normalized view</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={100}>
+                        <PolarGrid stroke="#334155" />
+                        <PolarAngleAxis dataKey="sg" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                        {bucketList.slice(0, 6).map(b => (
+                          <Radar key={b.name} name={b.name} dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} fill={BUCKET_COLORS[b.name] || "#64748b"} fillOpacity={0.12} />
+                        ))}
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} formatter={(v) => [v.toFixed(1) + "%"]} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Bucket Summary Table */}
+                <div className="card" style={{ gridColumn: bucketList.length >= 2 ? "3/5" : "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Bucket PTP & Claim Summary</div>
+                  <table>
+                    <thead><tr>
+                      <th>Bucket</th>
+                      <th>Total</th>
+                      <th>PTP #</th>
+                      <th>PTP Amt</th>
+                      <th>Claim #</th>
+                      <th>Claim Amt</th>
+                      <th>RPC%</th>
+                      <th>PTP%</th>
+                      <th>KEPT%</th>
+                    </tr></thead>
+                    <tbody>{bucketList.map(b => (
+                      <tr key={b.name}>
+                        <td>
+                          <span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span>
+                        </td>
+                        <td style={{ fontWeight: 700 }}>{b.total.toLocaleString()}</td>
+                        <td style={{ color: "#f58c0b" }}>{b.ptpCount.toLocaleString()}</td>
+                        <td style={{ color: "#22c55e", fontSize: 12 }}>₱{fN(b.ptpAmt)}</td>
+                        <td style={{ color: "#f97316" }}>{b.claimCount.toLocaleString()}</td>
+                        <td style={{ color: "#06b6d4", fontSize: 12 }}>₱{fN(b.claimAmt)}</td>
+                        <td style={{ color: "#3b82f6" }}>{b.rpcRate}%</td>
+                        <td style={{ color: "#f58c0b" }}>{b.ptpRate}%</td>
+                        <td style={{ color: "#22c55e" }}>{b.keptRate}%</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+
+                {/* Detailed bucket table with drill-down */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Detailed Bucket Table</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                    Click a row to see touch point and outcome breakdown.
+                    {selectedBucket && <button onClick={() => setSelectedBucket(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
+                  </div>
+                  <SearchBar value={bucketSearch} onChange={setBucketSearch} placeholder="Filter by bucket name..." />
+                  {(() => {
+                    const BI = mkIcon(bucketSort);
+                    const filteredBuckets = sortFilter(bucketList, bucketSort, bucketSearch, ["name"]);
+                    return (
+                      <div style={{ overflowX: "auto" }}>
+                        <table>
+                          <thead><tr>
+                            <th>#</th>
+                            <th onClick={() => mkSort(bucketSort, setBucketSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Bucket <BI col="name" /></th>
+                            <th onClick={() => mkSort(bucketSort, setBucketSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <BI col="total" /></th>
+                            <th onClick={() => mkSort(bucketSort, setBucketSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% <BI col="pctShare" /></th>
+                            {SG_GROUPS.map(sg => <th key={sg} style={{ color: GC[sg] }}>{sg}</th>)}
+                            <th style={{ color: "#3b82f6" }}>RPC%</th>
+                            <th style={{ color: "#f58c0b" }}>PTP%</th>
+                            <th style={{ color: "#22c55e" }}>KEPT%</th>
+                            <th style={{ width: 100 }}>Bar</th>
+                          </tr></thead>
+                          <tbody>{filteredBuckets.map((b, i) => (
+                            <tr key={b.name} className={`dr4${selectedBucket === b.name ? " sel" : ""}`} onClick={() => setSelectedBucket(selectedBucket === b.name ? null : b.name)}>
+                              <td style={{ color: "#475569" }}>{i + 1}</td>
+                              <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
+                              <td style={{ fontWeight: 700, color: BUCKET_COLORS[b.name] || "#f97316" }}>{b.total.toLocaleString()}</td>
+                              <td style={{ color: "#60a5fa" }}>{b.pctShare}%</td>
+                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(b.bySG[sg] || 0).toLocaleString()}</td>)}
+                              <td style={{ color: "#3b82f6" }}>{b.rpcRate}%</td>
+                              <td style={{ color: "#f58c0b" }}>{b.ptpRate}%</td>
+                              <td style={{ color: "#22c55e" }}>{b.keptRate}%</td>
+                              <td><Pb pct={(b.total / bucketList[0].total) * 100} c={BUCKET_COLORS[b.name] || "#f97316"} /></td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Bucket drill-down */}
+                {selectedBucket && selectedBucketData && (
+                  <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#334155"}44` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9" }}>🪣 {selectedBucket} — Deep Dive</div>
+                      <span style={{ background: (BUCKET_COLORS[selectedBucket] || "#64748b") + "22", color: BUCKET_COLORS[selectedBucket] || "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600, border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#64748b"}44` }}>
+                        {selectedBucketData.total.toLocaleString()} total records
+                      </span>
+                      <span style={{ background: "#172010", color: "#22c55e", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>₱{fN(selectedBucketData.ptpAmt)} PTP</span>
+                      <span style={{ background: "#1a1008", color: "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>₱{fN(selectedBucketData.claimAmt)} Claimed</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                      {/* TP pie */}
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Breakdown</div>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <PieChart>
+                            <Pie data={Object.entries(selectedBucketData.byTP).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                              {Object.entries(selectedBucketData.byTP).map(([tp], i) => <Cell key={i} fill={TP_COLORS[tp] || PC[i % PC.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={TS} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      {/* SG pie */}
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Group Breakdown</div>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <PieChart>
+                            <Pie data={Object.entries(selectedBucketData.bySG).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                              {Object.entries(selectedBucketData.bySG).map(([sg], i) => <Cell key={i} fill={GC[sg] || PC[i % PC.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={TS} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      {/* Details table */}
+                      <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Details</div>
                         <table>
                           <thead><tr><th>Touch Point</th><th>Count</th><th>%</th></tr></thead>
-                          <tbody>
-                            {Object.entries(selectedClientData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
-                              <tr key={tp}>
-                                <td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td>
-                                <td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td>
-                                <td style={{ color: "#60a5fa" }}>{((cnt / selectedClientData.total) * 100).toFixed(1)}%</td>
-                              </tr>
-                            ))}
-                          </tbody>
+                          <tbody>{Object.entries(selectedBucketData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
+                            <tr key={tp}><td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedBucketData.total) * 100).toFixed(1)}%</td></tr>
+                          ))}</tbody>
                         </table>
                         <div style={{ marginTop: 12 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Details</div>
                           <table>
                             <thead><tr><th>Group</th><th>Count</th><th>%</th></tr></thead>
-                            <tbody>
-                              {Object.entries(selectedClientData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
-                                <tr key={sg}>
-                                  <td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td>
-                                  <td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td>
-                                  <td style={{ color: "#60a5fa" }}>{((cnt / selectedClientData.total) * 100).toFixed(1)}%</td>
-                                </tr>
-                              ))}
-                            </tbody>
+                            <tbody>{Object.entries(selectedBucketData.bySG).sort((a, b) => b[1] - a[1]).map(([sg, cnt]) => (
+                              <tr key={sg}><td><span className="bdg" style={{ background: (GC[sg] || "#3b82f6") + "33", color: GC[sg] || "#94a3b8" }}>{sg}</span></td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedBucketData.total) * 100).toFixed(1)}%</td></tr>
+                            ))}</tbody>
                           </table>
                         </div>
                       </div>
                     </div>
+
+                    {/* PTP trend for this bucket */}
+                    {selectedBucketData.ptpByDateArr.length > 0 && (
+                      <div style={{ marginTop: 20 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>PTP Trend — {selectedBucket}</div>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <BarChart data={selectedBucketData.ptpByDateArr} margin={{ bottom: 50 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                            <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                            <Tooltip contentStyle={TS} />
+                            <Bar dataKey="count" fill={BUCKET_COLORS[selectedBucket] || "#f58c0b"} radius={[3, 3, 0, 0]} name="PTP Records" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {/* Claim trend for this bucket */}
+                    {selectedBucketData.claimByDateArr.length > 0 && (
+                      <div style={{ marginTop: 20 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Claim Paid Trend — {selectedBucket}</div>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <BarChart data={selectedBucketData.claimByDateArr} margin={{ bottom: 50 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                            <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                            <Tooltip contentStyle={TS} />
+                            <Bar dataKey="count" fill="#f97316" radius={[3, 3, 0, 0]} name="Claim Records" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

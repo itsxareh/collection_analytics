@@ -310,6 +310,10 @@ const TP_COLORS = {
   "EMAIL": "#06b6d4", "INTERNET": "#f97316", "CEASE COLLECTION": "#ef4444",
   "FIELD REQUEST": "#84cc16", "REPO AI": "#ec4899"
 };
+const SG_GROUPS = ["NEG","RPC","PTP","KEPT","POS"];
+const ALL_TP = ["CALL","SMS","VIBER","EMAIL","FIELD","INTERNET","CEASE COLLECTION","FIELD REQUEST","REPO AI"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 const DU = {};
 Object.keys(DISP).forEach(k => { DU[k.toUpperCase()] = { ...DISP[k], orig: k }; });
 
@@ -346,6 +350,13 @@ const fD = v => {
     return `${mo}/${dy}/${yr}`;
   }
   return s;
+};
+
+const getMonthYear = (dateStr) => {
+  if (!dateStr) return null;
+  const parts = dateStr.split("/");
+  if (parts.length === 3) return `${MONTHS[parseInt(parts[0])-1]} ${parts[2]}`;
+  return null;
 };
 
 const parseTimeHour = (v) => {
@@ -397,9 +408,6 @@ const HeatCell = ({ pct, max }) => {
   );
 };
 
-const SG_GROUPS = ["NEG", "RPC", "PTP", "KEPT", "POS"];
-const ALL_TP = ["CALL", "SMS", "VIBER", "EMAIL", "FIELD", "INTERNET", "CEASE COLLECTION", "FIELD REQUEST", "REPO AI"];
-
 const SearchBar = ({ value, onChange, placeholder = "Search..." }) => (
   <div style={{ position: "relative", marginBottom: 10 }}>
     <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: 13 }}>🔍</span>
@@ -428,6 +436,9 @@ export default function App() {
   const [penetrationMode, setPenetrationMode] = useState("pct"); // "pct" | "efforts" | "accounts"
   const [hourlyCollectorView, setHourlyCollectorView] = useState("heatmap"); // "heatmap" | "bar" | "top"
   const fRef = useRef();
+
+  const [monthCompareMetric, setMonthCompareMetric] = useState("total");
+  const [fieldBucketDrilldown, setFieldBucketDrilldown] = useState(null);
 
   const [statusSort, setStatusSort] = useState({ key: "count", dir: "desc" });
   const [statusSearch, setStatusSearch] = useState("");
@@ -528,10 +539,15 @@ export default function App() {
             _status: DU[r._su].orig,
             _d: DU[r._su],
             _bucket: oick ? resolveBucket(r[oick]) : null,
+          _dateStr: (() => { const key = datек||dtk; return key ? fD(r[key]) : null; })(),
+          _monthYear: (() => { const key = datек||dtk; return key ? getMonthYear(fD(r[key])) : null; })(),
+          _client: clk ? (r[clk] ? String(r[clk]).trim() : null) : null,
           }));
 
         if (!rows.length) { setErr("Error: No valid recognized statuses found in the file."); setLoading(false); return; }
-        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, totalRaw, remarkExcludedCount });
+        const clients = clk ? [...new Set(rows.map(r=>r._client).filter(Boolean))].sort() : [];
+        
+        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, totalRaw, remarkExcludedCount, clients });
       } catch (ex) { setErr("Error parsing file: " + ex.message); }
       setLoading(false);
     };
@@ -624,6 +640,126 @@ export default function App() {
       const clientList = Object.entries(clientMap).sort((a, b) => b[1].total - a[1].total).map(([name, v]) => ({ name, ...v }));
       const clientSGData = clientList.map(c => ({ name: c.name, total: c.total, NEG: c.bySG.NEG||0, RPC: c.bySG.RPC||0, PTP: c.bySG.PTP||0, KEPT: c.bySG.KEPT||0, POS: c.bySG.POS||0 }));
       clientAnalytics = { clientList, clientSGData };
+    }
+
+    // ── Monthly analytics ─────────────────────────────────────────────────
+    let monthlyAnalytics = null;
+    const hasDate = !!(data.datек || data.dtk);
+    if (hasDate) {
+      const monthMap = {};
+      rows.forEach(r => {
+        const my = r._monthYear;
+        if (!my) return;
+        if (!monthMap[my]) monthMap[my] = { total:0, NEG:0, RPC:0, PTP:0, KEPT:0, POS:0, ptpAmt:0, claimAmt:0, byTP:{}, byClient:{} };
+        monthMap[my].total++;
+        if (monthMap[my][r._d.sg]!==undefined) monthMap[my][r._d.sg]++;
+        monthMap[my].byTP[r._d.tp]=(monthMap[my].byTP[r._d.tp]||0)+1;
+        if (r._client) monthMap[my].byClient[r._client]=(monthMap[my].byClient[r._client]||0)+1;
+        if (pak) { const v=parseAmt(r[pak]); if(!isNaN(v)&&v>0) monthMap[my].ptpAmt+=v; }
+        if (cak) { const v=parseAmt(r[cak]); if(!isNaN(v)&&v>0) monthMap[my].claimAmt+=v; }
+      });
+
+      // Sort months chronologically
+      const sortMonthYear = (a) => {
+        const [mon, yr] = a.split(" ");
+        return parseInt(yr)*100 + MONTHS.indexOf(mon);
+      };
+      const monthList = Object.keys(monthMap).sort((a,b)=>sortMonthYear(a)-sortMonthYear(b));
+      const monthlySorted = monthList.map(m => ({ month: m, ...monthMap[m] }));
+
+      // Client × Month matrix
+      const clientMonthMap = {};
+      if (data.clk) {
+        rows.forEach(r => {
+          const cl = r._client; const my = r._monthYear;
+          if (!cl||!my) return;
+          if (!clientMonthMap[cl]) clientMonthMap[cl]={};
+          clientMonthMap[cl][my]=(clientMonthMap[cl][my]||0)+1;
+        });
+      }
+
+      monthlyAnalytics = { monthlySorted, monthList, clientMonthMap };
+    }
+
+    let fieldAnalytics = null;
+    const fieldRows = rows.filter(r => r._d.tp === "FIELD");
+    if (fieldRows.length > 0) {
+      const totalFieldVisits = fieldRows.length;
+      const uniqueFieldAccounts = ak ? new Set(fieldRows.map(r=>r[ak]).filter(Boolean)).size : null;
+
+      // Visits per bucket
+      const bucketVisitMap = {};
+      const bucketAccountMap = {};
+      fieldRows.forEach(r => {
+        const b = r._bucket || "Unassigned";
+        bucketVisitMap[b]=(bucketVisitMap[b]||0)+1;
+        if (ak && r[ak]) { if(!bucketAccountMap[b]) bucketAccountMap[b]=new Set(); bucketAccountMap[b].add(String(r[ak]).trim()); }
+      });
+
+      // Total accounts per bucket (from ALL rows, not just field)
+      const totalAccountsByBucket = {};
+      if (ak) {
+        rows.forEach(r => {
+          const b = r._bucket || "Unassigned";
+          if (!totalAccountsByBucket[b]) totalAccountsByBucket[b] = new Set();
+          if (r[ak]) totalAccountsByBucket[b].add(String(r[ak]).trim());
+        });
+      }
+
+      const bucketVisitData = Object.entries(bucketVisitMap)
+        .sort((a,b) => { const ai=BUCKET_ORDER.indexOf(a[0]),bi=BUCKET_ORDER.indexOf(b[0]); if(ai===-1&&bi===-1) return a[0].localeCompare(b[0]); if(ai===-1) return 1; if(bi===-1) return -1; return ai-bi; })
+        .map(([name, visits]) => {
+          const visitedAccts = ak ? (bucketAccountMap[name]?.size||0) : 0;
+          const totalAccts = ak ? (totalAccountsByBucket[name]?.size||0) : 0;
+          const pctOfTotal = totalFieldVisits > 0 ? ((visits/totalFieldVisits)*100).toFixed(1) : "0.0";
+          const pctOfAccts = totalAccts > 0 ? ((visitedAccts/totalAccts)*100).toFixed(1) : "0.0";
+          return { name, visits, visitedAccts, totalAccts, pctOfTotal, pctOfAccts };
+        });
+
+      // Field dates
+      const fieldDateMap = {};
+      const fieldMonthMap = {};
+      fieldRows.forEach(r => {
+        const d = r._dateStr;
+        if (d) { fieldDateMap[d]=(fieldDateMap[d]||0)+1; const my=r._monthYear; if(my) fieldMonthMap[my]=(fieldMonthMap[my]||0)+1; }
+      });
+      const fieldDateSorted = Object.entries(fieldDateMap).sort((a,b)=>{const da=new Date(a[0]),db=new Date(b[0]);return isNaN(da)||isNaN(db)?a[0].localeCompare(b[0]):da-db;}).map(([date,count])=>({date,count}));
+      const fieldMonthSorted = Object.entries(fieldMonthMap).sort((a,b)=>{const si=m=>parseInt(m.split(" ")[1])*100+MONTHS.indexOf(m.split(" ")[0]);return si(a[0])-si(b[0]);}).map(([month,count])=>({month,count}));
+
+      // Field outcome groups
+      const fieldSG = {};
+      fieldRows.forEach(r => { fieldSG[r._d.sg]=(fieldSG[r._d.sg]||0)+1; });
+      const fieldSGData = Object.entries(fieldSG).sort((a,b)=>b[1]-a[1]).map(([g,c])=>({name:g,value:c,pct:((c/totalFieldVisits)*100).toFixed(1)}));
+
+      // Field status breakdown
+      const fieldStatusMap = {};
+      fieldRows.forEach(r => { fieldStatusMap[r._status]=(fieldStatusMap[r._status]||0)+1; });
+      const fieldStatusData = Object.entries(fieldStatusMap).sort((a,b)=>b[1]-a[1]).map(([s,c])=>({status:s,count:c,pct:((c/totalFieldVisits)*100).toFixed(1),grp:DU[s.toUpperCase()]?.sg||""}));
+
+      // Field by collector
+      const fieldCollectorMap = {};
+      if (rk) fieldRows.forEach(r => { const n=r[rk]?String(r[rk]).trim():null; if(!n) return; fieldCollectorMap[n]=(fieldCollectorMap[n]||0)+1; });
+      const fieldCollectorData = Object.entries(fieldCollectorMap).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([name,count])=>({name,count,pct:((count/totalFieldVisits)*100).toFixed(1)}));
+
+      // Field subtype (FIELD vs CARAVAN)
+      const subtypeMap = {};
+      fieldRows.forEach(r => {
+        const s = r._status;
+        const sub = s.startsWith("CARAVAN") ? "CARAVAN" : s.startsWith("FIELD") ? "FIELD" : "OTHER";
+        subtypeMap[sub]=(subtypeMap[sub]||0)+1;
+      });
+
+      // Active field days
+      const activeDays = Object.keys(fieldDateMap).length;
+      const avgVisitsPerDay = activeDays > 0 ? (totalFieldVisits/activeDays).toFixed(1) : 0;
+      const peakFieldDay = fieldDateSorted.length ? fieldDateSorted.reduce((a,b)=>b.count>a.count?b:a,fieldDateSorted[0]) : null;
+
+      // Field PTP amount
+      let fieldPtpAmt = 0, fieldPtpCount = 0;
+      if (pak) fieldRows.forEach(r => { const v=parseAmt(r[pak]); if(!isNaN(v)&&v>0){fieldPtpAmt+=v;fieldPtpCount++;} });
+
+      // Monthly field visits
+      fieldAnalytics = { totalFieldVisits, uniqueFieldAccounts, bucketVisitData, fieldDateSorted, fieldMonthSorted, fieldSGData, fieldStatusData, fieldCollectorData, subtypeMap, activeDays, avgVisitsPerDay, peakFieldDay, fieldPtpAmt, fieldPtpCount, hasDate: fieldDateSorted.length > 0, hasAccounts: !!ak };
     }
 
     // ── Bucket Analytics ─────────────────────────────────────────────────────
@@ -857,7 +993,7 @@ export default function App() {
       hourlyCollectorAnalytics = { heatmapRows: [], heatmapMax: 0, hourTopData, shiftData: [], hourTPData, allCollectors: [], collectorHourMap: {}, noCollector: true };
     }
 
-    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics };
+    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics };
   }, [data]);
 
   const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
@@ -934,16 +1070,24 @@ export default function App() {
         .mode-btn{background:none;border:1px solid #334155;cursor:pointer;padding:5px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:#64748b;transition:all .15s}
         .mode-btn.active{background:#1e40af;border-color:#3b82f6;color:#fff}
         .hm-cell{border-radius:3px;font-size:10px;font-weight:600;text-align:center;padding:3px 0;min-width:26px;transition:all .15s;cursor:default}
+        .dr{cursor:pointer}.dr:hover td{background:#1a2035!important}.dr.sel td{background:#172554!important}
+        .mode-btn{background:none;border:1px solid #1f2937;cursor:pointer;padding:4px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:#6b7280;transition:all .15s}
+        .mode-btn.active{background:#1d4ed8;border-color:#3b82f6;color:#fff}
+        .field-card{background:linear-gradient(135deg,#0a1f0a,#0b0f1a);border:1px solid #14532d;border-radius:12px;padding:18px}
       `}</style>
 
       {/* Header */}
       <div style={{ background: "#0f172a", borderBottom: "1px solid #1e293b", padding: "16px 32px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
         <div>
-          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: "#f1f5f9" }}>Collections Analytics</div>
+          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: "#f1f5f9" }}>SPM – Collections Analytics</div>
           <div style={{ fontSize: 12, color: "#64748b" }}>Status Disposition Intelligence System · 255 Recognized Dispositions</div>
         </div>
         {data && an && <div style={{ marginLeft: "auto", fontSize: 12, color: "#22c55e", background: "#052e16", padding: "4px 12px", borderRadius: 20, border: "1px solid #166534" }}>✓ {an.T.toLocaleString()} valid records loaded</div>}
+        {data && an && <div style={{ textAlign: "right"}}>
+          <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }} style={{ background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>↩ Upload New File</button>
+        </div> }
+      
       </div>
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
@@ -986,12 +1130,14 @@ export default function App() {
               { l: "Total Records", v: data.totalRaw.toLocaleString(), i: "📋", c: "#3b82f6" },
               { l: "System Excluded", v: data.remarkExcludedCount.toLocaleString(), i: "🚫", c: "#94a3b8", sub: "auto-filtered" },
               { l: "Valid Records", v: an.T.toLocaleString(), i: "✅", c: "#22c55e" },
-              { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
-              { l: "Collectors", v: an.cd.length, i: "👥", c: "#06b6d4" },
               { l: "Clients", v: an.clientAnalytics ? an.clientAnalytics.clientList.length : "N/A", i: "🏢", c: "#a78bfa" },
+              { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
+              ...(an.fieldAnalytics ? [{ l: "Field Visits", v: an.fieldAnalytics.totalFieldVisits.toLocaleString(), i: "🚗", c: "#22c55e" }] : []),
+              { l: "Collectors", v: an.cd.length, i: "👥", c: "#06b6d4" },
               { l: "Buckets", v: an.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A", i: "📍", c: "#f97316" },
               { l: "PTP Amount", v: "₱" + fN(an.pt), i: "💰", c: "#22c55e" },
               { l: "Claim Paid", v: "₱" + fN(an.ct), i: "💳", c: "#f97316" },
+,
             ].map(k => (
               <div key={k.l} className="sc">
                 <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
@@ -1002,7 +1148,7 @@ export default function App() {
             ))}
           </div>
 
-          {/* Detected columns notice */}
+          {/* Detected columns notice 
           <div style={{ background: "#0f2a3f", border: "1px solid #1e4060", borderRadius: 8, padding: "8px 16px", marginBottom: 12, fontSize: 12, color: "#7dd3fc", display: "flex", flexWrap: "wrap", gap: 12 }}>
             <span>🔍 Detected columns:</span>
             {data.datек && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📅 Date: <strong>{data.datек}</strong></span>}
@@ -1014,6 +1160,7 @@ export default function App() {
             {!data.clk && <span style={{ color: "#64748b" }}>No client column detected</span>}
             {!data.oick && <span style={{ color: "#64748b" }}>No Old IC/Bucket column detected</span>}
           </div>
+          
 
           {data.remarkExcludedCount > 0 && (
             <div style={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#a8a29e", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1021,27 +1168,27 @@ export default function App() {
               <span><strong style={{ color: "#d6d3d1" }}>{data.remarkExcludedCount.toLocaleString()} rows</strong> excluded — system-generated remarks</span>
             </div>
           )}
-
+          */}
           {/* Tabs */}
           <div style={{ display: "flex", gap: 4, marginBottom: 8, background: "#0f172a", padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
             {[
               ["overview", "📊 Overview"],
               ["status", "🏷️ Status Detail"],
-              ["collectors", "👥 Collectors"],
               ["ptp", "💰 PTP & Claims"],
               ["touch", "📱 Touch Points"],
+              ...(an.bucketAnalytics?.hasAccountData ? [["penetration", "🎯 Penetration"]] : []),
+              ...(an?.fieldAnalytics ? [["field","🚗 Field Analytics"]] : []),
+              ["collectors", "👥 Collectors"],
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
+              ...(an?.monthlyAnalytics ? [["monthly","📆 Monthly"]] : []),
               ...(an.clientAnalytics ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
-              ...(an.bucketAnalytics?.hasAccountData ? [["penetration", "🎯 Penetration"]] : []),
               ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
             ].map(([t, l]) => (
               <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
             ))}
           </div>
-          <div style={{ textAlign: "right", marginBottom: 16 }}>
-            <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }} style={{ background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>↩ Upload New File</button>
-          </div>
+          
 
           {/* ── Overview Tab ── */}
           {tab === "overview" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -1441,6 +1588,192 @@ export default function App() {
                           const dayTotal = selectedDateRows.reduce((a, b) => a + b.count, 0);
                           return <tr key={s.status}><td style={{ color: "#475569" }}>{i + 1}</td><td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td><td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td><td style={{ color: "#64748b" }}>{s.tp}</td><td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td></tr>;
                         })}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              ── 📆 MONTHLY TAB ──
+          ═══════════════════════════════════════════════════════════════ */}
+          {tab === "monthly" && an.monthlyAnalytics && (() => {
+            const { monthlySorted, monthList, clientMonthMap } = an.monthlyAnalytics;
+            const activeTPs_m = ALL_TP.filter(tp => monthlySorted.some(m => m.byTP[tp]));
+            const allClients_m = data.clients;
+            const bestMonth = monthlySorted.length ? monthlySorted.reduce((a,b)=>b.total>a.total?b:a, monthlySorted[0]) : null;
+            const bestPTPMonth = monthlySorted.length ? monthlySorted.reduce((a,b)=>b.ptpAmt>a.ptpAmt?b:a, monthlySorted[0]) : null;
+
+            return (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
+                {[
+                  { l:"Active Months", v:monthList.length, i:"📆", c:"#a78bfa" },
+                  { l:"Best Month", v:bestMonth?.month||"–", i:"🏆", c:"#f59e0b", sub:bestMonth?.total.toLocaleString()+" records" },
+                  { l:"Best PTP Month", v:bestPTPMonth?.month||"–", i:"💰", c:"#22c55e", sub:"₱"+fN(bestPTPMonth?.ptpAmt||0) },
+                  { l:"Avg / Month", v:monthList.length>0?(an.T/monthList.length).toFixed(0):"–", i:"📊", c:"#06b6d4" },
+                ].map(k=>(
+                  <div key={k.l} className="sc">
+                    <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
+                    <div style={{ fontSize:10, color:"#6b7280", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:16, fontWeight:700, color:k.c, fontFamily:"'Syne',sans-serif", marginTop:2 }}>{k.v}</div>
+                    {k.sub && <div style={{ fontSize:11, color:"#4b5563", marginTop:2 }}>{k.sub}</div>}
+                  </div>
+                ))}
+
+                {/* Monthly total trend */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Total Efforts Trend</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2.5} dot={{ r:4,fill:"#3b82f6" }} name="Total Efforts" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Monthly Group Comparison */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Outcome Group Breakdown</div>
+                  <div style={{ display:"flex", gap:6, marginBottom:12, flexWrap:"wrap" }}>
+                    <span style={{ fontSize:12, color:"#6b7280" }}>Show:</span>
+                    {["total",...SG_GROUPS].map(m=>(
+                      <button key={m} className={`mode-btn${monthCompareMetric===m?" active":""}`} onClick={()=>setMonthCompareMetric(m)}>{m==="total"?"All":m}</button>
+                    ))}
+                  </div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize:11 }} />
+                      {monthCompareMetric === "total"
+                        ? SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#6b7280"} name={sg} />)
+                        : <Bar dataKey={monthCompareMetric} fill={GC[monthCompareMetric]||"#3b82f6"} radius={[3,3,0,0]} name={monthCompareMetric} />
+                      }
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Monthly PTP Amount trend */}
+                {monthlySorted.some(m=>m.ptpAmt>0) && (
+                  <div className="card" style={{ gridColumn:"1/3" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly PTP Amount</div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
+                        <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"PTP Amount"]} />
+                        <Bar dataKey="ptpAmt" fill="#22c55e" radius={[3,3,0,0]} name="PTP Amount" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Monthly Claim Amount trend */}
+                {monthlySorted.some(m=>m.claimAmt>0) && (
+                  <div className="card" style={{ gridColumn:"3/5" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Claim Paid Amount</div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
+                        <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"Claim Amount"]} />
+                        <Bar dataKey="claimAmt" fill="#f97316" radius={[3,3,0,0]} name="Claim Amount" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Monthly Touch Point Mix */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Touch Point Mix</div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={monthlySorted.map(m=>({ month:m.month,...m.byTP }))} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize:11 }} />
+                      {activeTPs_m.map(tp=><Bar key={tp} dataKey={tp} stackId="tp" fill={TP_COLORS[tp]||"#6b7280"} name={tp} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Monthly Data Table */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:8, color:"#f9fafb" }}>Monthly Summary Table</div>
+                  <div style={{ overflowX:"auto" }}>
+                    <table>
+                      <thead><tr>
+                        <th>Month</th><th>Total</th>
+                        {SG_GROUPS.map(sg=><th key={sg} style={{ color:GC[sg] }}>{sg}</th>)}
+                        <th style={{ color:"#22c55e" }}>PTP Amt</th>
+                        <th style={{ color:"#f97316" }}>Claim Amt</th>
+                        <th>RPC%</th><th>PTP%</th><th>KEPT%</th>
+                      </tr></thead>
+                      <tbody>{monthlySorted.map(m=>(
+                        <tr key={m.month}>
+                          <td style={{ fontWeight:700, color:"#e2e8f0" }}>{m.month}</td>
+                          <td style={{ fontWeight:700, color:"#60a5fa" }}>{m.total.toLocaleString()}</td>
+                          {SG_GROUPS.map(sg=><td key={sg} style={{ color:GC[sg]||"#9ca3af" }}>{(m[sg]||0).toLocaleString()}</td>)}
+                          <td style={{ color:"#22c55e", fontSize:12 }}>₱{fN(m.ptpAmt)}</td>
+                          <td style={{ color:"#f97316", fontSize:12 }}>₱{fN(m.claimAmt)}</td>
+                          <td style={{ color:"#3b82f6" }}>{m.total>0?((m.RPC/m.total)*100).toFixed(1):0}%</td>
+                          <td style={{ color:"#f59e0b" }}>{m.total>0?((m.PTP/m.total)*100).toFixed(1):0}%</td>
+                          <td style={{ color:"#22c55e" }}>{m.total>0?((m.KEPT/m.total)*100).toFixed(1):0}%</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Client × Month heatmap */}
+                {allClients_m.length > 0 && Object.keys(clientMonthMap).length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Client × Month Volume Heatmap</div>
+                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:12 }}>How many efforts were made per client per month.</div>
+                    <div style={{ overflowX:"auto" }}>
+                      <table style={{ fontSize:11 }}>
+                        <thead>
+                          <tr>
+                            <th style={{ position:"sticky",left:0,background:"#0b0f1a",zIndex:2,minWidth:150 }}>Client</th>
+                            {monthList.map(m=><th key={m} style={{ textAlign:"center",minWidth:70,color:"#6b7280" }}>{m}</th>)}
+                            <th style={{ color:"#22c55e" }}>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allClients_m.map(cl => {
+                            const mData = clientMonthMap[cl]||{};
+                            const total = Object.values(mData).reduce((s,v)=>s+v,0);
+                            const maxVal = Math.max(...monthList.map(m=>mData[m]||0));
+                            return (
+                              <tr key={cl}>
+                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:"#e2e8f0",zIndex:1 }}>{cl}</td>
+                                {monthList.map(m=>{
+                                  const val = mData[m]||0;
+                                  const intensity = maxVal>0?val/maxVal:0;
+                                  const bg = val===0?"#0b0f1a":`rgba(167,139,250,${0.08+intensity*0.82})`;
+                                  return (
+                                    <td key={m} style={{ textAlign:"center", padding:"4px 6px" }}>
+                                      <div style={{ background:bg,color:intensity>0.5?"#fff":"#6b7280",borderRadius:4,padding:"3px 4px",fontWeight:600,minWidth:54,border:"1px solid #1f2937" }}>
+                                        {val>0?val.toLocaleString():"–"}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                                <td style={{ fontWeight:700,color:"#a78bfa" }}>{total.toLocaleString()}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
                       </table>
                     </div>
                   </div>
@@ -2236,6 +2569,234 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            );
+          })()}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              ── 🚗 FIELD ANALYTICS TAB ──
+          ═══════════════════════════════════════════════════════════════ */}
+          {tab === "field" && an.fieldAnalytics && (() => {
+            const fa = an.fieldAnalytics;
+            const subtypeArr = Object.entries(fa.subtypeMap).map(([k,v])=>({name:k,value:v,pct:((v/fa.totalFieldVisits)*100).toFixed(1)}));
+            const fieldPTPRate = fa.totalFieldVisits>0?((fa.fieldPtpCount/fa.totalFieldVisits)*100).toFixed(1):0;
+
+            return (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
+                {/* KPIs */}
+                {/*{ l:"Field PTP Count", v:fa.fieldPtpCount.toLocaleString(), i:"💰", c:"#22c55e", sub:"Rate: "+fieldPTPRate+"%" },
+                  { l:"Field PTP Amount", v:"₱"+fN(fa.fieldPtpAmt), i:"💳", c:"#06b6d4" }, */}
+                {[
+                  { l:"Total Field Visits", v:fa.totalFieldVisits.toLocaleString(), i:"🚗", c:"#22c55e" },
+                  { l:"Unique Accts Visited", v:fa.uniqueFieldAccounts!=null?fa.uniqueFieldAccounts.toLocaleString():"N/A", i:"👤", c:"#3b82f6" },
+                  { l:"Active Field Days", v:fa.activeDays, i:"📅", c:"#a78bfa" },
+                  { l:"Avg Visits/Day", v:fa.avgVisitsPerDay, i:"📊", c:"#f59e0b" },
+                  { l:"Peak Field Day", v:fa.peakFieldDay?.date||"–", i:"🔝", c:"#f97316", sub:fa.peakFieldDay?.count.toLocaleString()+" visits" },
+                  { l:"Buckets Visited", v:fa.bucketVisitData.length, i:"📍", c:"#ec4899" },
+
+                ].map(k=>(
+                  <div key={k.l} className="field-card">
+                    <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
+                    <div style={{ fontSize:10, color:"#4ade80", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600, opacity:.7 }}>{k.l}</div>
+                    <div style={{ fontSize:16, fontWeight:700, color:k.c, fontFamily:"'Syne',sans-serif", marginTop:2 }}>{k.v}</div>
+                    {k.sub && <div style={{ fontSize:11, color:"#4b5563", marginTop:2 }}>{k.sub}</div>}
+                  </div>
+                ))}
+
+                {/* Visits per Bucket */}
+                <div className="card" style={{ gridColumn:"1/3" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Visits per Bucket</div>
+                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Total field visit count by delinquency bucket.</div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={fa.bucketVisitData} layout="vertical" margin={{ left:0, right:20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:11 }} width={110} />
+                      <Tooltip contentStyle={TS} formatter={(v,n)=>[v.toLocaleString(),n]} />
+                      <Bar dataKey="visits" radius={[0,4,4,0]} name="Visits">
+                        {fa.bucketVisitData.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* % Visits from Total per Bucket */}
+                <div className="card" style={{ gridColumn:"3/5" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>% Visits from Total (Bucket Share)</div>
+                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Each bucket's share of all field visits.</div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie data={fa.bucketVisitData.map(b=>({name:b.name,value:b.visits}))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95} label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
+                        {fa.bucketVisitData.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                      </Pie>
+                      <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
+                      <Legend wrapperStyle={{ fontSize:11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* % of Accounts Visited per Bucket (penetration) */}
+                {fa.hasAccounts && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Penetration: % of Accounts Visited per Bucket</div>
+                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>
+                      What % of unique accounts in each bucket received at least one field visit.
+                      {" "}<span style={{ color:"#f59e0b" }}>Higher = more thorough field coverage.</span>
+                    </div>
+                    <div style={{ display:"flex", gap:16, flexWrap:"wrap", marginBottom:16 }}>
+                      {fa.bucketVisitData.filter(b=>b.totalAccts>0).map(b=>(
+                        <div key={b.name} style={{ background:"#0b0f1a", border:`1px solid ${BUCKET_COLORS[b.name]||"#1f2937"}44`, borderRadius:8, padding:"10px 14px", minWidth:130 }}>
+                          <div style={{ fontSize:11, color:BUCKET_COLORS[b.name]||"#9ca3af", fontWeight:700 }}>{b.name}</div>
+                          <div style={{ fontSize:22, fontWeight:800, color:"#f9fafb", fontFamily:"'Syne',sans-serif" }}>{b.pctOfAccts}%</div>
+                          <div style={{ fontSize:11, color:"#4b5563" }}>{b.visitedAccts.toLocaleString()} / {b.totalAccts.toLocaleString()} accts</div>
+                          <Pb pct={parseFloat(b.pctOfAccts)} c={BUCKET_COLORS[b.name]||"#3b82f6"} />
+                        </div>
+                      ))}
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={fa.bucketVisitData.filter(b=>b.totalAccts>0)} margin={{ bottom:30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={fa.bucketVisitData.length>5?-20:0} textAnchor={fa.bucketVisitData.length>5?"end":"middle"} interval={0} />
+                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} unit="%" domain={[0,100]} />
+                        <Tooltip contentStyle={TS} formatter={v=>[v+"%","Penetration"]} />
+                        <Bar dataKey="pctOfAccts" radius={[4,4,0,0]} name="% Accounts Visited">
+                          {fa.bucketVisitData.filter(b=>b.totalAccts>0).map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Bucket visit details table */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>
+                    Bucket Visit Details
+                    {fieldBucketDrilldown && <button onClick={()=>setFieldBucketDrilldown(null)} style={{ marginLeft:10, background:"#374151",border:"none",color:"#9ca3af",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:11 }}>✕ Clear</button>}
+                  </div>
+                  <div style={{ overflowX:"auto" }}>
+                    <table>
+                      <thead><tr>
+                        <th>#</th><th>Bucket</th><th>Visits</th><th>% of Total Visits</th>
+                        {fa.hasAccounts && <><th>Visited Accts</th><th>Total Accts</th><th>Penetration %</th></>}
+                        <th style={{ width:120 }}>Bar</th>
+                      </tr></thead>
+                      <tbody>{fa.bucketVisitData.map((b,i)=>(
+                        <tr key={b.name} className="dr" style={{ cursor:"default" }}>
+                          <td style={{ color:"#4b5563" }}>{i+1}</td>
+                          <td><span className="bdg" style={{ background:(BUCKET_COLORS[b.name]||"#6b7280")+"33", color:BUCKET_COLORS[b.name]||"#9ca3af" }}>{b.name}</span></td>
+                          <td style={{ fontWeight:700, color:BUCKET_COLORS[b.name]||"#22c55e" }}>{b.visits.toLocaleString()}</td>
+                          <td style={{ color:"#60a5fa" }}>{b.pctOfTotal}%</td>
+                          {fa.hasAccounts && <>
+                            <td style={{ color:"#a78bfa" }}>{b.visitedAccts.toLocaleString()}</td>
+                            <td style={{ color:"#9ca3af" }}>{b.totalAccts.toLocaleString()}</td>
+                            <td style={{ fontWeight:700, color: parseFloat(b.pctOfAccts)>50?"#22c55e":parseFloat(b.pctOfAccts)>25?"#f59e0b":"#ef4444" }}>{b.pctOfAccts}%</td>
+                          </>}
+                          <td><Pb pct={(b.visits/fa.bucketVisitData[0].visits)*100} c={BUCKET_COLORS[b.name]||"#3b82f6"} /></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Field Outcome Groups */}
+                <div className="card" style={{ gridColumn:"1/3" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f9fafb" }}>Field Visit Outcomes</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={fa.fieldSGData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
+                        {fa.fieldSGData.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize:12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Field visit sub-type */}
+                <div className="card" style={{ gridColumn:"3/5" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f9fafb" }}>Field Type (FIELD vs CARAVAN)</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={subtypeArr} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
+                        {subtypeArr.map((_,i)=><Cell key={i} fill={["#22c55e","#06b6d4","#a78bfa"][i%3]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize:12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Field dates trend */}
+                {fa.hasDate && fa.fieldDateSorted.length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Visits by Date</div>
+                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Daily field activity — {fa.fieldDateSorted.length} active field dates</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={fa.fieldDateSorted} margin={{ left:0, right:16, bottom:fa.fieldDateSorted.length>20?70:20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="date" tick={{ fill:"#6b7280",fontSize:10 }} angle={fa.fieldDateSorted.length>15?-35:0} textAnchor={fa.fieldDateSorted.length>15?"end":"middle"} interval={fa.fieldDateSorted.length>30?Math.floor(fa.fieldDateSorted.length/20):0} />
+                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
+                        <Bar dataKey="count" fill="#22c55e" radius={[3,3,0,0]} name="Field Visits" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Monthly field visits */}
+                {fa.fieldMonthSorted.length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/3" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Field Visit Trend</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={fa.fieldMonthSorted} margin={{ left:0, right:16, bottom:fa.fieldMonthSorted.length>6?40:10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
+                        <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Top Field Collectors */}
+                {fa.fieldCollectorData.length > 0 && (
+                  <div className="card" style={{ gridColumn:"3/5" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Collectors</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={fa.fieldCollectorData.slice(0,10)} layout="vertical" margin={{ left:0, right:20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:10 }} width={120} />
+                        <Tooltip contentStyle={TS} />
+                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits">
+                          {fa.fieldCollectorData.slice(0,10).map((_,i)=><Cell key={i} fill={PC[i%PC.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Top Field Statuses */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Status Results</div>
+                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:8 }}>Breakdown of specific field dispositions recorded.</div>
+                  <div style={{ overflowX:"auto", maxHeight:360, overflowY:"auto" }}>
+                    <table>
+                      <thead><tr><th>#</th><th>Status</th><th>Group</th><th>Count</th><th>%</th><th style={{ width:120 }}>Bar</th></tr></thead>
+                      <tbody>{fa.fieldStatusData.map((s,i)=>(
+                        <tr key={s.status}>
+                          <td style={{ color:"#4b5563" }}>{i+1}</td>
+                          <td style={{ fontWeight:500, color:"#e2e8f0" }}>{s.status}</td>
+                          <td><span className="bdg" style={{ background:(GC[s.grp]||"#22c55e")+"33", color:GC[s.grp]||"#22c55e" }}>{s.grp}</span></td>
+                          <td style={{ fontWeight:700, color:"#22c55e" }}>{s.count.toLocaleString()}</td>
+                          <td style={{ color:"#60a5fa" }}>{s.pct}%</td>
+                          <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp]||"#22c55e"} /></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             );
           })()}

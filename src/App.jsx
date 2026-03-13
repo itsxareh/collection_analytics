@@ -1104,7 +1104,11 @@ export default function App() {
 
       // Accounts with ANY effort
       const accountsWithEffort = totalUniqueAccounts.size;
-      overallPenetrationData = { totalUA, accountsWithEffort, overallPct: totalUA > 0 ? 100 : 0, tpPenetrationOverall, sgPenetrationOverall };
+      // overallPct = sum of each TP's penetration% / number of TPs
+      const avgTpPct = tpPenetrationOverall.length > 0
+        ? parseFloat((tpPenetrationOverall.reduce((s, r) => s + r.pct, 0) / tpPenetrationOverall.length).toFixed(1))
+        : 0;
+      overallPenetrationData = { totalUA, accountsWithEffort, overallPct: avgTpPct, tpPenetrationOverall, sgPenetrationOverall };
     }
 
     return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData };
@@ -1299,6 +1303,7 @@ export default function App() {
               ...(an.clientAnalytics ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
               ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
+              ["predictive", "🔮 Predictive"],
             ].map(([t, l]) => (
               <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
             ))}
@@ -1306,46 +1311,227 @@ export default function App() {
           
 
           {/* ── Overview Tab ── */}
-          {tab === "overview" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Status Group Distribution</div>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, pct }) => `${name} ${pct}%`} labelLine={false}>
-                    {an.gd.map((e, i) => <Cell key={i} fill={GC[e.name] || PC[i % PC.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v, n, p) => [`${v.toLocaleString()} (${p.payload.pct}%)`, n]} contentStyle={TS} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="card">
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Top 15 Statuses by Count</div>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={an.sd.slice(0, 15)} layout="vertical" margin={{ left: 0, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                  <YAxis type="category" dataKey="status" tick={{ fill: "#94a3b8", fontSize: 10 }} width={180} />
-                  <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]} fill="#f1f5F9">
-                    {an.sd.slice(0, 15).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="card" style={{ gridColumn: "1/-1" }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Group Summary</div>
-              <table>
-                <thead><tr><th>Group</th><th>Count</th><th>%</th><th style={{ width: 220 }}>Distribution</th></tr></thead>
-                <tbody>{an.gd.map(g => <tr key={g.name}>
-                  <td><span className="bdg" style={{ background: (GC[g.name] || "#3b82f6") + "33", color: GC[g.name] || "#94a3b8" }}>{g.name}</span></td>
-                  <td style={{ fontWeight: 600 }}>{g.value.toLocaleString()}</td>
-                  <td>{g.pct}%</td>
-                  <td><Pb pct={parseFloat(g.pct)} c={GC[g.name] || "#3b82f6"} /></td>
-                </tr>)}</tbody>
-              </table>
-            </div>
-          </div>}
+          {tab === "overview" && (() => {
+            const ovTopCollectors = an.cd.slice(0, 5);
+            const ovMonthly = an.monthlyAnalytics?.monthlySorted || [];
+            const ovDateTrend = an.dateAnalytics?.dateSorted || [];
+            const ovBuckets = an.bucketAnalytics?.bucketList || [];
+            const ovClients = an.clientAnalytics?.clientList || [];
+            const ovFieldAnalytics = an.fieldAnalytics || [];
+            const rpcPct = an.T > 0 ? ((an.gd.find(g=>g.name==="RPC")?.value||0)/an.T*100).toFixed(1) : "0.0";
+            const ptpPct = an.T > 0 ? ((an.gd.find(g=>g.name==="PTP")?.value||0)/an.T*100).toFixed(1) : "0.0";
+            const keptPct = an.T > 0 ? ((an.gd.find(g=>g.name==="KEPT")?.value||0)/an.T*100).toFixed(1) : "0.0";
+            const negPct = an.T > 0 ? ((an.gd.find(g=>g.name==="NEG")?.value||0)/an.T*100).toFixed(1) : "0.0";
+            const convRate = an.pt > 0 ? ((an.ct/an.pt)*100).toFixed(1) : "0.0";
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
+
+                {/* ── Outcome rate KPI strip ── */}
+                {[
+                  { l:"KEPT Rate", v:keptPct+"%", c:"#22c55e", i:"✅", sub:"Kept Promise" },
+                  { l:"PTP Rate", v:ptpPct+"%", c:"#f59e0b", i:"🤝", sub:"Promise to Pay" },
+                  { l:"RPC Rate", v:rpcPct+"%", c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
+                  { l:"NEG Rate", v:negPct+"%", c:"#ef4444", i:"❌", sub:"Negative Outcome" },
+                  { l:"PTP Amount", v:"₱"+fN(an.pt), c:"#22c55e", i:"💰", sub:an.pc+" records" },
+                  { l:"Claim Paid", v:"₱"+fN(an.ct), c:"#f97316", i:"💳", sub:an.cc+" records" },
+                  { l:"Conv. Rate", v:convRate+"%", c:"#a78bfa", i:"📈", sub:"Claim/PTP" },
+                  ...(an.ua!=null?[{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }]:[]),
+                ].map(k=>(
+                  <div key={k.l} className="sc">
+                    <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
+                    <div style={{ fontSize:10, color:"#64748b", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:16, fontWeight:700, color:k.c, fontFamily:"'Space Grotesk',sans-serif", marginTop:2 }}>{k.v}</div>
+                    <div style={{ fontSize:10, color:"#475569", marginTop:2 }}>{k.sub}</div>
+                  </div>
+                ))}
+
+                {/* ── Status Group pie + top statuses ── */}
+                <div className="card" style={{ gridColumn:"1/3" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Outcome Group Distribution</div>
+                  <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                    <ResponsiveContainer width="55%" height={220}>
+                      <PieChart>
+                        <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
+                          {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div style={{ flex:1 }}>
+                      {an.gd.map(g=>(
+                        <div key={g.name} style={{ marginBottom:8 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                            <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||"#94a3b8" }}>{g.name}</span>
+                            <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||"#94a3b8" }}>{g.pct}%</span>
+                          </div>
+                          <Pb pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Touch point distribution ── */}
+                <div className="card" style={{ gridColumn:"3/5" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Touch Point Mix</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={an.td} layout="vertical" margin={{ left:0, right:20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8", fontSize:10 }} width={120} />
+                      <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
+                      <Bar dataKey="count" radius={[0,4,4,0]}>
+                        {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* ── Daily trend (if date exists) ── */}
+                {ovDateTrend.length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Daily Efforts Trend</div>
+                    <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>All efforts over time, colored by outcome group.</div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={ovDateTrend} margin={{ left:0, right:16, bottom: ovDateTrend.length>20?60:16 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill:"#64748b", fontSize:10 }} angle={ovDateTrend.length>15?-35:0} textAnchor={ovDateTrend.length>15?"end":"middle"} interval={ovDateTrend.length>30?Math.floor(ovDateTrend.length/20):0} />
+                        <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:11 }} />
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* ── Monthly trend (if monthly exists) ── */}
+                {ovMonthly.length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Monthly Efforts & PTP Trend</div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={ovMonthly} margin={{ left:0, right:16, bottom: ovMonthly.length>6?40:10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="month" tick={{ fill:"#64748b", fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:11 }} />
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* % Visits from Total per Bucket */}
+                <div className="card" style={{ gridColumn:"1/3" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f9fafb" }}>Field Visits by Bucket</div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={ovFieldAnalytics.bucketVisitData} margin={{ left:0, right:16, bottom:ovFieldAnalytics.bucketVisitData.length>0?40:10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
+                      <Line type="monotone" dataKey="visits" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* ── Top 15 statuses ── */}
+                <div className="card" style={{ gridColumn: "3/5" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Top 10 Statuses</div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={an.sd.slice(0,10)} layout="vertical" margin={{ left:0, right:16 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
+                      <YAxis type="category" dataKey="status" tick={{ fill:"#94a3b8", fontSize:9 }} width={170} />
+                      <Tooltip contentStyle={TS} />
+                      <Bar dataKey="count" radius={[0,4,4,0]}>
+                        {an.sd.slice(0,10).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* ── Top collectors ── */}
+                {ovTopCollectors.length > 0 && (
+                  <div className="card" style={{ gridColumn: "1/3" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Top 5 Collectors</div>
+                    <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>By total efforts this period.</div>
+                    {ovTopCollectors.map((c,i)=>(
+                      <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                        <div style={{ width:22, height:22, borderRadius:"50%", background:PC[i%PC.length]+"33", color:PC[i%PC.length], fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:12, fontWeight:600, color:"#e2e8f0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</div>
+                          <div style={{ height:4, background:"#0f172a", borderRadius:2, marginTop:3, overflow:"hidden" }}>
+                            <div style={{ height:"100%", borderRadius:2, width:`${Math.min((c.total/ovTopCollectors[0].total)*100,100)}%`, background:PC[i%PC.length] }} />
+                          </div>
+                        </div>
+                        <div style={{ fontSize:12, fontWeight:700, color:PC[i%PC.length], flexShrink:0 }}>{c.total.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Bucket breakdown (if exists) ── */}
+                {ovBuckets.length > 0 && (
+                  <div className="card" style={{ gridColumn:"3/5" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Efforts by Bucket</div>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={ovBuckets} layout="vertical" margin={{ left:0, right:20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8", fontSize:10 }} width={110} />
+                        <Tooltip contentStyle={TS} formatter={(v,n,p)=>[v.toLocaleString(),p.payload.name]} />
+                        <Bar dataKey="total" radius={[0,4,4,0]}>
+                          {ovBuckets.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#64748b"} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* ── Client volume (if exists) ── */}
+                {ovClients.length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Client Volume with Outcome Mix</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={ovClients.slice(0,10).map(c=>({ name:c.name, ...c.bySG }))} margin={{ bottom: ovClients.length>6?60:20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="name" tick={{ fill:"#64748b", fontSize:10 }} angle={ovClients.length>5?-25:0} textAnchor={ovClients.length>5?"end":"middle"} interval={0} />
+                        <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:11 }} />
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* ── PTP + Claim KPI summary ── */}
+                {(an.pt > 0 || an.ct > 0) && (
+                  <div className="card" style={{ gridColumn:"1/-1", display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
+                    <div>
+                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>PTP Records</div>
+                      <div style={{ fontSize:24, fontWeight:700, color:"#f59e0b", fontFamily:"'Space Grotesk',sans-serif" }}>{an.pc.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total PTP Amount</div>
+                      <div style={{ fontSize:22, fontWeight:700, color:"#22c55e", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.pt)}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Claim Paid Records</div>
+                      <div style={{ fontSize:24, fontWeight:700, color:"#f97316", fontFamily:"'Space Grotesk',sans-serif" }}>{an.cc.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total Claim Amount</div>
+                      <div style={{ fontSize:22, fontWeight:700, color:"#06b6d4", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.ct)}</div>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            );
+          })()}
 
           {/* ── Status Detail Tab ── */}
           {tab === "status" && (() => {
@@ -2520,8 +2706,8 @@ export default function App() {
                   <div className="sc" style={{ gridColumn: "4/5" }}>
                     <div style={{ fontSize: 20, marginBottom: 6 }}>📊</div>
                     <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Overall Penetration</div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>100%</div>
-                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>All accounts were worked</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.overallPct}%</div>
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>Avg of all TP penetration %</div>
                   </div>
 
                   {/* Overall TP Penetration Table & Chart */}
@@ -3035,7 +3221,7 @@ export default function App() {
                   { l:"Buckets Visited", v:fa.bucketVisitData.length, i:"📍", c:"#ec4899" },
 
                 ].map(k=>(
-                  <div key={k.l} className="field-card">
+                  <div key={k.l} className="sc">
                     <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
                     <div style={{ fontSize:10, color:"#4ade80", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600, opacity:.7 }}>{k.l}</div>
                     <div style={{ fontSize:16, fontWeight:700, color:k.c, fontFamily:"'Syne',sans-serif", marginTop:2 }}>{k.v}</div>
@@ -3240,6 +3426,382 @@ export default function App() {
               </div>
             );
           })()}
+
+          {/* ════════════════════════════════════════════════════════════════
+              ── 🔮 PREDICTIVE ANALYSIS TAB ──
+          ════════════════════════════════════════════════════════════════ */}
+          {tab === "predictive" && (() => {
+            // ── Linear regression helper ────────────────────────────────
+            const linReg = (pts) => {
+              // pts = [{x: number, y: number}]
+              const n = pts.length;
+              if (n < 2) return { slope: 0, intercept: pts[0]?.y || 0, r2: 0 };
+              const sumX = pts.reduce((s,p)=>s+p.x,0);
+              const sumY = pts.reduce((s,p)=>s+p.y,0);
+              const sumXY = pts.reduce((s,p)=>s+p.x*p.y,0);
+              const sumX2 = pts.reduce((s,p)=>s+p.x*p.x,0);
+              const slope = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
+              const intercept = (sumY - slope*sumX) / n;
+              const yMean = sumY/n;
+              const ssTot = pts.reduce((s,p)=>s+(p.y-yMean)**2,0);
+              const ssRes = pts.reduce((s,p)=>s+(p.y-(slope*p.x+intercept))**2,0);
+              const r2 = ssTot > 0 ? Math.max(0, 1-ssRes/ssTot) : 0;
+              return { slope, intercept, r2 };
+            };
+
+            // ── Moving average helper ────────────────────────────────────
+            const movAvg = (arr, window=3) => arr.map((_,i,a)=>{
+              const start = Math.max(0, i-window+1);
+              const slice = a.slice(start, i+1);
+              return slice.reduce((s,v)=>s+v,0)/slice.length;
+            });
+
+            // ── Build daily series ───────────────────────────────────────
+            const dailySeries = an.dateAnalytics?.dateSorted || [];
+
+            // Daily efforts forecast
+            const dailyPts = dailySeries.map((d,i)=>({ x:i, y:d.total, date:d.date }));
+            const effortReg = linReg(dailyPts);
+            const FORECAST_DAYS = 7;
+            const lastDateStr = dailySeries.length > 0 ? dailySeries[dailySeries.length-1].date : null;
+            const forecastDates = lastDateStr ? Array.from({length:FORECAST_DAYS},(_,k)=>{
+              const d = new Date(lastDateStr);
+              d.setDate(d.getDate()+k+1);
+              const mo = String(d.getMonth()+1).padStart(2,"0");
+              const dy = String(d.getDate()).padStart(2,"0");
+              return `${mo}/${dy}/${d.getFullYear()}`;
+            }) : Array.from({length:FORECAST_DAYS},(_,k)=>`Day +${k+1}`);
+
+            const effortForecast = forecastDates.map((date,k)=>{
+              const x = dailyPts.length + k;
+              return { date, predicted: Math.max(0, Math.round(effortReg.slope*x + effortReg.intercept)) };
+            });
+
+            const dailyMA = movAvg(dailySeries.map(d=>d.total));
+            const effortChartData = [
+              ...dailySeries.slice(-30).map((d,i,arr)=>({
+                date: d.date, actual: d.total,
+                trend: Math.max(0, parseFloat((effortReg.slope*(dailySeries.length-arr.length+i)+effortReg.intercept).toFixed(1))),
+                ma: parseFloat(dailyMA[dailySeries.length-arr.length+i]?.toFixed(1)||0)
+              })),
+              ...effortForecast.map(f=>({ date:f.date, predicted:f.predicted }))
+            ];
+
+            // ── PTP daily forecast ───────────────────────────────────────
+            const ptpDateMap = {};
+            if (data.pdk) {
+              data.rows.forEach(r => {
+                const d = fD(r[data.pdk]); if (!d) return;
+                ptpDateMap[d] = (ptpDateMap[d]||0)+1;
+              });
+            }
+            const ptpSeries = Object.entries(ptpDateMap).sort((a,b)=>new Date(a[0])-new Date(b[0])).map(([date,count])=>({date,count}));
+            const ptpPts = ptpSeries.map((d,i)=>({x:i,y:d.count,date:d.date}));
+            const ptpReg = linReg(ptpPts);
+            const ptpForecast = forecastDates.map((date,k)=>{
+              const x = ptpPts.length + k;
+              return { date, predicted: Math.max(0, Math.round(ptpReg.slope*x + ptpReg.intercept)) };
+            });
+            const ptpChartData = [
+              ...ptpSeries.slice(-30).map((d,i,arr)=>({
+                date:d.date, actual:d.count,
+                trend:Math.max(0,parseFloat((ptpReg.slope*(ptpSeries.length-arr.length+i)+ptpReg.intercept).toFixed(1)))
+              })),
+              ...ptpForecast.map(f=>({ date:f.date, predicted:f.predicted }))
+            ];
+
+            // ── Claim paid daily forecast ────────────────────────────────
+            const claimDateMap = {};
+            if (data.cdk) {
+              data.rows.forEach(r => {
+                const d = fD(r[data.cdk]); if (!d) return;
+                claimDateMap[d] = (claimDateMap[d]||0)+1;
+              });
+            }
+            const claimSeries = Object.entries(claimDateMap).sort((a,b)=>new Date(a[0])-new Date(b[0])).map(([date,count])=>({date,count}));
+            const claimPts = claimSeries.map((d,i)=>({x:i,y:d.count}));
+            const claimReg = linReg(claimPts);
+            const claimForecast = forecastDates.map((date,k)=>({
+              date, predicted: Math.max(0,Math.round(claimReg.slope*(claimPts.length+k)+claimReg.intercept))
+            }));
+            const claimChartData = [
+              ...claimSeries.slice(-30).map((d,i,arr)=>({
+                date:d.date, actual:d.count,
+                trend:Math.max(0,parseFloat((claimReg.slope*(claimSeries.length-arr.length+i)+claimReg.intercept).toFixed(1)))
+              })),
+              ...claimForecast.map(f=>({ date:f.date, predicted:f.predicted }))
+            ];
+
+            // ── Monthly forecast (if monthly data) ──────────────────────
+            const monthly = an.monthlyAnalytics?.monthlySorted || [];
+            const monthlyPts = monthly.map((m,i)=>({x:i,y:m.total,label:m.month}));
+            const monthReg = linReg(monthlyPts);
+            const MONTHS_AHEAD = 3;
+            const MONTHS_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const lastMonthLabel = monthly.length>0?monthly[monthly.length-1].month:null;
+            const forecastMonths = lastMonthLabel ? Array.from({length:MONTHS_AHEAD},(_,k)=>{
+              const [mon,yr] = lastMonthLabel.split(" ");
+              const idx = MONTHS_NAMES.indexOf(mon);
+              const newIdx = (idx+k+1)%12;
+              const newYr = parseInt(yr) + Math.floor((idx+k+1)/12);
+              return `${MONTHS_NAMES[newIdx]} ${newYr}`;
+            }) : Array.from({length:MONTHS_AHEAD},(_,k)=>`M+${k+1}`);
+
+            const monthlyPTPPts = monthly.map((m,i)=>({x:i,y:m.ptpAmt}));
+            const monthPTPReg = linReg(monthlyPTPPts);
+            const monthChartData = [
+              ...monthly.map((m,i)=>({
+                month:m.month, actual:m.total,
+                trend:Math.max(0,parseFloat((monthReg.slope*i+monthReg.intercept).toFixed(1))),
+                ptpAmt:m.ptpAmt
+              })),
+              ...forecastMonths.map((month,k)=>({
+                month, predicted:Math.max(0,Math.round(monthReg.slope*(monthly.length+k)+monthReg.intercept)),
+                predictedPTP:Math.max(0,Math.round(monthPTPReg.slope*(monthly.length+k)+monthPTPReg.intercept))
+              }))
+            ];
+
+            // ── Collector productivity forecast ──────────────────────────
+            // Simple: extrapolate each top collector's daily effort rate
+            const topForecastCollectors = an.cd.slice(0,8).map(c=>{
+              const dailyRate = dailySeries.length > 0 ? c.total/dailySeries.length : 0;
+              const next7 = Math.round(dailyRate*7);
+              const rpcRate = c.bySG?.RPC&&c.total>0?(c.bySG.RPC/c.total*100).toFixed(1):"0";
+              const ptpRate = c.bySG?.PTP&&c.total>0?((c.bySG.PTP||0)/c.total*100).toFixed(1):"0";
+              const keptRate = c.bySG?.KEPT&&c.total>0?((c.bySG.KEPT||0)/c.total*100).toFixed(1):"0";
+              return { name:c.name, total:c.total, dailyRate:dailyRate.toFixed(1), next7, rpcRate, ptpRate, keptRate };
+            });
+
+            // ── Trend direction labels ───────────────────────────────────
+            const trendLabel = (slope, unit="") => {
+              if (Math.abs(slope) < 0.05) return { label:"Stable ➡", color:"#94a3b8" };
+              if (slope > 0) return { label:`↑ +${slope.toFixed(2)}${unit}/day`, color:"#22c55e" };
+              return { label:`↓ ${slope.toFixed(2)}${unit}/day`, color:"#ef4444" };
+            };
+            const effortTrend = trendLabel(effortReg.slope);
+            const ptpTrend = trendLabel(ptpReg.slope, " PTPs");
+            const claimTrend = trendLabel(claimReg.slope, " claims");
+            const nextWeekEfforts = forecastDates.map((d,k)=>({date:d, predicted:effortForecast[k]?.predicted||0}));
+            const totalNext7 = nextWeekEfforts.reduce((s,x)=>s+x.predicted,0);
+            const totalNext7PTP = ptpForecast.reduce((s,x)=>s+x.predicted,0);
+
+            return (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:14 }}>
+
+                {/* Header banner */}
+                <div style={{ gridColumn:"1/-1", background:"linear-gradient(135deg,#0f1f3d,#130a2e)", border:"1px solid #1e3a5f", borderRadius:12, padding:"16px 20px" }}>
+                  <div style={{ fontWeight:700, fontSize:16, color:"#f1f5f9", marginBottom:4 }}>🔮 Predictive Analysis</div>
+                  <div style={{ fontSize:13, color:"#64748b" }}>
+                    Linear regression on historical effort, PTP, and claim data — extrapolated {FORECAST_DAYS} days ahead.
+                    Forecasts are model estimates and will vary with real-world conditions.
+                  </div>
+                </div>
+
+                {/* ── KPI: trend summary ── */}
+                {[
+                  { l:"Effort Trend", v:effortTrend.label, c:effortTrend.color, i:"📊", sub:`R²=${effortReg.r2.toFixed(2)} fit` },
+                  { l:"Next 7 Days (Est.)", v:totalNext7.toLocaleString(), c:"#60a5fa", i:"📅", sub:"total predicted efforts" },
+                  { l:"PTP Trend", v:ptpTrend.label, c:ptpTrend.color, i:"🤝", sub:`R²=${ptpReg.r2.toFixed(2)} fit` },
+                  { l:"Next 7 Days PTP (Est.)", v:totalNext7PTP.toLocaleString(), c:"#f59e0b", i:"💰", sub:"predicted PTP records" },
+                ].map(k=>(
+                  <div key={k.l} className="sc">
+                    <div style={{ fontSize:18,marginBottom:4 }}>{k.i}</div>
+                    <div style={{ fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:14,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2 }}>{k.v}</div>
+                    <div style={{ fontSize:10,color:"#475569",marginTop:2 }}>{k.sub}</div>
+                  </div>
+                ))}
+
+                {/* ── Daily Efforts forecast chart ── */}
+                {dailySeries.length >= 3 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📈 Daily Efforts — Trend &amp; 7-Day Forecast</div>
+                    <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
+                      Blue bars = actual. Orange line = regression trend. Purple bars = forecast.
+                      <span style={{ marginLeft:12, color:effortTrend.color, fontWeight:600 }}>{effortTrend.label}</span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={effortChartData} margin={{ left:0,right:16,bottom:effortChartData.length>20?70:30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(effortChartData.length/15)} />
+                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:11 }} />
+                        <Bar dataKey="actual" fill="#3b82f6" name="Actual" radius={[2,2,0,0]} />
+                        <Bar dataKey="predicted" fill="#a78bfa" name="Forecast" radius={[2,2,0,0]} />
+                        <Line type="monotone" dataKey="trend" stroke="#f59e0b" strokeWidth={2} dot={false} name="Trend" strokeDasharray="4 2" />
+                        <Line type="monotone" dataKey="ma" stroke="#06b6d4" strokeWidth={1.5} dot={false} name="3-day MA" strokeDasharray="2 3" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    {/* 7-day forecast table */}
+                    <div style={{ marginTop:14, overflowX:"auto" }}>
+                      <div style={{ fontWeight:600,fontSize:12,color:"#94a3b8",marginBottom:6 }}>7-Day Effort Forecast</div>
+                      <table>
+                        <thead><tr><th>Date</th><th>Predicted Efforts</th><th style={{width:160}}>Bar</th></tr></thead>
+                        <tbody>{effortForecast.map(f=>(
+                          <tr key={f.date}>
+                            <td style={{ color:"#a78bfa",fontWeight:600 }}>{f.date}</td>
+                            <td style={{ fontWeight:700,color:"#e2e8f0" }}>{f.predicted.toLocaleString()}</td>
+                            <td><Pb pct={totalNext7>0?(f.predicted/Math.max(...effortForecast.map(x=>x.predicted)))*100:0} c="#a78bfa" /></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── PTP forecast ── */}
+                {ptpSeries.length >= 3 && (
+                  <div className="card" style={{ gridColumn:"1/3" }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>🤝 PTP Count Forecast (7 days)</div>
+                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>
+                      <span style={{ color:ptpTrend.color,fontWeight:600 }}>{ptpTrend.label}</span>
+                      <span style={{ color:"#475569",marginLeft:8 }}>R²={ptpReg.r2.toFixed(2)}</span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={ptpChartData} margin={{ left:0,right:12,bottom:50 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(ptpChartData.length/10)} />
+                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:10 }} />
+                        <Bar dataKey="actual" fill="#f59e0b" name="Actual PTP" radius={[2,2,0,0]} />
+                        <Bar dataKey="predicted" fill="#fbbf24" name="Forecast" radius={[2,2,0,0]} opacity={0.7} />
+                        <Line type="monotone" dataKey="trend" stroke="#ef4444" strokeWidth={2} dot={false} name="Trend" strokeDasharray="4 2" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop:10 }}>
+                      <table style={{ fontSize:12 }}>
+                        <thead><tr><th>Date</th><th>Predicted PTPs</th></tr></thead>
+                        <tbody>{ptpForecast.map(f=>(
+                          <tr key={f.date}><td style={{ color:"#f59e0b" }}>{f.date}</td><td style={{ fontWeight:700 }}>{f.predicted}</td></tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Claim forecast ── */}
+                {claimSeries.length >= 3 && (
+                  <div className="card" style={{ gridColumn:"3/5" }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>💳 Claim Paid Forecast (7 days)</div>
+                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>
+                      <span style={{ color:claimTrend.color,fontWeight:600 }}>{claimTrend.label}</span>
+                      <span style={{ color:"#475569",marginLeft:8 }}>R²={claimReg.r2.toFixed(2)}</span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={claimChartData} margin={{ left:0,right:12,bottom:50 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(claimChartData.length/10)} />
+                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:10 }} />
+                        <Bar dataKey="actual" fill="#f97316" name="Actual Claims" radius={[2,2,0,0]} />
+                        <Bar dataKey="predicted" fill="#fdba74" name="Forecast" radius={[2,2,0,0]} opacity={0.7} />
+                        <Line type="monotone" dataKey="trend" stroke="#ef4444" strokeWidth={2} dot={false} name="Trend" strokeDasharray="4 2" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop:10 }}>
+                      <table style={{ fontSize:12 }}>
+                        <thead><tr><th>Date</th><th>Predicted Claims</th></tr></thead>
+                        <tbody>{claimForecast.map(f=>(
+                          <tr key={f.date}><td style={{ color:"#f97316" }}>{f.date}</td><td style={{ fontWeight:700 }}>{f.predicted}</td></tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Monthly forecast ── */}
+                {monthly.length >= 2 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📆 Monthly Efforts — Trend &amp; {MONTHS_AHEAD}-Month Forecast</div>
+                    <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>Green bars = actual. Purple bars = forecast. R²={monthReg.r2.toFixed(2)}</div>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={monthChartData} margin={{ left:0,right:16,bottom:monthly.length>6?50:20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="month" tick={{ fill:"#64748b",fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize:11 }} />
+                        <Bar dataKey="actual" fill="#3b82f6" name="Actual" radius={[2,2,0,0]} />
+                        <Bar dataKey="predicted" fill="#a78bfa" name="Forecast" radius={[2,2,0,0]} opacity={0.8} />
+                        <Line type="monotone" dataKey="trend" stroke="#f59e0b" strokeWidth={2} dot={false} name="Trend" strokeDasharray="4 2" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop:12,overflowX:"auto" }}>
+                      <div style={{ fontWeight:600,fontSize:12,color:"#94a3b8",marginBottom:6 }}>Monthly Forecast</div>
+                      <table>
+                        <thead><tr><th>Month</th><th>Predicted Efforts</th><th>Predicted PTP (est.)</th><th style={{width:160}}>Bar</th></tr></thead>
+                        <tbody>{forecastMonths.map((m,k)=>{
+                          const pred = Math.max(0,Math.round(monthReg.slope*(monthly.length+k)+monthReg.intercept));
+                          const predPTP = Math.max(0,Math.round(monthPTPReg.slope*(monthly.length+k)+monthPTPReg.intercept));
+                          const maxActual = monthly.length>0?Math.max(...monthly.map(x=>x.total)):1;
+                          return (
+                            <tr key={m}>
+                              <td style={{ color:"#a78bfa",fontWeight:600 }}>{m}</td>
+                              <td style={{ fontWeight:700,color:"#e2e8f0" }}>{pred.toLocaleString()}</td>
+                              <td style={{ color:"#22c55e" }}>₱{fN(predPTP)}</td>
+                              <td><Pb pct={(pred/Math.max(maxActual,pred))*100} c="#a78bfa" /></td>
+                            </tr>
+                          );
+                        })}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Collector productivity forecast ── */}
+                {topForecastCollectors.length > 0 && (
+                  <div className="card" style={{ gridColumn:"1/-1" }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>👥 Collector Productivity Forecast (Next 7 Days)</div>
+                    <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
+                      Estimated based on each collector's historical daily effort rate × 7 days.
+                    </div>
+                    <div style={{ overflowX:"auto" }}>
+                      <table>
+                        <thead><tr>
+                          <th>#</th><th>Collector</th>
+                          <th>Total (So Far)</th>
+                          <th>Daily Rate</th>
+                          <th style={{ color:"#a78bfa" }}>Est. Next 7 Days</th>
+                          <th style={{ color:"#3b82f6" }}>RPC%</th>
+                          <th style={{ color:"#f59e0b" }}>PTP%</th>
+                          <th style={{ color:"#22c55e" }}>KEPT%</th>
+                          <th style={{ width:120 }}>7-Day Bar</th>
+                        </tr></thead>
+                        <tbody>{topForecastCollectors.map((c,i)=>(
+                          <tr key={c.name}>
+                            <td style={{ color:"#4b5563" }}>{i+1}</td>
+                            <td style={{ fontWeight:600,color:"#e2e8f0" }}>{c.name}</td>
+                            <td style={{ color:"#94a3b8" }}>{c.total.toLocaleString()}</td>
+                            <td style={{ color:"#60a5fa" }}>{c.dailyRate}/day</td>
+                            <td style={{ fontWeight:700,color:"#a78bfa" }}>{c.next7.toLocaleString()}</td>
+                            <td style={{ color:"#3b82f6" }}>{c.rpcRate}%</td>
+                            <td style={{ color:"#f59e0b" }}>{c.ptpRate}%</td>
+                            <td style={{ color:"#22c55e" }}>{c.keptRate}%</td>
+                            <td><Pb pct={(c.next7/Math.max(...topForecastCollectors.map(x=>x.next7),1))*100} c={PC[i%PC.length]} /></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Model accuracy note ── */}
+                <div style={{ gridColumn:"1/-1", background:"#1c1917", border:"1px solid #292524", borderRadius:10, padding:"12px 16px" }}>
+                  <div style={{ fontSize:12,color:"#78716c" }}>
+                    ⚠️ <strong style={{ color:"#a8a29e" }}>Model Notes:</strong> Forecasts use ordinary least-squares linear regression on historical data.
+                    R² (0–1) measures fit quality — values closer to 1 indicate stronger predictive power.
+                    Short or irregular time series will have lower R² and wider error margins.
+                    These are statistical estimates only — actual results depend on operational decisions and external factors.
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
+
         </>}
       </div>
     </div>

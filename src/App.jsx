@@ -453,6 +453,9 @@ export default function App() {
   const [bucketSort, setBucketSort] = useState({ key: "total", dir: "desc" });
   const [bucketSearch, setBucketSearch] = useState("");
 
+  // Active client filter – "All" shows combined data; a client name shows only that client's rows
+  const [activeClientFilter, setActiveClientFilter] = useState("All");
+
   const mkSort = (ss, setSS) => (key) => setSS(prev => ({ key, dir: prev.key === key && prev.dir === "desc" ? "asc" : "desc" }));
   const mkIcon = (ss) => ({ col }) => col !== ss.key
     ? <span style={{ color: "#334155", marginLeft: 4, cursor: "pointer" }}>⇅</span>
@@ -556,7 +559,11 @@ export default function App() {
 
   const an = useMemo(() => {
     if (!data) return null;
-    const { rows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick } = data;
+    const { rows: allRows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick } = data;
+    // Filter rows to the active client (or use all rows when "All" is selected)
+    const rows = (activeClientFilter && activeClientFilter !== "All" && clk)
+      ? allRows.filter(r => r._client === activeClientFilter)
+      : allRows;
     const sc = {}, gc = {}, tc = {};
     rows.forEach(r => {
       sc[r._status] = (sc[r._status] || 0) + 1;
@@ -1112,17 +1119,20 @@ export default function App() {
     }
 
     return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData };
-  }, [data]);
+  }, [data, activeClientFilter]);
 
   const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
 
   const selectedDateRows = useMemo(() => {
     if (!selectedDate || !data || !an?.dateAnalytics) return null;
-    const { datек, dtk } = data;
+    const { datек, dtk, clk } = data;
     const activeKey = datек || dtk;
     if (!activeKey) return null;
     const sc = {};
-    data.rows.forEach(r => {
+    const rows = (activeClientFilter && activeClientFilter !== "All" && clk)
+      ? data.rows.filter(r => r._client === activeClientFilter)
+      : data.rows;
+    rows.forEach(r => {
       const d = fD(r[activeKey]);
       if (d === selectedDate) { sc[r._status] = (sc[r._status] || 0) + 1; }
     });
@@ -1130,7 +1140,7 @@ export default function App() {
       const d = DU[s.toUpperCase()];
       return { status: s, count: c, grp: d?.sg || "", tp: d?.tp || "" };
     });
-  }, [selectedDate, data, an]);
+  }, [selectedDate, data, an, activeClientFilter]);
 
   const selectedCollectorData = useMemo(() => {
     if (!selectedCollector || !an) return null;
@@ -1288,6 +1298,37 @@ export default function App() {
             </div>
           )}
           */}
+          {/* ── Client Filter Strip (shown when multiple clients exist) ── */}
+          {data?.clients?.length > 1 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>
+                🏢 Viewing data for:
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {["All", ...data.clients].map(cl => (
+                  <button
+                    key={cl}
+                    onClick={() => { setActiveClientFilter(cl); setSelectedDate(null); setSelectedCollector(null); setSelectedBucket(null); }}
+                    style={{
+                      padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      border: activeClientFilter === cl ? "1px solid #3b82f6" : "1px solid #334155",
+                      background: activeClientFilter === cl ? "#1e40af" : "#1e293b",
+                      color: activeClientFilter === cl ? "#fff" : "#94a3b8",
+                      transition: "all .15s",
+                    }}
+                  >
+                    {cl === "All" ? `🌐 All Clients (${data.clients.length})` : `🏢 ${cl}`}
+                  </button>
+                ))}
+              </div>
+              {activeClientFilter !== "All" && (
+                <div style={{ marginTop: 6, fontSize: 11, color: "#f59e0b", background: "#1c1400", border: "1px solid #92400e", borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
+                  ⚠️ All charts and tables below show data for <strong>{activeClientFilter}</strong> only.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tabs */}
           <div style={{ display: "flex", gap: 4, marginBottom: 8, background: "#0f172a", padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
             {[
@@ -1300,7 +1341,8 @@ export default function App() {
               ["collectors", "👥 Collectors"],
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
               ...(an?.monthlyAnalytics ? [["monthly","📆 Monthly"]] : []),
-              ...(an.clientAnalytics ? [["clients", "🏢 Clients"]] : []),
+              // Only show combined Clients tab when viewing All
+              ...(an.clientAnalytics && activeClientFilter === "All" ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
               ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
               ["predictive", "🔮 Predictive"],
@@ -1317,26 +1359,44 @@ export default function App() {
             const ovDateTrend = an.dateAnalytics?.dateSorted || [];
             const ovBuckets = an.bucketAnalytics?.bucketList || [];
             const ovClients = an.clientAnalytics?.clientList || [];
-            const ovFieldAnalytics = an.fieldAnalytics || [];
-            const rpcPct = an.T > 0 ? ((an.gd.find(g=>g.name==="RPC")?.value||0)/an.T*100).toFixed(1) : "0.0";
-            const ptpPct = an.T > 0 ? ((an.gd.find(g=>g.name==="PTP")?.value||0)/an.T*100).toFixed(1) : "0.0";
-            const keptPct = an.T > 0 ? ((an.gd.find(g=>g.name==="KEPT")?.value||0)/an.T*100).toFixed(1) : "0.0";
-            const negPct = an.T > 0 ? ((an.gd.find(g=>g.name==="NEG")?.value||0)/an.T*100).toFixed(1) : "0.0";
-            const convRate = an.pt > 0 ? ((an.ct/an.pt)*100).toFixed(1) : "0.0";
+            const ovFieldVisits = an.fieldAnalytics?.bucketVisitData || [];
+            const hasPTP = an.pt > 0 || an.pc > 0;
+            const hasClaim = an.ct > 0 || an.cc > 0;
+            const hasDate = ovDateTrend.length > 0;
+            const hasMonthly = ovMonthly.length > 0;
+            const hasField = ovFieldVisits.length > 0;
+            const hasBuckets = ovBuckets.length > 0;
+            const hasClients = ovClients.length > 1;
+            const hasCollectors = ovTopCollectors.length > 0;
+
+            const safeRate = (grp) => {
+              const entry = an.gd.find(g => g.name === grp);
+              return entry ? entry.pct + "%" : "N/A";
+            };
+            const convRate = an.pt > 0 ? ((an.ct / an.pt) * 100).toFixed(1) + "%" : "N/A";
+
+            const NoData = ({ label, icon = "📭", hint }) => (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6, padding:"28px 16px", background:"#0f172a", borderRadius:8, border:"1px dashed #334155", textAlign:"center" }}>
+                <span style={{ fontSize:24 }}>{icon}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:"#475569" }}>{label}</span>
+                {hint && <span style={{ fontSize:11, color:"#334155" }}>{hint}</span>}
+              </div>
+            );
+
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
 
-                {/* ── Outcome rate KPI strip ── */}
+                {/* ── KPI strip ── */}
                 {[
-                  { l:"KEPT Rate", v:keptPct+"%", c:"#22c55e", i:"✅", sub:"Kept Promise" },
-                  { l:"PTP Rate", v:ptpPct+"%", c:"#f59e0b", i:"🤝", sub:"Promise to Pay" },
-                  { l:"RPC Rate", v:rpcPct+"%", c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
-                  { l:"NEG Rate", v:negPct+"%", c:"#ef4444", i:"❌", sub:"Negative Outcome" },
-                  { l:"PTP Amount", v:"₱"+fN(an.pt), c:"#22c55e", i:"💰", sub:an.pc+" records" },
-                  { l:"Claim Paid", v:"₱"+fN(an.ct), c:"#f97316", i:"💳", sub:an.cc+" records" },
-                  { l:"Conv. Rate", v:convRate+"%", c:"#a78bfa", i:"📈", sub:"Claim/PTP" },
-                  ...(an.ua!=null?[{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }]:[]),
-                ].map(k=>(
+                  { l:"KEPT Rate",        v:safeRate("KEPT"), c:"#22c55e", i:"✅", sub:"Kept Promise" },
+                  { l:"PTP Rate",         v:safeRate("PTP"),  c:"#f59e0b", i:"🤝", sub:"Promise to Pay" },
+                  { l:"RPC Rate",         v:safeRate("RPC"),  c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
+                  { l:"NEG Rate",         v:safeRate("NEG"),  c:"#ef4444", i:"❌", sub:"Negative Outcome" },
+                  { l:"PTP Amount",       v: hasPTP   ? "₱"+fN(an.pt) : "N/A", c: hasPTP   ? "#22c55e" : "#475569", i:"💰", sub: hasPTP   ? an.pc+" records" : "No PTP column" },
+                  { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : "#475569", i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
+                  { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : "#475569", i:"📈", sub:"Claim / PTP" },
+                  ...(an.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }] : []),
+                ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
                     <div style={{ fontSize:10, color:"#64748b", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
@@ -1345,70 +1405,76 @@ export default function App() {
                   </div>
                 ))}
 
-                {/* ── Status Group pie + top statuses ── */}
+                {/* ── Outcome Group pie ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Outcome Group Distribution</div>
-                  <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-                    <ResponsiveContainer width="55%" height={220}>
-                      <PieChart>
-                        <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
-                          {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{ flex:1 }}>
-                      {an.gd.map(g=>(
-                        <div key={g.name} style={{ marginBottom:8 }}>
-                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                            <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||"#94a3b8" }}>{g.name}</span>
-                            <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||"#94a3b8" }}>{g.pct}%</span>
+                  {an.gd.length > 0 ? (
+                    <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                      <ResponsiveContainer width="55%" height={220}>
+                        <PieChart>
+                          <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
+                            {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
+                          </Pie>
+                          <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{ flex:1 }}>
+                        {an.gd.map(g=>(
+                          <div key={g.name} style={{ marginBottom:8 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                              <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||"#94a3b8" }}>{g.name}</span>
+                              <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||"#94a3b8" }}>{g.pct}%</span>
+                            </div>
+                            <Pb pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
                           </div>
-                          <Pb pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : <NoData label="No outcome data" icon="🥧" hint="No recognised statuses for this filter" />}
                 </div>
 
-                {/* ── Touch point distribution ── */}
+                {/* ── Touch Point Mix ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Touch Point Mix</div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={an.td} layout="vertical" margin={{ left:0, right:20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8", fontSize:10 }} width={120} />
-                      <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
-                      <Bar dataKey="count" radius={[0,4,4,0]}>
-                        {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* ── Daily trend (if date exists) ── */}
-                {ovDateTrend.length > 0 && (
-                  <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Daily Efforts Trend</div>
-                    <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>All efforts over time, colored by outcome group.</div>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={ovDateTrend} margin={{ left:0, right:16, bottom: ovDateTrend.length>20?60:16 }}>
+                  {an.td.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={an.td} layout="vertical" margin={{ left:0, right:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill:"#64748b", fontSize:10 }} angle={ovDateTrend.length>15?-35:0} textAnchor={ovDateTrend.length>15?"end":"middle"} interval={ovDateTrend.length>30?Math.floor(ovDateTrend.length/20):0} />
-                        <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
-                        <Tooltip contentStyle={TS} />
-                        <Legend wrapperStyle={{ fontSize:11 }} />
-                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                        <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8", fontSize:10 }} width={120} />
+                        <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
+                        <Bar dataKey="count" radius={[0,4,4,0]}>
+                          {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                )}
+                  ) : <NoData label="No touch point data" icon="📱" hint="No effort records for this filter" />}
+                </div>
 
-                {/* ── Monthly trend (if monthly exists) ── */}
-                {ovMonthly.length > 0 && (
-                  <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Monthly Efforts & PTP Trend</div>
+                {/* ── Daily Efforts Trend ── */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Daily Efforts Trend</div>
+                  {hasDate ? (
+                    <>
+                      <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>All efforts over time, coloured by outcome group.</div>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={ovDateTrend} margin={{ left:0, right:16, bottom: ovDateTrend.length>20?60:16 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                          <XAxis dataKey="date" tick={{ fill:"#64748b", fontSize:10 }} angle={ovDateTrend.length>15?-35:0} textAnchor={ovDateTrend.length>15?"end":"middle"} interval={ovDateTrend.length>30?Math.floor(ovDateTrend.length/20):0} />
+                          <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                          <Tooltip contentStyle={TS} />
+                          <Legend wrapperStyle={{ fontSize:11 }} />
+                          {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </>
+                  ) : <NoData label="No date data available" icon="📅" hint="Upload a file with a Date column to see this chart" />}
+                </div>
+
+                {/* ── Monthly Trend ── */}
+                <div className="card" style={{ gridColumn:"1/-1" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Monthly Efforts Trend</div>
+                  {hasMonthly ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={ovMonthly} margin={{ left:0, right:16, bottom: ovMonthly.length>6?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1419,63 +1485,69 @@ export default function App() {
                         {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                )}
+                  ) : <NoData label="No monthly data" icon="📆" hint="Requires a Date column with multiple months" />}
+                </div>
 
-                {/* % Visits from Total per Bucket */}
+                {/* ── Field Visits by Bucket ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f9fafb" }}>Field Visits by Bucket</div>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={ovFieldAnalytics.bucketVisitData} margin={{ left:0, right:16, bottom:ovFieldAnalytics.bucketVisitData.length>0?40:10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
-                      <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
-                      <Line type="monotone" dataKey="visits" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {hasField ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <LineChart data={ovFieldVisits} margin={{ left:0, right:16, bottom: ovFieldVisits.length>4?40:10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
+                        <Line type="monotone" dataKey="visits" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : <NoData label="No field visit data" icon="🚗" hint="No FIELD touch point records for this filter" />}
                 </div>
-                
-                {/* ── Top 15 statuses ── */}
-                <div className="card" style={{ gridColumn: "3/5" }}>
+
+                {/* ── Top 10 Statuses ── */}
+                <div className="card" style={{ gridColumn:"3/5" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Top 10 Statuses</div>
-                  <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={an.sd.slice(0,10)} layout="vertical" margin={{ left:0, right:16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
-                      <YAxis type="category" dataKey="status" tick={{ fill:"#94a3b8", fontSize:9 }} width={170} />
-                      <Tooltip contentStyle={TS} />
-                      <Bar dataKey="count" radius={[0,4,4,0]}>
-                        {an.sd.slice(0,10).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {an.sd.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={an.sd.slice(0,10)} layout="vertical" margin={{ left:0, right:16 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
+                        <YAxis type="category" dataKey="status" tick={{ fill:"#94a3b8", fontSize:9 }} width={170} />
+                        <Tooltip contentStyle={TS} />
+                        <Bar dataKey="count" radius={[0,4,4,0]}>
+                          {an.sd.slice(0,10).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <NoData label="No status data" icon="🏷️" hint="No recognised statuses for this filter" />}
                 </div>
 
-                {/* ── Top collectors ── */}
-                {ovTopCollectors.length > 0 && (
-                  <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Top 5 Collectors</div>
-                    <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>By total efforts this period.</div>
-                    {ovTopCollectors.map((c,i)=>(
-                      <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                        <div style={{ width:22, height:22, borderRadius:"50%", background:PC[i%PC.length]+"33", color:PC[i%PC.length], fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:12, fontWeight:600, color:"#e2e8f0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</div>
-                          <div style={{ height:4, background:"#0f172a", borderRadius:2, marginTop:3, overflow:"hidden" }}>
-                            <div style={{ height:"100%", borderRadius:2, width:`${Math.min((c.total/ovTopCollectors[0].total)*100,100)}%`, background:PC[i%PC.length] }} />
+                {/* ── Top 5 Collectors ── */}
+                <div className="card" style={{ gridColumn:"1/3" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Top 5 Collectors</div>
+                  {hasCollectors ? (
+                    <>
+                      <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>By total efforts this period.</div>
+                      {ovTopCollectors.map((c,i)=>(
+                        <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                          <div style={{ width:22, height:22, borderRadius:"50%", background:PC[i%PC.length]+"33", color:PC[i%PC.length], fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, fontWeight:600, color:"#e2e8f0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</div>
+                            <div style={{ height:4, background:"#0f172a", borderRadius:2, marginTop:3, overflow:"hidden" }}>
+                              <div style={{ height:"100%", borderRadius:2, width:`${Math.min((c.total/ovTopCollectors[0].total)*100,100)}%`, background:PC[i%PC.length] }} />
+                            </div>
                           </div>
+                          <div style={{ fontSize:12, fontWeight:700, color:PC[i%PC.length], flexShrink:0 }}>{c.total.toLocaleString()}</div>
                         </div>
-                        <div style={{ fontSize:12, fontWeight:700, color:PC[i%PC.length], flexShrink:0 }}>{c.total.toLocaleString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </>
+                  ) : <NoData label="No collector data" icon="👥" hint="No Remark By column detected" />}
+                </div>
 
-                {/* ── Bucket breakdown (if exists) ── */}
-                {ovBuckets.length > 0 && (
-                  <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Efforts by Bucket</div>
+                {/* ── Efforts by Bucket ── */}
+                <div className="card" style={{ gridColumn:"3/5" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Efforts by Bucket</div>
+                  {hasBuckets ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={ovBuckets} layout="vertical" margin={{ left:0, right:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1487,11 +1559,11 @@ export default function App() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                )}
+                  ) : <NoData label="No bucket data" icon="📍" hint="No Old IC / Placement column detected" />}
+                </div>
 
-                {/* ── Client volume (if exists) ── */}
-                {ovClients.length > 0 && (
+                {/* ── Client Volume Mix (only when truly multi-client) ── */}
+                {hasClients && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
                     <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Client Volume with Outcome Mix</div>
                     <ResponsiveContainer width="100%" height={220}>
@@ -1507,27 +1579,35 @@ export default function App() {
                   </div>
                 )}
 
-                {/* ── PTP + Claim KPI summary ── */}
-                {(an.pt > 0 || an.ct > 0) && (
-                  <div className="card" style={{ gridColumn:"1/-1", display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
-                    <div>
-                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>PTP Records</div>
-                      <div style={{ fontSize:24, fontWeight:700, color:"#f59e0b", fontFamily:"'Space Grotesk',sans-serif" }}>{an.pc.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total PTP Amount</div>
-                      <div style={{ fontSize:22, fontWeight:700, color:"#22c55e", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.pt)}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Claim Paid Records</div>
-                      <div style={{ fontSize:24, fontWeight:700, color:"#f97316", fontFamily:"'Space Grotesk',sans-serif" }}>{an.cc.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total Claim Amount</div>
-                      <div style={{ fontSize:22, fontWeight:700, color:"#06b6d4", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.ct)}</div>
-                    </div>
+                {/* ── PTP + Claim summary row ── */}
+                <div className="card" style={{ gridColumn:"1/-1", display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>PTP Records</div>
+                    {hasPTP
+                      ? <div style={{ fontSize:24, fontWeight:700, color:"#f59e0b", fontFamily:"'Space Grotesk',sans-serif" }}>{an.pc.toLocaleString()}</div>
+                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
+                    {!hasPTP && <div style={{ fontSize:11, color:"#334155", marginTop:2 }}>No PTP Amount column</div>}
                   </div>
-                )}
+                  <div>
+                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total PTP Amount</div>
+                    {hasPTP
+                      ? <div style={{ fontSize:22, fontWeight:700, color:"#22c55e", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.pt)}</div>
+                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Claim Paid Records</div>
+                    {hasClaim
+                      ? <div style={{ fontSize:24, fontWeight:700, color:"#f97316", fontFamily:"'Space Grotesk',sans-serif" }}>{an.cc.toLocaleString()}</div>
+                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
+                    {!hasClaim && <div style={{ fontSize:11, color:"#334155", marginTop:2 }}>No Claim Paid column</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total Claim Amount</div>
+                    {hasClaim
+                      ? <div style={{ fontSize:22, fontWeight:700, color:"#06b6d4", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.ct)}</div>
+                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
+                  </div>
+                </div>
 
               </div>
             );
@@ -2317,14 +2397,20 @@ export default function App() {
             );
           })()}
 
-          {/* ── Clients Tab ── */}
+          {/* ── Clients Tab (All-clients comparison view) ── */}
           {tab === "clients" && an.clientAnalytics && (() => {
-            const { clientList } = an.clientAnalytics;
+            const { clientList, clientSGData } = an.clientAnalytics;
             const topClient = clientList[0];
             const bestPTPClient = [...clientList].sort((a, b) => (b.bySG.PTP || 0) - (a.bySG.PTP || 0))[0];
             const bestKEPTClient = [...clientList].sort((a, b) => (b.bySG.KEPT || 0) - (a.bySG.KEPT || 0))[0];
+            const totalAll = clientList.reduce((s, c) => s + c.total, 0);
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                {/* Header note */}
+                <div style={{ gridColumn: "1/-1", background: "#0f1f3d", border: "1px solid #1e3a5f", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: "#64748b" }}>
+                  💡 This view compares all clients side-by-side. To see full analytics for a single client only, use the <strong style={{ color: "#60a5fa" }}>client filter strip</strong> above the tabs.
+                </div>
+
                 {[
                   { l: "Total Clients", v: clientList.length, i: "🏢", c: "#a78bfa" },
                   { l: "Highest Volume", v: topClient?.name || "–", i: "🔝", c: "#3b82f6", sub: topClient?.total.toLocaleString() + " records" },
@@ -2338,16 +2424,77 @@ export default function App() {
                     {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
+
+                {/* Volume comparison bar chart */}
+                <div className="card" style={{ gridColumn: "1/3" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: "#f1f5f9" }}>Volume by Client</div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={clientList} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={120} />
+                      <Tooltip contentStyle={TS} />
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                        {clientList.map((c, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Outcome group stacked comparison */}
+                <div className="card" style={{ gridColumn: "3/5" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: "#f1f5f9" }}>Outcome Group Mix per Client</div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={clientSGData} margin={{ bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={clientList.length > 4 ? -25 : 0} textAnchor={clientList.length > 4 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Rate comparison */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: "#f1f5f9" }}>RPC / PTP / KEPT Rate by Client (%)</div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={clientList.map(c => ({
+                      name: c.name,
+                      "RPC%": c.total > 0 ? parseFloat(((c.bySG.RPC || 0) / c.total * 100).toFixed(1)) : 0,
+                      "PTP%": c.total > 0 ? parseFloat(((c.bySG.PTP || 0) / c.total * 100).toFixed(1)) : 0,
+                      "KEPT%": c.total > 0 ? parseFloat(((c.bySG.KEPT || 0) / c.total * 100).toFixed(1)) : 0,
+                    }))} margin={{ bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={clientList.length > 4 ? -25 : 0} textAnchor={clientList.length > 4 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" />
+                      <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="RPC%" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="PTP%" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="KEPT%" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Summary table with switch-to-client button */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Summary Table</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
-                    Click a row to drill down.
-                    {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
+                    Click <strong style={{ color: "#60a5fa" }}>View Only</strong> on any row to isolate that client's data across all tabs.
+                    {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear drill-down</button>}
                   </div>
                   <SearchBar value={clientSearch} onChange={setClientSearch} placeholder="Filter by client name..." />
                   {(() => {
                     const CLI = mkIcon(clientSort);
-                    const filteredClients = sortFilter(clientList.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1) })), clientSort, clientSearch, ["name"]);
+                    const filteredClients = sortFilter(clientList.map(c => ({
+                      ...c,
+                      pctShare: ((c.total / totalAll) * 100).toFixed(1),
+                      rpcRate: c.total > 0 ? ((c.bySG.RPC || 0) / c.total * 100).toFixed(1) : "0.0",
+                      ptpRate: c.total > 0 ? ((c.bySG.PTP || 0) / c.total * 100).toFixed(1) : "0.0",
+                      keptRate: c.total > 0 ? ((c.bySG.KEPT || 0) / c.total * 100).toFixed(1) : "0.0",
+                    })), clientSort, clientSearch, ["name"]);
                     return (
                       <div style={{ overflowX: "auto" }}>
                         <table>
@@ -2355,9 +2502,13 @@ export default function App() {
                             <th>#</th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Client <CLI col="name" /></th>
                             <th onClick={() => mkSort(clientSort, setClientSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CLI col="total" /></th>
-                            <th onClick={() => mkSort(clientSort, setClientSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% <CLI col="pctShare" /></th>
+                            <th onClick={() => mkSort(clientSort, setClientSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>Share% <CLI col="pctShare" /></th>
                             {SG_GROUPS.map(sg => <th key={sg} style={{ color: GC[sg] }}>{sg}</th>)}
-                            <th style={{ width: 120 }}>Bar</th>
+                            <th style={{ color: "#3b82f6" }}>RPC%</th>
+                            <th style={{ color: "#f59e0b" }}>PTP%</th>
+                            <th style={{ color: "#22c55e" }}>KEPT%</th>
+                            <th>Action</th>
+                            <th style={{ width: 100 }}>Bar</th>
                           </tr></thead>
                           <tbody>{filteredClients.map((c, i) => (
                             <tr key={c.name} className={`dr3${selectedClient === c.name ? " sel" : ""}`} onClick={() => setSelectedClient(selectedClient === c.name ? null : c.name)}>
@@ -2366,6 +2517,17 @@ export default function App() {
                               <td style={{ fontWeight: 700, color: PC[i % PC.length] }}>{c.total.toLocaleString()}</td>
                               <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
                               {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(c.bySG[sg] || 0).toLocaleString()}</td>)}
+                              <td style={{ color: "#3b82f6", fontWeight: 600 }}>{c.rpcRate}%</td>
+                              <td style={{ color: "#f59e0b", fontWeight: 600 }}>{c.ptpRate}%</td>
+                              <td style={{ color: "#22c55e", fontWeight: 600 }}>{c.keptRate}%</td>
+                              <td>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setActiveClientFilter(c.name); setTab("overview"); }}
+                                  style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, background: "#1e3a5f", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}
+                                >
+                                  View Only ↗
+                                </button>
+                              </td>
                               <td><Pb pct={(c.total / clientList[0].total) * 100} c={PC[i % PC.length]} /></td>
                             </tr>
                           ))}</tbody>
@@ -2374,9 +2536,32 @@ export default function App() {
                     );
                   })()}
                 </div>
+
+                {/* Drill-down detail */}
                 {selectedClient && selectedClientData && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #78350f" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9", marginBottom: 16 }}>🏢 {selectedClient} — Detailed Breakdown</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>🏢 {selectedClient} — Detailed Breakdown</div>
+                      <button
+                        onClick={() => { setActiveClientFilter(selectedClient); setTab("overview"); }}
+                        style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, background: "#1e3a5f", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}
+                      >
+                        Switch to {selectedClient} only ↗
+                      </button>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+                      {[
+                        { l: "Total Efforts", v: selectedClientData.total.toLocaleString(), c: "#60a5fa" },
+                        { l: "Share of All", v: ((selectedClientData.total / totalAll) * 100).toFixed(1) + "%", c: "#a78bfa" },
+                        { l: "RPC Rate", v: selectedClientData.total > 0 ? ((selectedClientData.bySG.RPC || 0) / selectedClientData.total * 100).toFixed(1) + "%" : "–", c: "#3b82f6" },
+                        { l: "KEPT Rate", v: selectedClientData.total > 0 ? ((selectedClientData.bySG.KEPT || 0) / selectedClientData.total * 100).toFixed(1) + "%" : "–", c: "#22c55e" },
+                      ].map(k => (
+                        <div key={k.l} style={{ background: "#0f172a", borderRadius: 8, padding: "12px 14px" }}>
+                          <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>{k.l}</div>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div>
+                        </div>
+                      ))}
+                    </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Touch Point</div>
@@ -2408,7 +2593,30 @@ export default function App() {
           })()}
 
           {/* ── Buckets Tab ── */}
-          {tab === "buckets" && an.bucketAnalytics && (() => {
+          {tab === "buckets" && (
+            !data?.oick
+              ? (
+                <div className="card" style={{ gridColumn: "1/-1", textAlign: "center", padding: "48px 24px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>📍</div>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Bucket / Placement Column Detected</div>
+                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    The Buckets tab requires an <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Old IC</code>, <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Placement</code>, or <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Bucket</code> column in your file.
+                    Please upload a file that includes one of these columns to view bucket-level analytics.
+                  </div>
+                </div>
+              )
+              : !an.bucketAnalytics
+              ? (
+                <div className="card" style={{ gridColumn: "1/-1", textAlign: "center", padding: "48px 24px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Recognized Bucket Codes Found</div>
+                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    A <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Placement</code>/<code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Old IC</code> column was found, but none of the values matched the known bucket code patterns.
+                    Check that the column contains Old IC codes like <strong style={{ color: "#94a3b8" }}>B1, B2, SS1</strong>, etc.
+                  </div>
+                </div>
+              )
+              : (() => {
             const { bucketList, ptpTrendByBucket, claimTrendByBucket, radarData, unmappedCount } = an.bucketAnalytics;
             const topBucket = bucketList[0];
             const bestPTP = [...bucketList].sort((a, b) => b.ptpAmt - a.ptpAmt)[0];
@@ -2649,12 +2857,34 @@ export default function App() {
                 )}
               </div>
             );
-          })()}
+          })())}
 
           {/* ═══════════════════════════════════════════════════════════════
               ── 🎯 PENETRATION TAB (NEW) ──
           ═══════════════════════════════════════════════════════════════ */}
-          {tab === "penetration" && an.bucketAnalytics?.hasAccountData && (() => {
+          {tab === "penetration" && (
+            !data?.oick
+              ? (
+                <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>🎯</div>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Bucket / Placement Column Detected</div>
+                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    Penetration analysis requires an <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Old IC</code>, <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Placement</code>, or <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Bucket</code> column plus an Account No. column.
+                  </div>
+                </div>
+              )
+              : !an.bucketAnalytics?.hasAccountData
+              ? (
+                <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>👤</div>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Account Number Column Detected</div>
+                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    Penetration % requires an <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Account No.</code> column to count unique accounts per bucket.
+                    Please upload a file that includes this column.
+                  </div>
+                </div>
+              )
+              : (() => {
             const { bucketList, penetrationMatrix, tpMaxPct, penetrationBarData, activeTPs } = an.bucketAnalytics;
             const opd = an.overallPenetrationData;
 
@@ -2922,7 +3152,7 @@ export default function App() {
                 </div>
               </div>
             );
-          })()}
+          })())}
 
           {/* ═══════════════════════════════════════════════════════════════
               ── ⏱️ HOURLY EFFORTS TAB (NEW) ──

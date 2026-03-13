@@ -310,7 +310,7 @@ const TP_COLORS = {
   "EMAIL": "#06b6d4", "INTERNET": "#f97316", "CEASE COLLECTION": "#ef4444",
   "FIELD REQUEST": "#84cc16", "REPO AI": "#ec4899"
 };
-const SG_GROUPS = ["NEG","RPC","PTP","KEPT","POS"];
+const SG_GROUPS = ["KEPT","PTP","RPC","POS","NEG"];
 const ALL_TP = ["CALL","SMS","VIBER","EMAIL","FIELD","INTERNET","CEASE COLLECTION","FIELD REQUEST","REPO AI"];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -686,6 +686,7 @@ export default function App() {
     if (fieldRows.length > 0) {
       const totalFieldVisits = fieldRows.length;
       const uniqueFieldAccounts = ak ? new Set(fieldRows.map(r=>r[ak]).filter(Boolean)).size : null;
+      const fieldRate = uniqueFieldAccounts > 0 ? (( uniqueFieldAccounts / totalFieldVisits) * 100).toFixed(1) : "0.0";
 
       // Visits per bucket
       const bucketVisitMap = {};
@@ -759,7 +760,7 @@ export default function App() {
       if (pak) fieldRows.forEach(r => { const v=parseAmt(r[pak]); if(!isNaN(v)&&v>0){fieldPtpAmt+=v;fieldPtpCount++;} });
 
       // Monthly field visits
-      fieldAnalytics = { totalFieldVisits, uniqueFieldAccounts, bucketVisitData, fieldDateSorted, fieldMonthSorted, fieldSGData, fieldStatusData, fieldCollectorData, subtypeMap, activeDays, avgVisitsPerDay, peakFieldDay, fieldPtpAmt, fieldPtpCount, hasDate: fieldDateSorted.length > 0, hasAccounts: !!ak };
+      fieldAnalytics = { totalFieldVisits, fieldRate, uniqueFieldAccounts, bucketVisitData, fieldDateSorted, fieldMonthSorted, fieldSGData, fieldStatusData, fieldCollectorData, subtypeMap, activeDays, avgVisitsPerDay, peakFieldDay, fieldPtpAmt, fieldPtpCount, hasDate: fieldDateSorted.length > 0, hasAccounts: !!ak };
     }
 
     // ── Bucket Analytics ─────────────────────────────────────────────────────
@@ -993,7 +994,120 @@ export default function App() {
       hourlyCollectorAnalytics = { heatmapRows: [], heatmapMax: 0, hourTopData, shiftData: [], hourTPData, allCollectors: [], collectorHourMap: {}, noCollector: true };
     }
 
-    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics };
+    // ── TP × SG frequency matrix ─────────────────────────────────────────────
+    // tpBySG[sg][tp] = count
+    const tpBySGMap = {};
+    SG_GROUPS.forEach(sg => { tpBySGMap[sg] = {}; });
+    rows.forEach(r => {
+      const sg = r._d.sg, tp = r._d.tp;
+      if (!tpBySGMap[sg]) tpBySGMap[sg] = {};
+      tpBySGMap[sg][tp] = (tpBySGMap[sg][tp] || 0) + 1;
+    });
+    // Convert to sorted arrays for each SG
+    const tpBySG = {};
+    SG_GROUPS.forEach(sg => {
+      tpBySG[sg] = Object.entries(tpBySGMap[sg])
+        .sort((a, b) => b[1] - a[1])
+        .map(([tp, count]) => {
+          const sgTotal = gc[sg] || 1;
+          return { tp, count, pct: ((count / sgTotal) * 100).toFixed(1) };
+        });
+    });
+
+    // ── PTP & Claim Trend by Bucket ───────────────────────────────────────────
+    // Only if both oick (bucket) and pdk/cdk available
+    let ptpClaimByBucket = null;
+    if (oick) {
+      const ptpBucketMap = {}; // bucket -> { count, amt, byDate: {} }
+      const claimBucketMap = {};
+      rows.forEach(r => {
+        const b = r._bucket; if (!b) return;
+        if (!ptpBucketMap[b]) ptpBucketMap[b] = { count: 0, amt: 0, byDate: {} };
+        if (!claimBucketMap[b]) claimBucketMap[b] = { count: 0, amt: 0, byDate: {} };
+        if (pak) { const v = parseAmt(r[pak]); if (!isNaN(v) && v > 0) { ptpBucketMap[b].count++; ptpBucketMap[b].amt += v; } }
+        if (cak) { const v = parseAmt(r[cak]); if (!isNaN(v) && v > 0) { claimBucketMap[b].count++; claimBucketMap[b].amt += v; } }
+        if (pdk) { const d = fD(r[pdk]); if (d) ptpBucketMap[b].byDate[d] = (ptpBucketMap[b].byDate[d] || 0) + 1; }
+        if (cdk) { const d = fD(r[cdk]); if (d) claimBucketMap[b].byDate[d] = (claimBucketMap[b].byDate[d] || 0) + 1; }
+      });
+
+      // Summary table: one row per bucket
+      const ptpClaimSummary = BUCKET_ORDER.filter(b => ptpBucketMap[b] || claimBucketMap[b]).map(b => ({
+        bucket: b,
+        ptpCount: ptpBucketMap[b]?.count || 0,
+        ptpAmt: ptpBucketMap[b]?.amt || 0,
+        claimCount: claimBucketMap[b]?.count || 0,
+        claimAmt: claimBucketMap[b]?.amt || 0,
+      }));
+
+      // Trend: all PTP dates × buckets
+      const allPtpDates = new Set();
+      Object.values(ptpBucketMap).forEach(v => Object.keys(v.byDate).forEach(d => allPtpDates.add(d)));
+      const ptpTrend = Array.from(allPtpDates).sort((a,b) => new Date(a)-new Date(b)).map(date => {
+        const row = { date };
+        Object.keys(ptpBucketMap).forEach(b => { row[b] = ptpBucketMap[b].byDate[date] || 0; });
+        return row;
+      });
+
+      const allClaimDates = new Set();
+      Object.values(claimBucketMap).forEach(v => Object.keys(v.byDate).forEach(d => allClaimDates.add(d)));
+      const claimTrend = Array.from(allClaimDates).sort((a,b) => new Date(a)-new Date(b)).map(date => {
+        const row = { date };
+        Object.keys(claimBucketMap).forEach(b => { row[b] = claimBucketMap[b].byDate[date] || 0; });
+        return row;
+      });
+
+      const ptpBucketNames = Object.keys(ptpBucketMap);
+      const claimBucketNames = Object.keys(claimBucketMap);
+
+      ptpClaimByBucket = { ptpClaimSummary, ptpTrend, claimTrend, ptpBucketNames, claimBucketNames };
+    }
+
+    // ── Overall Penetration ───────────────────────────────────────────────────
+    // overall = unique accounts that had ANY touchpoint effort / total unique accounts
+    let overallPenetrationData = null;
+    if (ak) {
+      const totalUniqueAccounts = new Set(rows.map(r => r[ak]).filter(Boolean));
+      const totalUA = totalUniqueAccounts.size;
+
+      // Per-TP unique accounts touched overall (not per-bucket)
+      const tpAccountMap = {};
+      rows.forEach(r => {
+        const acct = r[ak]; if (!acct) return;
+        const tp = r._d.tp;
+        if (!tpAccountMap[tp]) tpAccountMap[tp] = new Set();
+        tpAccountMap[tp].add(String(acct).trim());
+      });
+
+      const tpPenetrationOverall = Object.entries(tpAccountMap)
+        .map(([tp, accts]) => ({
+          tp,
+          uniqueAccountsTouched: accts.size,
+          pct: totalUA > 0 ? parseFloat(((accts.size / totalUA) * 100).toFixed(1)) : 0
+        }))
+        .sort((a, b) => b.pct - a.pct);
+
+      // Per-SG penetration: unique accounts per outcome group
+      const sgAccountMap = {};
+      rows.forEach(r => {
+        const acct = r[ak]; if (!acct) return;
+        const sg = r._d.sg;
+        if (!sgAccountMap[sg]) sgAccountMap[sg] = new Set();
+        sgAccountMap[sg].add(String(acct).trim());
+      });
+      const sgPenetrationOverall = SG_GROUPS
+        .filter(sg => sgAccountMap[sg])
+        .map(sg => ({
+          sg,
+          uniqueAccounts: sgAccountMap[sg].size,
+          pct: totalUA > 0 ? parseFloat(((sgAccountMap[sg].size / totalUA) * 100).toFixed(1)) : 0
+        }));
+
+      // Accounts with ANY effort
+      const accountsWithEffort = totalUniqueAccounts.size;
+      overallPenetrationData = { totalUA, accountsWithEffort, overallPct: totalUA > 0 ? 100 : 0, tpPenetrationOverall, sgPenetrationOverall };
+    }
+
+    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData };
   }, [data]);
 
   const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
@@ -1137,7 +1251,8 @@ export default function App() {
               { l: "Buckets", v: an.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A", i: "📍", c: "#f97316" },
               { l: "PTP Amount", v: "₱" + fN(an.pt), i: "💰", c: "#22c55e" },
               { l: "Claim Paid", v: "₱" + fN(an.ct), i: "💳", c: "#f97316" },
-,
+              { l: "Converstion Rate", v: an.pt > 0 ? ((an.ct / an.pt) * 100).toFixed(1) + "%" : "N/A", i: "📈", c: "#a21caf" },
+              { l: "Field Rate", v: an.fieldAnalytics?.fieldRate != null ? an.fieldAnalytics.fieldRate + "%" : "N/A", i: "💹", c: "#06b6d4" }
             ].map(k => (
               <div key={k.l} className="sc">
                 <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
@@ -1429,6 +1544,122 @@ export default function App() {
                 </BarChart>
               </ResponsiveContainer>
             </div>}
+
+            {/* ── PTP & Claim by Bucket ── */}
+            {an.ptpClaimByBucket && (() => {
+              const { ptpClaimSummary, ptpTrend, claimTrend, ptpBucketNames, claimBucketNames } = an.ptpClaimByBucket;
+              return (<>
+                {/* Summary table */}
+                <div className="card" style={{ gridColumn: "1/-1" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📍 PTP &amp; Claim Summary by Bucket</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>Number of PTPs and Claim Paid per bucket — count and amount.</div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table>
+                      <thead><tr>
+                        <th>Bucket</th>
+                        <th style={{ color: "#f59e0b" }}>PTP #</th>
+                        <th style={{ color: "#22c55e" }}>PTP Amount</th>
+                        <th style={{ color: "#f97316" }}>Claim Paid #</th>
+                        <th style={{ color: "#06b6d4" }}>Claim Amount</th>
+                        <th style={{ color: "#a78bfa" }}>Conv. Rate</th>
+                        <th style={{ width: 120 }}>PTP Bar</th>
+                      </tr></thead>
+                      <tbody>{ptpClaimSummary.map((r, i) => {
+                        const convRate = r.ptpCount > 0 ? ((r.claimCount / r.ptpCount) * 100).toFixed(1) : "0.0";
+                        const maxPTP = Math.max(...ptpClaimSummary.map(x => x.ptpCount));
+                        return (
+                          <tr key={r.bucket}>
+                            <td><span className="bdg" style={{ background: (BUCKET_COLORS[r.bucket] || "#64748b") + "33", color: BUCKET_COLORS[r.bucket] || "#94a3b8" }}>{r.bucket}</span></td>
+                            <td style={{ fontWeight: 700, color: "#f59e0b" }}>{r.ptpCount.toLocaleString()}</td>
+                            <td style={{ color: "#22c55e", fontSize: 12 }}>₱{fN(r.ptpAmt)}</td>
+                            <td style={{ fontWeight: 700, color: "#f97316" }}>{r.claimCount.toLocaleString()}</td>
+                            <td style={{ color: "#06b6d4", fontSize: 12 }}>₱{fN(r.claimAmt)}</td>
+                            <td style={{ color: "#a78bfa", fontWeight: 600 }}>{convRate}%</td>
+                            <td><Pb pct={maxPTP > 0 ? (r.ptpCount / maxPTP) * 100 : 0} c={BUCKET_COLORS[r.bucket] || "#f59e0b"} /></td>
+                          </tr>
+                        );
+                      })}</tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* PTP count grouped bar by bucket */}
+                {ptpClaimSummary.some(r => r.ptpCount > 0) && (
+                  <div className="card" style={{ gridColumn: "1/2" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>PTP Count by Bucket</div>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <YAxis type="category" dataKey="bucket" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                        <Tooltip contentStyle={TS} formatter={v => [v.toLocaleString(), "PTP Count"]} />
+                        <Bar dataKey="ptpCount" radius={[0, 4, 4, 0]} name="PTP Count">
+                          {ptpClaimSummary.map(r => <Cell key={r.bucket} fill={BUCKET_COLORS[r.bucket] || "#f59e0b"} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Claim count by bucket */}
+                {ptpClaimSummary.some(r => r.claimCount > 0) && (
+                  <div className="card" style={{ gridColumn: "2/3" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Claim Paid Count by Bucket</div>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <YAxis type="category" dataKey="bucket" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                        <Tooltip contentStyle={TS} formatter={v => [v.toLocaleString(), "Claim Count"]} />
+                        <Bar dataKey="claimCount" radius={[0, 4, 4, 0]} name="Claim Count">
+                          {ptpClaimSummary.map(r => <Cell key={r.bucket} fill={BUCKET_COLORS[r.bucket] || "#f97316"} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* PTP trend by bucket (multi-line) */}
+                {ptpTrend.length > 0 && (
+                  <div className="card" style={{ gridColumn: "1/-1" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📈 PTP Count Trend by Bucket</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Daily PTP counts broken down by bucket.</div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={ptpTrend} margin={{ left: 0, right: 16, bottom: ptpTrend.length > 20 ? 70 : 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={ptpTrend.length > 15 ? -35 : 0} textAnchor={ptpTrend.length > 15 ? "end" : "middle"} interval={ptpTrend.length > 30 ? Math.floor(ptpTrend.length / 20) : 0} />
+                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {ptpBucketNames.map(b => (
+                          <Line key={b} type="monotone" dataKey={b} stroke={BUCKET_COLORS[b] || "#64748b"} strokeWidth={2} dot={ptpTrend.length < 40} name={b} />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Claim trend by bucket */}
+                {claimTrend.length > 0 && (
+                  <div className="card" style={{ gridColumn: "1/-1" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📈 Claim Paid Count Trend by Bucket</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Daily Claim Paid counts broken down by bucket.</div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={claimTrend} margin={{ left: 0, right: 16, bottom: claimTrend.length > 20 ? 70 : 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={claimTrend.length > 15 ? -35 : 0} textAnchor={claimTrend.length > 15 ? "end" : "middle"} interval={claimTrend.length > 30 ? Math.floor(claimTrend.length / 20) : 0} />
+                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <Tooltip contentStyle={TS} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {claimBucketNames.map(b => (
+                          <Line key={b} type="monotone" dataKey={b} stroke={BUCKET_COLORS[b] || "#64748b"} strokeWidth={2} dot={claimTrend.length < 40} name={b} />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </>);
+            })()}
           </div>}
 
           {/* ── Touch Points Tab ── */}
@@ -1483,6 +1714,124 @@ export default function App() {
                 );
               })()}
             </div>
+
+            {/* ── TP × Outcome Group Frequency ── */}
+            {an.tpBySG && (
+              <div className="card" style={{ gridColumn: "1/-1" }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📊 Most Frequent Touch Point per Outcome Group</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
+                  Which channel drives each outcome most — especially PTP &amp; KEPT conversions.
+                </div>
+                {/* Grouped horizontal bar — one panel per outcome group */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+                  {SG_GROUPS.map(sg => {
+                    const rows = an.tpBySG[sg] || [];
+                    if (!rows.length) return null;
+                    const top = rows[0];
+                    const sgTotal = rows.reduce((s, r) => s + r.count, 0);
+                    return (
+                      <div key={sg} style={{
+                        background: (GC[sg] || "#334155") + "11",
+                        border: `1px solid ${(GC[sg] || "#334155")}44`,
+                        borderRadius: 10, padding: "14px 16px"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                          <span className="bdg" style={{ background: (GC[sg] || "#334155") + "33", color: GC[sg] || "#94a3b8", fontSize: 13 }}>{sg}</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>{sgTotal.toLocaleString()} records</span>
+                        </div>
+                        {/* Top channel highlight */}
+                        <div style={{ marginBottom: 10, padding: "8px 10px", background: (TP_COLORS[top.tp] || "#3b82f6") + "18", borderRadius: 7, border: `1px solid ${(TP_COLORS[top.tp] || "#3b82f6")}33` }}>
+                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>TOP CHANNEL</div>
+                          <div style={{ fontWeight: 700, color: TP_COLORS[top.tp] || "#3b82f6", fontSize: 13 }}>{top.tp}</div>
+                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{top.count.toLocaleString()} · {top.pct}%</div>
+                        </div>
+                        {/* Mini bar chart */}
+                        {rows.slice(0, 5).map((r, i) => (
+                          <div key={r.tp} style={{ marginBottom: 5 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                              <span style={{ fontSize: 11, color: TP_COLORS[r.tp] || "#94a3b8", fontWeight: i === 0 ? 700 : 400 }}>{r.tp}</span>
+                              <span style={{ fontSize: 11, color: "#64748b" }}>{r.pct}%</span>
+                            </div>
+                            <div style={{ height: 5, background: "#0f172a", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ height: "100%", borderRadius: 3, width: `${Math.min(parseFloat(r.pct), 100)}%`, background: TP_COLORS[r.tp] || PC[i % PC.length], opacity: i === 0 ? 1 : 0.6 }} />
+                            </div>
+                          </div>
+                        ))}
+                        {rows.length > 5 && <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>+{rows.length - 5} more channels</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Full grouped bar chart */}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 12 }}>Touch Point Volume by Outcome Group</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart
+                      data={ALL_TP.filter(tp => an.td.some(t => t.name === tp)).map(tp => {
+                        const row = { tp };
+                        SG_GROUPS.forEach(sg => {
+                          row[sg] = (an.tpBySG[sg]?.find(r => r.tp === tp)?.count) || 0;
+                        });
+                        return row;
+                      })}
+                      margin={{ bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="tp" tick={{ fill: "#64748b", fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip contentStyle={TS} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Detailed table: TP × SG */}
+                <div style={{ overflowX: "auto" }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Full Breakdown Table</div>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Touch Point</th>
+                        {SG_GROUPS.map(sg => <th key={sg} style={{ color: GC[sg], textAlign: "center" }}>{sg}</th>)}
+                        <th>Total</th>
+                        <th style={{ color: "#f58c0b" }}>PTP Rank</th>
+                        <th style={{ color: "#22c55e" }}>KEPT Rank</th>
+                      </tr>
+                    </thead>
+                    <tbody>{(() => {
+                      const tpRankPTP = [...(an.tpBySG["PTP"] || [])].map((r, i) => ({ tp: r.tp, rank: i + 1 }));
+                      const tpRankKEPT = [...(an.tpBySG["KEPT"] || [])].map((r, i) => ({ tp: r.tp, rank: i + 1 }));
+                      return ALL_TP.filter(tp => an.td.some(t => t.name === tp)).map((tp, idx) => {
+                        const total = an.td.find(t => t.name === tp)?.count || 0;
+                        const ptpRank = tpRankPTP.find(r => r.tp === tp)?.rank;
+                        const keptRank = tpRankKEPT.find(r => r.tp === tp)?.rank;
+                        return (
+                          <tr key={tp}>
+                            <td style={{ fontWeight: 600, color: TP_COLORS[tp] || "#e2e8f0" }}>{tp}</td>
+                            {SG_GROUPS.map(sg => {
+                              const cnt = (an.tpBySG[sg]?.find(r => r.tp === tp)?.count) || 0;
+                              const pct = (an.tpBySG[sg]?.find(r => r.tp === tp)?.pct) || "0.0";
+                              return <td key={sg} style={{ textAlign: "center", color: GC[sg] || "#94a3b8" }}>
+                                {cnt > 0 ? <><span style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</span><span style={{ color: "#475569", fontSize: 11 }}> ({pct}%)</span></> : <span style={{ color: "#334155" }}>–</span>}
+                              </td>;
+                            })}
+                            <td style={{ fontWeight: 700, color: "#60a5fa" }}>{total.toLocaleString()}</td>
+                            <td style={{ textAlign: "center" }}>
+                              {ptpRank ? <span style={{ background: "#451a03", color: "#f59e0b", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>#{ptpRank}</span> : <span style={{ color: "#334155" }}>–</span>}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {keptRank ? <span style={{ background: "#052e16", color: "#22c55e", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>#{keptRank}</span> : <span style={{ color: "#334155" }}>–</span>}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>}
 
           {/* ── Date & Time Tab ── */}
@@ -2121,18 +2470,13 @@ export default function App() {
           ═══════════════════════════════════════════════════════════════ */}
           {tab === "penetration" && an.bucketAnalytics?.hasAccountData && (() => {
             const { bucketList, penetrationMatrix, tpMaxPct, penetrationBarData, activeTPs } = an.bucketAnalytics;
+            const opd = an.overallPenetrationData;
 
             // Highest / lowest penetration per TP
             const topPenetrations = activeTPs.map(tp => {
               const best = penetrationMatrix.reduce((a, b) => (b[`${tp}_pct`] || 0) > (a[`${tp}_pct`] || 0) ? b : a, penetrationMatrix[0]);
               return { tp, bucket: best?.bucket, pct: best?.[`${tp}_pct`] || 0 };
             }).sort((a, b) => b.pct - a.pct);
-
-            const overallPenetration = penetrationMatrix.map(r => {
-              const totalWorked = activeTPs.reduce((s, tp) => s + (r[`${tp}_accounts`] || 0), 0);
-              // unique across all TPs can't exceed r.uniqueAccounts
-              return { ...r, overallPenetration: r.uniqueAccounts > 0 ? 100 : 0 };
-            });
 
             // Bar chart data: for each bucket, penetration % per TP
             const bucketPenetrationChartData = bucketList.map(b => {
@@ -2154,6 +2498,101 @@ export default function App() {
                     A higher % means more accounts in that bucket were reached via that channel.
                   </div>
                 </div>
+
+                {/* ── Overall Penetration KPIs ── */}
+                {opd && (<>
+                  <div className="sc" style={{ gridColumn: "1/2" }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>🌐</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Total Unique Accounts</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.totalUA.toLocaleString()}</div>
+                  </div>
+                  <div className="sc" style={{ gridColumn: "2/3" }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>✅</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Accounts with Any Effort</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#22c55e", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.accountsWithEffort.toLocaleString()}</div>
+                  </div>
+                  <div className="sc" style={{ gridColumn: "3/4" }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>🏆</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Top Penetration Channel</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: TP_COLORS[opd.tpPenetrationOverall[0]?.tp] || "#a78bfa", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.tpPenetrationOverall[0]?.tp || "–"}</div>
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{opd.tpPenetrationOverall[0]?.pct}% of accounts reached</div>
+                  </div>
+                  <div className="sc" style={{ gridColumn: "4/5" }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>📊</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Overall Penetration</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>100%</div>
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>All accounts were worked</div>
+                  </div>
+
+                  {/* Overall TP Penetration Table & Chart */}
+                  <div className="card" style={{ gridColumn: "1/3" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>🌐 Overall Penetration by Touch Point</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+                      Unique accounts reached per channel as % of all {opd.totalUA.toLocaleString()} accounts.
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={opd.tpPenetrationOverall} layout="vertical" margin={{ left: 0, right: 40 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
+                        <YAxis type="category" dataKey="tp" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
+                        <Tooltip contentStyle={TS} formatter={(v, n, p) => [`${v}% (${p.payload.uniqueAccountsTouched.toLocaleString()} accts)`, "Penetration"]} />
+                        <Bar dataKey="pct" radius={[0, 4, 4, 0]}>
+                          {opd.tpPenetrationOverall.map((r, i) => <Cell key={i} fill={TP_COLORS[r.tp] || PC[i % PC.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop: 12, overflowX: "auto" }}>
+                      <table>
+                        <thead><tr>
+                          <th>Touch Point</th>
+                          <th>Accounts Reached</th>
+                          <th>Penetration %</th>
+                          <th style={{ width: 120 }}>Bar</th>
+                        </tr></thead>
+                        <tbody>{opd.tpPenetrationOverall.map((r, i) => (
+                          <tr key={r.tp}>
+                            <td style={{ color: TP_COLORS[r.tp] || "#94a3b8", fontWeight: 600 }}>{r.tp}</td>
+                            <td style={{ fontWeight: 700, color: "#e2e8f0" }}>{r.uniqueAccountsTouched.toLocaleString()}</td>
+                            <td style={{ color: "#60a5fa", fontWeight: 700 }}>{r.pct}%</td>
+                            <td><Pb pct={r.pct} c={TP_COLORS[r.tp] || PC[i % PC.length]} /></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Overall SG Penetration */}
+                  <div className="card" style={{ gridColumn: "3/5" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>🎯 Accounts Reached per Outcome Group</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+                      Unique accounts that received each outcome group — as % of total accounts.
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={opd.sgPenetrationOverall} layout="vertical" margin={{ left: 0, right: 40 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
+                        <YAxis type="category" dataKey="sg" tick={{ fill: "#94a3b8", fontSize: 11 }} width={50} />
+                        <Tooltip contentStyle={TS} formatter={(v, n, p) => [`${v}% (${p.payload.uniqueAccounts.toLocaleString()} accts)`, "Penetration"]} />
+                        <Bar dataKey="pct" radius={[0, 4, 4, 0]}>
+                          {opd.sgPenetrationOverall.map((r, i) => <Cell key={i} fill={GC[r.sg] || PC[i % PC.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop: 12 }}>
+                      <table>
+                        <thead><tr><th>Outcome Group</th><th>Unique Accounts</th><th>% of Total</th><th style={{ width: 100 }}>Bar</th></tr></thead>
+                        <tbody>{opd.sgPenetrationOverall.map((r, i) => (
+                          <tr key={r.sg}>
+                            <td><span className="bdg" style={{ background: (GC[r.sg] || "#334155") + "33", color: GC[r.sg] || "#94a3b8" }}>{r.sg}</span></td>
+                            <td style={{ fontWeight: 700, color: "#e2e8f0" }}>{r.uniqueAccounts.toLocaleString()}</td>
+                            <td style={{ color: "#60a5fa", fontWeight: 700 }}>{r.pct}%</td>
+                            <td><Pb pct={r.pct} c={GC[r.sg] || PC[i % PC.length]} /></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>)}
 
                 {/* View mode toggle */}
                 <div style={{ gridColumn: "1/-1", display: "flex", gap: 8, alignItems: "center" }}>
@@ -2579,7 +3018,7 @@ export default function App() {
           {tab === "field" && an.fieldAnalytics && (() => {
             const fa = an.fieldAnalytics;
             const subtypeArr = Object.entries(fa.subtypeMap).map(([k,v])=>({name:k,value:v,pct:((v/fa.totalFieldVisits)*100).toFixed(1)}));
-            const fieldPTPRate = fa.totalFieldVisits>0?((fa.fieldPtpCount/fa.totalFieldVisits)*100).toFixed(1):0;
+            {/* const fieldPTPRate = fa.totalFieldVisits>0?((fa.fieldPtpCount/fa.totalFieldVisits)*100).toFixed(1):0; */}
 
             return (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
@@ -2589,6 +3028,7 @@ export default function App() {
                 {[
                   { l:"Total Field Visits", v:fa.totalFieldVisits.toLocaleString(), i:"🚗", c:"#22c55e" },
                   { l:"Unique Accts Visited", v:fa.uniqueFieldAccounts!=null?fa.uniqueFieldAccounts.toLocaleString():"N/A", i:"👤", c:"#3b82f6" },
+                  { l:"Field Rate", v:fa.fieldRate!=null?fa.fieldRate+"%":"N/A", i:"💹", c:"#06b6d4" },
                   { l:"Active Field Days", v:fa.activeDays, i:"📅", c:"#a78bfa" },
                   { l:"Avg Visits/Day", v:fa.avgVisitsPerDay, i:"📊", c:"#f59e0b" },
                   { l:"Peak Field Day", v:fa.peakFieldDay?.date||"–", i:"🔝", c:"#f97316", sub:fa.peakFieldDay?.count.toLocaleString()+" visits" },

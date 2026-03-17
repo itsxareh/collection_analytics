@@ -319,6 +319,7 @@ Object.keys(DISP).forEach(k => { DU[k.toUpperCase()] = { ...DISP[k], orig: k }; 
 
 const fN = n => n == null ? "-" : typeof n === "number" ? n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(n);
 
+// ── Excel export utility (uses SheetJS already imported) ─────────────────────
 const exportXlsx = (rows, filename = "export.xlsx") => {
   if (!rows || !rows.length) return;
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -329,13 +330,13 @@ const exportXlsx = (rows, filename = "export.xlsx") => {
   XLSX.writeFile(wb, filename);
 };
 
+// ── Export button component ──────────────────────────────────────────────────
 const ExportBtn = ({ onClick, label = "Export Excel", style = {} }) => (
   <button onClick={onClick} style={{ background:"#052e16", border:"1px solid #166534", color:"#22c55e", borderRadius:7, padding:"5px 13px", cursor:"pointer", fontSize:12, fontWeight:600, display:"inline-flex", alignItems:"center", gap:5, transition:"all .15s", ...style }}
     onMouseOver={e=>e.currentTarget.style.background="#14532d"} onMouseOut={e=>e.currentTarget.style.background="#052e16"}>
     📥 {label}
   </button>
 );
-
 const parseAmt = v => {
   if (v == null || v === "") return NaN;
   if (typeof v === "number") return v;
@@ -470,9 +471,8 @@ export default function App() {
   const [touchSearch, setTouchSearch] = useState("");
   const [bucketSort, setBucketSort] = useState({ key: "total", dir: "desc" });
   const [bucketSearch, setBucketSearch] = useState("");
-  const [bpSearch, setBpSearch] = useState("");
 
-    // Account Activity Timeline
+  // Account Activity Timeline
   const [timelineSearch, setTimelineSearch] = useState("");
   const [timelineAccount, setTimelineAccount] = useState(null);
 
@@ -1148,142 +1148,6 @@ export default function App() {
       overallPenetrationData = { totalUA, accountsWithEffort, overallPct: avgTpPct, tpPenetrationOverall, sgPenetrationOverall };
     }
 
-    // ── Broken Promise (BP) Analytics ────────────────────────────────────────
-    // BP = account has a PTP date but NO Claim Paid date that is >= PTP date
-    let bpAnalytics = null;
-    if (ak && pak && pdk) {
-      // Group rows by account: track latest PTP date, latest PTP amount, latest Claim Paid date, collector, bucket, client
-      const acctMap = {};
-      rows.forEach(r => {
-        const acct = r[ak] ? String(r[ak]).trim() : null;
-        if (!acct) return;
-        const ptpDateRaw = r[pdk];
-        const ptpAmt = parseAmt(r[pak]);
-        const claimDateRaw = cdk ? r[cdk] : null;
-        const claimAmt = cak ? parseAmt(r[cak]) : NaN;
-        const ptpDate = ptpDateRaw ? fD(ptpDateRaw) : null;
-        const claimDate = claimDateRaw ? fD(claimDateRaw) : null;
-        const collector = rk && r[rk] ? String(r[rk]).trim() : null;
-        const bucket = r._bucket || null;
-        const client = r._client || null;
-
-        if (!acctMap[acct]) acctMap[acct] = { ptpDates: [], claimDates: [], ptpAmt: 0, claimAmt: 0, collector, bucket, client, statuses: [] };
-
-        if (ptpDate && !isNaN(ptpAmt) && ptpAmt > 0) {
-          acctMap[acct].ptpDates.push(ptpDate);
-          acctMap[acct].ptpAmt = Math.max(acctMap[acct].ptpAmt, ptpAmt);
-        }
-        if (claimDate && !isNaN(claimAmt) && claimAmt > 0) {
-          acctMap[acct].claimDates.push(claimDate);
-          acctMap[acct].claimAmt = Math.max(acctMap[acct].claimAmt, claimAmt);
-        }
-        if (collector && !acctMap[acct].collector) acctMap[acct].collector = collector;
-        if (bucket && !acctMap[acct].bucket) acctMap[acct].bucket = bucket;
-        acctMap[acct].statuses.push(r._status);
-      });
-
-      // Determine BP: account has at least one PTP date, and the latest claim paid date is BEFORE the latest PTP date (or no claim at all)
-      const bpAccounts = [];
-      const keptAccounts = [];
-      let totalPTPAccounts = 0;
-
-      Object.entries(acctMap).forEach(([acct, v]) => {
-        if (v.ptpDates.length === 0) return;
-        totalPTPAccounts++;
-        const latestPTP = v.ptpDates.sort((a, b) => new Date(b) - new Date(a))[0];
-        const latestClaim = v.claimDates.length > 0 ? v.claimDates.sort((a, b) => new Date(b) - new Date(a))[0] : null;
-        const isBP = !latestClaim || new Date(latestClaim) < new Date(latestPTP);
-        if (isBP) {
-          bpAccounts.push({ acct, ptpDate: latestPTP, claimDate: latestClaim || "–", ptpAmt: v.ptpAmt, collector: v.collector || "–", bucket: v.bucket || "–", client: v.client || "–", statuses: [...new Set(v.statuses)] });
-        } else {
-          keptAccounts.push({ acct, ptpDate: latestPTP, claimDate: latestClaim, ptpAmt: v.ptpAmt, claimAmt: v.claimAmt, collector: v.collector || "–", bucket: v.bucket || "–" });
-        }
-      });
-
-      // Sort BPs by PTP date descending (most recent first)
-      bpAccounts.sort((a, b) => new Date(b.ptpDate) - new Date(a.ptpDate));
-
-      // Aggregate BPs by date
-      const bpByDate = {};
-      bpAccounts.forEach(b => { bpByDate[b.ptpDate] = (bpByDate[b.ptpDate] || 0) + 1; });
-      const bpDateTrend = Object.entries(bpByDate).sort((a, b) => new Date(a[0]) - new Date(b[0])).map(([date, count]) => ({ date, count }));
-
-      // BPs by collector
-      const bpByCollector = {};
-      bpAccounts.forEach(b => { if (b.collector !== "–") bpByCollector[b.collector] = (bpByCollector[b.collector] || 0) + 1; });
-      const bpCollectorData = Object.entries(bpByCollector).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count, pct: ((count / bpAccounts.length) * 100).toFixed(1) }));
-
-      // BPs by bucket
-      const bpByBucket = {};
-      bpAccounts.forEach(b => { if (b.bucket !== "–") bpByBucket[b.bucket] = (bpByBucket[b.bucket] || 0) + 1; });
-      const bpBucketData = Object.entries(bpByBucket).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count, pct: ((count / bpAccounts.length) * 100).toFixed(1) }));
-
-      // Total PTP amount at risk (BP accounts)
-      const bpTotalAmt = bpAccounts.reduce((s, b) => s + b.ptpAmt, 0);
-      const bpRate = totalPTPAccounts > 0 ? ((bpAccounts.length / totalPTPAccounts) * 100).toFixed(1) : "0.0";
-
-      bpAnalytics = { bpAccounts, keptAccounts, totalPTPAccounts, bpRate, bpTotalAmt, bpDateTrend, bpCollectorData, bpBucketData };
-    }
-
-    // ── Collector × Bucket Cross-Analysis ────────────────────────────────────
-    let collectorBucketAnalytics = null;
-    if (rk && oick) {
-      const cbMap = {}; // { collector: { bucket: { total, bySG: {}, ptpAmt, claimAmt } } }
-      const allBucketsSet = new Set();
-      rows.forEach(r => {
-        const col = r[rk] ? String(r[rk]).trim() : null;
-        const bkt = r._bucket || "Unknown";
-        if (!col) return;
-        allBucketsSet.add(bkt);
-        if (!cbMap[col]) cbMap[col] = {};
-        if (!cbMap[col][bkt]) cbMap[col][bkt] = { total: 0, bySG: {}, ptpAmt: 0, claimAmt: 0 };
-        cbMap[col][bkt].total++;
-        cbMap[col][bkt].bySG[r._d.sg] = (cbMap[col][bkt].bySG[r._d.sg] || 0) + 1;
-        if (pak) { const v = parseAmt(r[pak]); if (!isNaN(v) && v > 0) cbMap[col][bkt].ptpAmt += v; }
-        if (cak) { const v = parseAmt(r[cak]); if (!isNaN(v) && v > 0) cbMap[col][bkt].claimAmt += v; }
-      });
-
-      const allBuckets = [...allBucketsSet].sort((a, b) => {
-        const ai = BUCKET_ORDER.indexOf(a), bi = BUCKET_ORDER.indexOf(b);
-        if (ai === -1 && bi === -1) return a.localeCompare(b);
-        if (ai === -1) return 1; if (bi === -1) return -1;
-        return ai - bi;
-      });
-
-      // Build collector rows: total + per-bucket breakdown
-      const collectorBucketRows = Object.entries(cbMap)
-        .map(([name, buckets]) => {
-          const total = Object.values(buckets).reduce((s, v) => s + v.total, 0);
-          const ptpAmt = Object.values(buckets).reduce((s, v) => s + v.ptpAmt, 0);
-          const claimAmt = Object.values(buckets).reduce((s, v) => s + v.claimAmt, 0);
-          const primaryBucket = Object.entries(buckets).sort((a, b) => b[1].total - a[1].total)[0]?.[0] || "–";
-          const bySG = {};
-          Object.values(buckets).forEach(b => { Object.entries(b.bySG).forEach(([sg, c]) => { bySG[sg] = (bySG[sg] || 0) + c; }); });
-          return { name, total, ptpAmt, claimAmt, primaryBucket, bySG, buckets };
-        })
-        .sort((a, b) => b.total - a.total);
-
-      // Heatmap: collector × bucket (total efforts)
-      const cbHeatmap = collectorBucketRows.slice(0, 25).map(c => {
-        const row = { collector: c.name, total: c.total, primaryBucket: c.primaryBucket };
-        allBuckets.forEach(b => { row[b] = c.buckets[b]?.total || 0; });
-        return row;
-      });
-
-      // Max value for heatmap
-      let cbHeatmapMax = 0;
-      cbHeatmap.forEach(r => { allBuckets.forEach(b => { if (r[b] > cbHeatmapMax) cbHeatmapMax = r[b]; }); });
-
-      // Per-bucket summary
-      const bucketSummaryForCollectors = allBuckets.map(b => {
-        const totalEfforts = collectorBucketRows.reduce((s, c) => s + (c.buckets[b]?.total || 0), 0);
-        const uniqueCollectors = collectorBucketRows.filter(c => (c.buckets[b]?.total || 0) > 0).length;
-        return { bucket: b, totalEfforts, uniqueCollectors };
-      }).filter(b => b.totalEfforts > 0);
-
-      collectorBucketAnalytics = { collectorBucketRows, cbHeatmap, cbHeatmapMax, allBuckets, bucketSummaryForCollectors };
-    }
-
     // ── PTP Conversion Funnel ─────────────────────────────────────────────────
     // Uses only local vars (rows, gc, T, ak, rk, oick) — not `an`
     let funnelAnalytics = null;
@@ -1307,10 +1171,10 @@ export default function App() {
         const bpUA = Math.max(0, ptpUA - keptUA);
 
         const stages = [
-          { label:"Total Accounts",     value:totalUA, color:"#3b82f6", pct:"100.0",                                              sub:"All unique accounts" },
+          { label:"Total Accounts",     value:totalUA, color:"#3b82f6", pct:"100.0",                                              sub:"all unique accounts" },
           { label:"Right Party Contact",value:rpcUA,   color:"#a78bfa", pct:totalUA>0?((rpcUA/totalUA)*100).toFixed(1):"0.0",    sub:"RPC / PTP / KEPT outcome" },
-          { label:"PTP Set",            value:ptpUA,   color:"#f59e0b", pct:totalUA>0?((ptpUA/totalUA)*100).toFixed(1):"0.0",    sub:"Accounts with promise to pay" },
-          { label:"PTP Kept ✅",        value:keptUA,  color:"#22c55e", pct:totalUA>0?((keptUA/totalUA)*100).toFixed(1):"0.0",   sub:"Accounts that honored PTP" },
+          { label:"PTP Set",            value:ptpUA,   color:"#f59e0b", pct:totalUA>0?((ptpUA/totalUA)*100).toFixed(1):"0.0",    sub:"accounts with promise to pay" },
+          { label:"PTP Kept ✅",        value:keptUA,  color:"#22c55e", pct:totalUA>0?((keptUA/totalUA)*100).toFixed(1):"0.0",   sub:"accounts that honored PTP" },
           { label:"Broken Promise 💔",  value:bpUA,    color:"#ef4444", pct:totalUA>0?((bpUA/totalUA)*100).toFixed(1):"0.0",     sub:"PTP set but not honored" },
         ];
         const stepConv = [
@@ -1385,8 +1249,8 @@ export default function App() {
         funnelAnalytics = { stages, stepConv, hasAccount:false };
       }
     }
-    
-    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, bpAnalytics, collectorBucketAnalytics, funnelAnalytics };
+
+    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, funnelAnalytics };
   }, [data, activeClientFilter]);
 
   const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
@@ -1611,11 +1475,8 @@ export default function App() {
               ...(data?.ak ? [["timeline", "🕐 Account Timeline"]] : []),
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
               ...(an?.monthlyAnalytics ? [["monthly","📆 Monthly"]] : []),
-              // Only show combined Clients tab when viewing All
               ...(an.clientAnalytics && activeClientFilter === "All" ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
-              ...(an.collectorBucketAnalytics ? [["colbucket", "👥📍 Collector × Bucket"]] : []),
-              ...(an.bpAnalytics ? [["bp", "💔 Broken Promises"]] : []),
               ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
               ["predictive", "🔮 Predictive"],
             ].map(([t, l]) => (
@@ -1668,7 +1529,6 @@ export default function App() {
                   { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : "#475569", i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
                   { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : "#475569", i:"📈", sub:"Claim / PTP" },
                   ...(an.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }] : []),
-                  ...(an.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"💔", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
@@ -2950,17 +2810,14 @@ export default function App() {
                   </div>
                 )}
 
-                {/* KPI strip — only when we have real bucket data 
-                
-                { l: "Unmapped Rows", v: unmappedCount?.toLocaleString() || "0", i: "⚠️", c: "#64748b", sub: "no matching IC code" },
-                 */}
+                {/* KPI strip — only when we have real bucket data */}
                 {!bucketWarn && [
                   { l: "Total Buckets", v: bucketList.length, i: "📍", c: "#f97316" },
                   { l: "Highest Volume", v: topBucket?.name || "–", i: "🔝", c: "#3b82f6", sub: topBucket?.total.toLocaleString() + " records" },
                   { l: "Best PTP Amount", v: bestPTP?.name || "–", i: "💰", c: "#f59e0b", sub: "₱" + fN(bestPTP?.ptpAmt || 0) },
                   { l: "Best KEPT Rate", v: bestKept?.name || "–", i: "✅", c: "#22c55e", sub: (bestKept?.bySG?.KEPT || 0).toLocaleString() + " kept" },
                   { l: "Best RPC Rate", v: bestRPC?.name || "–", i: "📞", c: "#06b6d4", sub: bestRPC?.rpcRate + "% RPC" },
-                  
+                  { l: "Unmapped Rows", v: unmappedCount?.toLocaleString() || "0", i: "⚠️", c: "#64748b", sub: "no matching IC code" },
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
@@ -4333,335 +4190,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-              </div>
-            );
-          })()}
-          
-          {/* ════════════════════════════════════════════════════════════════
-              ── 💔 BROKEN PROMISE (BP) TAB ──
-          ════════════════════════════════════════════════════════════════ */}
-          {tab === "bp" && (() => {
-            if (!an.bpAnalytics) return (
-              <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>💔</div>
-                <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>Broken Promise Analysis Unavailable</div>
-                <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-                  Requires <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>Account No.</code>, <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>PTP Amount</code>, and <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>PTP Date</code> columns.
-                  Claim Paid Date is used to verify if the PTP was honored.
-                </div>
-              </div>
-            );
-            const { bpAccounts, keptAccounts, totalPTPAccounts, bpRate, bpTotalAmt, bpDateTrend, bpCollectorData, bpBucketData } = an.bpAnalytics;
-            const filteredBP = bpSearch.trim()
-              ? bpAccounts.filter(b => b.acct.toLowerCase().includes(bpSearch.toLowerCase()) || b.collector.toLowerCase().includes(bpSearch.toLowerCase()) || b.bucket.toLowerCase().includes(bpSearch.toLowerCase()))
-              : bpAccounts;
-            return (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
-                {/* KPIs */}
-                {[
-                  { l:"Total PTP Accounts", v:totalPTPAccounts.toLocaleString(), i:"🤝", c:"#f59e0b", sub:"accounts with PTP date" },
-                  { l:"Broken Promises", v:bpAccounts.length.toLocaleString(), i:"💔", c:"#ef4444", sub:`${bpRate}% of PTP accounts` },
-                  { l:"Kept Promises", v:keptAccounts.length.toLocaleString(), i:"✅", c:"#22c55e", sub:`${totalPTPAccounts>0?((keptAccounts.length/totalPTPAccounts)*100).toFixed(1):0}% of PTP accounts` },
-                  { l:"BP Amount at Risk", v:"₱"+fN(bpTotalAmt), i:"💸", c:"#f97316", sub:"sum of broken PTP amounts" },
-                ].map(k=>(
-                  <div key={k.l} className="sc">
-                    <div style={{ fontSize:20,marginBottom:6 }}>{k.i}</div>
-                    <div style={{ fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
-                    <div style={{ fontSize:18,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2 }}>{k.v}</div>
-                    <div style={{ fontSize:11,color:"#475569",marginTop:2 }}>{k.sub}</div>
-                  </div>
-                ))}
-
-                {/* BP Rate Gauge */}
-                <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📊 PTP Fulfillment Rate</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:16 }}>
-                    Accounts that honored their PTP vs those that broke it
-                  </div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={[
-                        { name:"Kept ✅", value:keptAccounts.length },
-                        { name:"Broken 💔", value:bpAccounts.length },
-                      ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}
-                        label={({name,percent})=>`${name} ${(percent*100).toFixed(1)}%`} labelLine={false}>
-                        <Cell fill="#22c55e" />
-                        <Cell fill="#ef4444" />
-                      </Pie>
-                      <Tooltip contentStyle={TS} formatter={(v)=>[v.toLocaleString(),"Accounts"]} />
-                      <Legend wrapperStyle={{ fontSize:12 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* BP date trend */}
-                {bpDateTrend.length > 0 && (
-                  <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📅 Broken PTP Date Trend</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Number of BPs by their original PTP date</div>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={bpDateTrend} margin={{ bottom:60 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-40} textAnchor="end" interval={Math.max(0,Math.floor(bpDateTrend.length/12)-1)} />
-                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
-                        <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" fill="#ef4444" radius={[3,3,0,0]} name="Broken PTPs" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {/* BP by collector */}
-                {bpCollectorData.length > 0 && (
-                  <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>👥 BPs by Collector</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Which collectors have the most broken PTPs</div>
-                    <ResponsiveContainer width="100%" height={Math.max(200, bpCollectorData.slice(0,10).length * 32)}>
-                      <BarChart data={bpCollectorData.slice(0,10)} layout="vertical" margin={{ left:0,right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8",fontSize:10 }} width={140} />
-                        <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" fill="#f97316" radius={[0,4,4,0]} name="Broken PTPs" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {/* BP by bucket */}
-                {bpBucketData.length > 0 && (
-                  <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📍 BPs by Bucket</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Broken promises distribution per bucket</div>
-                    <ResponsiveContainer width="100%" height={Math.max(200, bpBucketData.length * 36)}>
-                      <BarChart data={bpBucketData} layout="vertical" margin={{ left:0,right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8",fontSize:10 }} width={120} />
-                        <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0,4,4,0]} name="Broken PTPs">
-                          {bpBucketData.map((b,i)=><Cell key={i} fill={BUCKET_COLORS[b.name]||PC[i%PC.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {/* Full BP account list */}
-                <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>
-                    💔 Broken Promise Account List — {bpAccounts.length.toLocaleString()} accounts
-                  </div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
-                    Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded on or after that PTP date. Sorted by most recent PTP date first.
-                  </div>
-                  <SearchBar value={bpSearch} onChange={setBpSearch} placeholder="Filter by account, collector, or bucket..." />
-                  <div style={{ overflowX:"auto", maxHeight:480, overflowY:"auto" }}>
-                    <table>
-                      <thead><tr>
-                        <th>#</th>
-                        <th>Account No.</th>
-                        <th style={{ color:"#ef4444" }}>PTP Date</th>
-                        <th>PTP Amount</th>
-                        <th style={{ color:"#64748b" }}>Last Claim Date</th>
-                        <th>Collector</th>
-                        <th>Bucket</th>
-                        {data.clk && <th>Client</th>}
-                      </tr></thead>
-                      <tbody>{filteredBP.map((b, i) => (
-                        <tr key={b.acct}>
-                          <td style={{ color:"#475569" }}>{i+1}</td>
-                          <td style={{ fontWeight:600,color:"#e2e8f0",fontFamily:"monospace",fontSize:12 }}>{b.acct}</td>
-                          <td style={{ color:"#ef4444",fontWeight:600 }}>{b.ptpDate}</td>
-                          <td style={{ color:"#f59e0b" }}>₱{fN(b.ptpAmt)}</td>
-                          <td style={{ color:"#64748b",fontStyle: b.claimDate==="–"?"italic":"normal" }}>{b.claimDate}</td>
-                          <td style={{ color:"#94a3b8" }}>{b.collector}</td>
-                          <td>
-                            {b.bucket !== "–"
-                              ? <span className="bdg" style={{ background:(BUCKET_COLORS[b.bucket]||"#64748b")+"33",color:BUCKET_COLORS[b.bucket]||"#94a3b8" }}>{b.bucket}</span>
-                              : <span style={{ color:"#334155" }}>–</span>}
-                          </td>
-                          {data.clk && <td style={{ color:"#64748b" }}>{b.client}</td>}
-                        </tr>
-                      ))}</tbody>
-                    </table>
-                    {filteredBP.length === 0 && (
-                      <div style={{ textAlign:"center",padding:"24px",color:"#475569",fontSize:13 }}>
-                        {bpSearch ? "No results match your search." : "No broken promises found — all PTPs were honored! 🎉"}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* ════════════════════════════════════════════════════════════════
-              ── 👥📍 COLLECTOR × BUCKET TAB ──
-          ════════════════════════════════════════════════════════════════ */}
-          {tab === "colbucket" && (() => {
-            if (!an.collectorBucketAnalytics) return (
-              <div className="card" style={{ textAlign:"center",padding:"48px 24px" }}>
-                <div style={{ fontSize:40,marginBottom:16 }}>👥📍</div>
-                <div style={{ fontWeight:700,fontSize:18,color:"#f1f5f9",marginBottom:8 }}>Collector × Bucket Analysis Unavailable</div>
-                <div style={{ fontSize:13,color:"#64748b",maxWidth:480,margin:"0 auto",lineHeight:1.6 }}>
-                  Requires both a <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>Remark By</code> column and an <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>Old IC / Bucket</code> column.
-                </div>
-              </div>
-            );
-            const { collectorBucketRows, cbHeatmap, cbHeatmapMax, allBuckets, bucketSummaryForCollectors } = an.collectorBucketAnalytics;
-
-            // Heatmap color: blue gradient
-            const cbColor = (val, max) => {
-              if (!val || max === 0) return "#0f172a";
-              const i = val / max;
-              if (i < 0.2) return `rgba(59,130,246,${0.15+i*1.5})`;
-              if (i < 0.5) return `rgba(16,185,129,${0.25+i})`;
-              if (i < 0.75) return `rgba(245,158,11,${0.35+i*0.9})`;
-              return `rgba(239,68,68,${0.45+i*0.55})`;
-            };
-
-            return (
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12 }}>
-                {/* KPIs */}
-                {[
-                  { l:"Total Collectors", v:collectorBucketRows.length, i:"👥", c:"#3b82f6" },
-                  { l:"Active Buckets", v:allBuckets.length, i:"📍", c:"#f97316" },
-                  { l:"Avg Buckets / Collector", v:collectorBucketRows.length>0?(collectorBucketRows.reduce((s,c)=>s+Object.keys(c.buckets).length,0)/collectorBucketRows.length).toFixed(1):"–", i:"📊", c:"#a78bfa", sub:"how many buckets each collector touches" },
-                  { l:"Most Worked Bucket", v:bucketSummaryForCollectors[0]?.bucket||"–", i:"🏆", c:"#22c55e", sub:bucketSummaryForCollectors[0]?.totalEfforts.toLocaleString()+" efforts" },
-                ].map(k=>(
-                  <div key={k.l} className="sc">
-                    <div style={{ fontSize:20,marginBottom:6 }}>{k.i}</div>
-                    <div style={{ fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
-                    <div style={{ fontSize:16,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2 }}>{k.v}</div>
-                    {k.sub&&<div style={{ fontSize:11,color:"#475569",marginTop:2 }}>{k.sub}</div>}
-                  </div>
-                ))}
-
-                {/* Bucket summary */}
-                <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📍 Bucket Workload Summary</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Total efforts and unique collectors assigned per bucket</div>
-                  <ResponsiveContainer width="100%" height={Math.max(180,bucketSummaryForCollectors.length*36)}>
-                    <BarChart data={bucketSummaryForCollectors} layout="vertical" margin={{ left:0,right:40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                      <YAxis type="category" dataKey="bucket" tick={{ fill:"#94a3b8",fontSize:10 }} width={110} />
-                      <Tooltip contentStyle={TS} />
-                      <Bar dataKey="totalEfforts" radius={[0,4,4,0]} name="Total Efforts">
-                        {bucketSummaryForCollectors.map((b,i)=><Cell key={i} fill={BUCKET_COLORS[b.bucket]||PC[i%PC.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Stacked bar: top collectors colored by primary bucket */}
-                <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>👥 Top Collectors by Bucket Mix</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Each collector's efforts split by bucket (top 15)</div>
-                  <ResponsiveContainer width="100%" height={Math.max(200,Math.min(15,collectorBucketRows.length)*28+60)}>
-                    <BarChart data={collectorBucketRows.slice(0,15).map(c=>({ name:c.name, ...Object.fromEntries(allBuckets.map(b=>[b,c.buckets[b]?.total||0])) }))} layout="vertical" margin={{ left:0,right:16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8",fontSize:9 }} width={130} />
-                      <Tooltip contentStyle={TS} />
-                      <Legend wrapperStyle={{ fontSize:10 }} />
-                      {allBuckets.map((b,i)=><Bar key={b} dataKey={b} stackId="s" fill={BUCKET_COLORS[b]||PC[i%PC.length]} name={b} />)}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Heatmap: Collector × Bucket */}
-                <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>🔥 Collector × Bucket Effort Heatmap</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Each cell = total efforts. Color = intensity relative to max.</div>
-                  <div style={{ display:"flex",gap:8,marginBottom:10,alignItems:"center" }}>
-                    <span style={{ fontSize:11,color:"#64748b" }}>Intensity:</span>
-                    {[["0","#1e293b"],["Low","rgba(59,130,246,0.3)"],["Med","rgba(16,185,129,0.6)"],["High","rgba(245,158,11,0.8)"],["Peak","rgba(239,68,68,0.9)"]].map(([l,c])=>(
-                      <span key={l} style={{ display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#94a3b8" }}>
-                        <span style={{ width:12,height:12,borderRadius:2,background:c,display:"inline-block",border:"1px solid #334155" }} />{l}
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ overflowX:"auto" }}>
-                    <table style={{ fontSize:11,borderCollapse:"separate",borderSpacing:2 }}>
-                      <thead>
-                        <tr>
-                          <th style={{ position:"sticky",left:0,background:"#0f172a",minWidth:130,zIndex:2,textAlign:"left" }}>Collector</th>
-                          <th style={{ color:"#22c55e",minWidth:60 }}>Total</th>
-                          <th style={{ color:"#f59e0b",minWidth:80 }}>Primary Bucket</th>
-                          {allBuckets.map(b=>(
-                            <th key={b} style={{ color:BUCKET_COLORS[b]||"#94a3b8",minWidth:80,textAlign:"center",padding:"4px 4px" }}>{b}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cbHeatmap.map(row=>(
-                          <tr key={row.collector}>
-                            <td style={{ position:"sticky",left:0,background:"#1e293b",fontWeight:600,color:"#e2e8f0",padding:"4px 8px",zIndex:1 }}>{row.collector}</td>
-                            <td style={{ color:"#22c55e",fontWeight:700,textAlign:"center" }}>{row.total.toLocaleString()}</td>
-                            <td style={{ textAlign:"center" }}>
-                              {row.primaryBucket!=="–"
-                                ?<span className="bdg" style={{ background:(BUCKET_COLORS[row.primaryBucket]||"#64748b")+"33",color:BUCKET_COLORS[row.primaryBucket]||"#94a3b8",fontSize:10 }}>{row.primaryBucket}</span>
-                                :<span style={{ color:"#334155" }}>–</span>}
-                            </td>
-                            {allBuckets.map(b=>{
-                              const val=row[b]||0;
-                              const bg=cbColor(val,cbHeatmapMax);
-                              return (
-                                <td key={b} style={{ padding:"2px" }}>
-                                  <div style={{ background:bg,color:val>cbHeatmapMax*0.5?"#fff":"#64748b",borderRadius:3,fontSize:10,fontWeight:600,textAlign:"center",padding:"3px 4px",minWidth:60 }}>
-                                    {val>0?val.toLocaleString():"–"}
-                                  </div>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Collector detail table */}
-                <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>Collector Detail — Bucket Breakdown</div>
-                  <div style={{ overflowX:"auto",maxHeight:400,overflowY:"auto" }}>
-                    <table>
-                      <thead><tr>
-                        <th>#</th>
-                        <th>Collector</th>
-                        <th>Total</th>
-                        <th>Primary Bucket</th>
-                        <th>Buckets Worked</th>
-                        <th style={{ color:"#22c55e" }}>KEPT</th>
-                        <th style={{ color:"#f59e0b" }}>PTP</th>
-                        <th style={{ color:"#3b82f6" }}>RPC</th>
-                        {data.pak && <th style={{ color:"#22c55e" }}>PTP Amt</th>}
-                        {data.cak && <th style={{ color:"#f97316" }}>Claim Amt</th>}
-                      </tr></thead>
-                      <tbody>{collectorBucketRows.map((c,i)=>{
-                        const bucketsWorked = Object.keys(c.buckets).length;
-                        return (
-                          <tr key={c.name}>
-                            <td style={{ color:"#475569" }}>{i+1}</td>
-                            <td style={{ fontWeight:600,color:"#e2e8f0" }}>{c.name}</td>
-                            <td style={{ fontWeight:700,color:"#60a5fa" }}>{c.total.toLocaleString()}</td>
-                            <td>
-                              <span className="bdg" style={{ background:(BUCKET_COLORS[c.primaryBucket]||"#64748b")+"33",color:BUCKET_COLORS[c.primaryBucket]||"#94a3b8" }}>{c.primaryBucket}</span>
-                            </td>
-                            <td style={{ color:"#a78bfa" }}>{bucketsWorked} bucket{bucketsWorked!==1?"s":""}</td>
-                            <td style={{ color:"#22c55e" }}>{(c.bySG.KEPT||0).toLocaleString()}</td>
-                            <td style={{ color:"#f59e0b" }}>{(c.bySG.PTP||0).toLocaleString()}</td>
-                            <td style={{ color:"#3b82f6" }}>{(c.bySG.RPC||0).toLocaleString()}</td>
-                            {data.pak && <td style={{ color:"#22c55e",fontSize:12 }}>₱{fN(c.ptpAmt)}</td>}
-                            {data.cak && <td style={{ color:"#f97316",fontSize:12 }}>₱{fN(c.claimAmt)}</td>}
-                          </tr>
-                        );
-                      })}</tbody>
-                    </table>
-                  </div>
-                </div>
               </div>
             );
           })()}

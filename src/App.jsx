@@ -1615,7 +1615,7 @@ export default function App() {
               ...(an.clientAnalytics && activeClientFilter === "All" ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
               ...(an.collectorBucketAnalytics ? [["colbucket", "👥📍 Collector × Bucket"]] : []),
-              ...(an.bpAnalytics ? [["bp", "Broken Promises"]] : []),
+              ...(an.bpAnalytics ? [["bp", "💔 Broken Promises"]] : []),
               ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
               ["predictive", "🔮 Predictive"],
             ].map(([t, l]) => (

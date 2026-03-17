@@ -1310,8 +1310,8 @@ export default function App() {
           { label:"Total Accounts",     value:totalUA, color:"#3b82f6", pct:"100.0",                                              sub:"All unique accounts" },
           { label:"Right Party Contact",value:rpcUA,   color:"#a78bfa", pct:totalUA>0?((rpcUA/totalUA)*100).toFixed(1):"0.0",    sub:"RPC / PTP / KEPT outcome" },
           { label:"PTP Set",            value:ptpUA,   color:"#f59e0b", pct:totalUA>0?((ptpUA/totalUA)*100).toFixed(1):"0.0",    sub:"Accounts with promise to pay" },
-          { label:"PTP Kept ✅",        value:keptUA,  color:"#22c55e", pct:totalUA>0?((keptUA/totalUA)*100).toFixed(1):"0.0",   sub:"Accounts that honored PTP" },
-          { label:"Broken Promise 💔",  value:bpUA,    color:"#ef4444", pct:totalUA>0?((bpUA/totalUA)*100).toFixed(1):"0.0",     sub:"PTP set but not honored" },
+          { label:"PTP Kept",        value:keptUA,  color:"#22c55e", pct:totalUA>0?((keptUA/totalUA)*100).toFixed(1):"0.0",   sub:"Accounts that honored PTP" },
+          { label:"Broken Promise (BP)",  value:bpUA,    color:"#ef4444", pct:totalUA>0?((bpUA/totalUA)*100).toFixed(1):"0.0",     sub:"PTP set but not honored" },
         ];
         const stepConv = [
           { from:"All Accounts", to:"RPC",      rate:totalUA>0?((rpcUA/totalUA)*100).toFixed(1):"0.0" },
@@ -1615,7 +1615,7 @@ export default function App() {
               ...(an.clientAnalytics && activeClientFilter === "All" ? [["clients", "🏢 Clients"]] : []),
               ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
               ...(an.collectorBucketAnalytics ? [["colbucket", "👥📍 Collector × Bucket"]] : []),
-              ...(an.bpAnalytics ? [["bp", "💔 Broken Promises"]] : []),
+              ...(an.bpAnalytics ? [["bp", "Broken Promises"]] : []),
               ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
               ["predictive", "🔮 Predictive"],
             ].map(([t, l]) => (
@@ -1668,7 +1668,7 @@ export default function App() {
                   { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : "#475569", i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
                   { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : "#475569", i:"📈", sub:"Claim / PTP" },
                   ...(an.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }] : []),
-                  ...(an.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"💔", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
+                  ...(an.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"BP", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
@@ -4381,8 +4381,8 @@ export default function App() {
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
                       <Pie data={[
-                        { name:"Kept ✅", value:keptAccounts.length },
-                        { name:"Broken 💔", value:bpAccounts.length },
+                        { name:"KEPT", value:keptAccounts.length },
+                        { name:"BP", value:bpAccounts.length },
                       ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}
                         label={({name,percent})=>`${name} ${(percent*100).toFixed(1)}%`} labelLine={false}>
                         <Cell fill="#22c55e" />
@@ -4450,7 +4450,7 @@ export default function App() {
                 {/* Full BP account list */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
                   <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>
-                    💔 Broken Promise Account List — {bpAccounts.length.toLocaleString()} accounts
+                     Broken Promise Account List — {bpAccounts.length.toLocaleString()} accounts
                   </div>
                   <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
                     Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded on or after that PTP date. Sorted by most recent PTP date first.
@@ -4778,8 +4778,8 @@ export default function App() {
                       <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17, color:"#f1f5f9" }}>
                         📋 <span style={{ color:"#60a5fa", fontFamily:"monospace" }}>{timelineAccount}</span>
                       </div>
-                      {acctSummary.hasBP && <span style={{ background:"#450a0a", color:"#f87171", border:"1px solid #7f1d1d", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>💔 Broken Promise</span>}
-                      {acctSummary.hasKept && <span style={{ background:"#052e16", color:"#4ade80", border:"1px solid #166534", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>✅ Promise Kept</span>}
+                      {acctSummary.hasBP && <span style={{ background:"#450a0a", color:"#f87171", border:"1px solid #7f1d1d", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>Broken Promise</span>}
+                      {acctSummary.hasKept && <span style={{ background:"#052e16", color:"#4ade80", border:"1px solid #166534", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>Promise Kept</span>}
                       <ExportBtn onClick={() => exportXlsx(timeline.map(e=>({
                         "Account No": timelineAccount, Date:e.date||"–", Time:e.time||"–",
                         Status:e.status, Group:e.sg, "Touch Point":e.tp,

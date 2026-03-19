@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, ScatterChart, Scatter, ZAxis } from "recharts";
 
@@ -580,6 +580,7 @@ export default function App() {
     r.readAsArrayBuffer(file);
   };
 
+  
   const an = useMemo(() => {
     if (!data) return null;
     const { rows: allRows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick } = data;
@@ -717,7 +718,7 @@ export default function App() {
       const totalFieldVisits = fieldRows.length;
       const uniqueFieldAccounts = ak ? new Set(fieldRows.map(r=>r[ak]).filter(Boolean)).size : null;
       const fieldRate = uniqueFieldAccounts > 0 ? (( uniqueFieldAccounts / ua ) * 100).toFixed(1) : "0.0";
-
+      
       // Visits per bucket
       const bucketVisitMap = {};
       const bucketAccountMap = {};
@@ -790,6 +791,8 @@ export default function App() {
       if (pak) fieldRows.forEach(r => { const v=parseAmt(r[pak]); if(!isNaN(v)&&v>0){fieldPtpAmt+=v;fieldPtpCount++;} });
 
       // Monthly field visits
+
+      
       fieldAnalytics = { totalFieldVisits, fieldRate, uniqueFieldAccounts, bucketVisitData, fieldDateSorted, fieldMonthSorted, fieldSGData, fieldStatusData, fieldCollectorData, subtypeMap, activeDays, avgVisitsPerDay, peakFieldDay, fieldPtpAmt, fieldPtpCount, hasDate: fieldDateSorted.length > 0, hasAccounts: !!ak };
     }
 

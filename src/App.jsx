@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import * as XLSX from "xlsx";
+import { useTheme }    from "./useTheme";
+import { ThemeToggle } from "./ThemeToggle";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, ScatterChart, Scatter, ZAxis } from "recharts";
 
 const DISP = {
@@ -402,47 +404,134 @@ const isExcludedRemark = (remarkVal) => {
   return EXCLUDED_REMARKS.some(phrase => s.includes(phrase.toLowerCase()));
 };
 
-const Pb = ({ pct, c }) => (
-  <div style={{ height: 6, background: "#0f172a", borderRadius: 3, overflow: "hidden" }}>
+const Pb = ({ pct, c, tk }) => (
+  <div style={{ height: 6, background: tk.bgSurface, borderRadius: 3, overflow: "hidden" }}>
     <div style={{ height: "100%", borderRadius: 3, width: Math.min(pct, 100) + "%", background: c }} />
   </div>
 );
 
 // Penetration heatmap cell
-const HeatCell = ({ pct, max }) => {
+const HeatCell = ({ pct, max, tk }) => {
   const intensity = max > 0 ? pct / max : 0;
   const bg = intensity === 0
-    ? "#0f172a"
+    ? tk.heatEmpty
     : `rgba(59,130,246,${0.1 + intensity * 0.85})`;
-  const textColor = intensity > 0.5 ? "#fff" : "#94a3b8";
+  const textColor = intensity > 0.5 ? "#fff" : tk.textSub;
   return (
     <div style={{
       background: bg, color: textColor, borderRadius: 4,
       padding: "4px 6px", textAlign: "center", fontSize: 11, fontWeight: 600,
-      border: "1px solid #1e293b", minWidth: 54, transition: "background 0.2s"
+      border: `1px solid ${tk.border}`, minWidth: 54, transition: "background 0.2s"
     }}>
       {pct > 0 ? pct.toFixed(1) + "%" : "–"}
     </div>
   );
 };
 
-const SearchBar = ({ value, onChange, placeholder = "Search..." }) => (
+const SearchBar = ({ value, onChange, placeholder = "Search...", tk }) => (
   <div style={{ position: "relative", marginBottom: 10 }}>
-    <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: 13 }}>🔍</span>
+    <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: tk.textFaint, fontSize: 13 }}>🔍</span>
     <input
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       style={{
-        width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 8,
-        color: "#e2e8f0", fontSize: 13, padding: "7px 10px 7px 32px", fontFamily: "inherit", outline: "none"
+        width: "100%", background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 8,
+        color: tk.textPrimary, fontSize: 13, padding: "7px 10px 7px 32px", fontFamily: "inherit", outline: "none"
       }}
     />
-    {value && <button onClick={() => onChange("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14 }}>x</button>}
+    {value && <button onClick={() => onChange("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: tk.textMuted, cursor: "pointer", fontSize: 14 }}>x</button>}
   </div>
 );
 
 export default function App() {
+  const { theme, isDark } = useTheme();
+
+  // ── Theme tokens ─────────────────────────────────────────────────────────
+  // All colours in this component are derived from these tokens so that
+  // switching theme re-renders every inline style automatically.
+  const tk = isDark ? {
+    // backgrounds
+    bgPage:      "#0f172a",
+    bgHeader:    "#0f172a",
+    bgCard:      "#1e293b",
+    bgCardGrad:  "linear-gradient(135deg,#1e293b,#0f172a)",
+    bgSurface:   "#0f172a",
+    bgInput:     "#0f172a",
+    bgTag:       "#1e293b",
+    bgHover:     "#ffffff06",
+    bgTableHead: "#0f172a",
+    bgCode:      "#0f172a",
+    bgTooltip:   "#1e293b",
+    bgDZ:        "#1e293b44",
+    bgFieldCard: "linear-gradient(135deg,#0a1f0a,#0b0f1a)",
+    // borders
+    border:      "#1e293b",
+    borderMed:   "#334155",
+    borderField: "#14532d",
+    // text
+    textPrimary: "#e2e8f0",
+    textBright:  "#f1f5f9",
+    textSub:     "#94a3b8",
+    textMuted:   "#64748b",
+    textFaint:   "#475569",
+    textBody:    "#cbd5e1",
+    // row hover highlight tints
+    rowHoverBlue:  "#1e3a5f",
+    rowSelBlue:    "#172554",
+    rowHoverGreen: "#1a2e1a",
+    rowSelGreen:   "#0f2a0f",
+    rowHoverAmber: "#2e1a0f",
+    rowSelAmber:   "#2a1500",
+    rowHoverPurp:  "#1a1a2e",
+    rowSelPurp:    "#0d0d1f",
+    // heatmap empty cell
+    heatEmpty:   "#0f172a",
+    // misc
+    scrollTrack: "#1e293b",
+    scrollThumb: "#475569",
+  } : {
+    // backgrounds
+    bgPage:      "#f1f5f9",
+    bgHeader:    "#ffffff",
+    bgCard:      "#ffffff",
+    bgCardGrad:  "linear-gradient(135deg,#ffffff,#f8fafc)",
+    bgSurface:   "#f8fafc",
+    bgInput:     "#ffffff",
+    bgTag:       "#e2e8f0",
+    bgHover:     "#00000008",
+    bgTableHead: "#f1f5f9",
+    bgCode:      "#e2e8f0",
+    bgTooltip:   "#ffffff",
+    bgDZ:        "#e2e8f044",
+    bgFieldCard: "linear-gradient(135deg,#f0fdf4,#f8fafc)",
+    // borders
+    border:      "#e2e8f0",
+    borderMed:   "#cbd5e1",
+    borderField: "#86efac",
+    // text
+    textPrimary: "#1e293b",
+    textBright:  "#0f172a",
+    textSub:     "#475569",
+    textMuted:   "#64748b",
+    textFaint:   "#94a3b8",
+    textBody:    "#334155",
+    // row hover highlight tints
+    rowHoverBlue:  "#dbeafe",
+    rowSelBlue:    "#bfdbfe",
+    rowHoverGreen: "#dcfce7",
+    rowSelGreen:   "#bbf7d0",
+    rowHoverAmber: "#fef3c7",
+    rowSelAmber:   "#fde68a",
+    rowHoverPurp:  "#ede9fe",
+    rowSelPurp:    "#ddd6fe",
+    // heatmap empty cell
+    heatEmpty:   "#f1f5f9",
+    // misc
+    scrollTrack: "#e2e8f0",
+    scrollThumb: "#94a3b8",
+  };
+  
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -481,7 +570,7 @@ export default function App() {
 
   const mkSort = (ss, setSS) => (key) => setSS(prev => ({ key, dir: prev.key === key && prev.dir === "desc" ? "asc" : "desc" }));
   const mkIcon = (ss) => ({ col }) => col !== ss.key
-    ? <span style={{ color: "#334155", marginLeft: 4, cursor: "pointer" }}>⇅</span>
+    ? <span style={{ color: tk.borderMed, marginLeft: 4, cursor: "pointer" }}>⇅</span>
     : <span style={{ color: "#60a5fa", marginLeft: 4, cursor: "pointer" }}>{ss.dir === "asc" ? "↑" : "↓"}</span>;
 
   const sortFilter = (arr, ss, search, fields) => {
@@ -1389,7 +1478,7 @@ export default function App() {
     return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, bpAnalytics, collectorBucketAnalytics, funnelAnalytics };
   }, [data, activeClientFilter]);
 
-  const TS = { background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 };
+  const TS = { background: tk.bgTooltip, border: `1px solid ${tk.borderMed}`, borderRadius: 8, fontSize: 12, color: tk.textPrimary };
 
   const selectedDateRows = useMemo(() => {
     if (!selectedDate || !data || !an?.dateAnalytics) return null;
@@ -1427,7 +1516,7 @@ export default function App() {
 
   // Heatmap color for hourly collector
   const hourlyColor = (val, max) => {
-    if (!val || max === 0) return "#0f172a";
+    if (!val || max === 0) return tk.heatEmpty;
     const i = val / max;
     if (i < 0.25) return `rgba(59,130,246,${0.2 + i * 1.2})`;
     if (i < 0.5) return `rgba(16,185,129,${0.3 + i})`;
@@ -1436,52 +1525,52 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f172a", color: "#e2e8f0", fontFamily: "'DM Sans',sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: tk.bgPage, color: tk.textPrimary, fontFamily: "'DM Sans',sans-serif", transition: "background 0.3s, color 0.3s" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#1e293b}::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
-        .card{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155}
-        .sc{background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:12px;padding:18px;border:1px solid #334155}
+        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:${tk.scrollTrack}}::-webkit-scrollbar-thumb{background:${tk.scrollThumb};border-radius:3px}
+        .card{background:${tk.bgCard};border-radius:12px;padding:20px;border:1px solid ${tk.borderMed};transition:background 0.3s,border-color 0.3s}
+        .sc{background:${tk.bgCardGrad};border-radius:12px;padding:18px;border:1px solid ${tk.borderMed};transition:background 0.3s,border-color 0.3s}
         .bdg{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
         table{width:100%;border-collapse:collapse;font-size:13px}
-        th{background:#0f172a;color:#94a3b8;font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid #334155;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-        td{padding:9px 12px;border-bottom:1px solid #1e293b;color:#cbd5e1}
-        tr:hover td{background:#ffffff06}
-        .dz{border:2px dashed #334155;border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s}
-        .dz:hover{border-color:#3b82f6;background:#1e293b44}
+        th{background:${tk.bgTableHead};color:${tk.textSub};font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid ${tk.borderMed};font-size:11px;text-transform:uppercase;letter-spacing:.05em;transition:background 0.3s}
+        td{padding:9px 12px;border-bottom:1px solid ${tk.border};color:${tk.textBody};transition:background 0.3s,color 0.3s}
+        tr:hover td{background:${tk.bgHover}}
+        .dz{border:2px dashed ${tk.borderMed};border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s}
+        .dz:hover{border-color:#3b82f6;background:${tk.bgDZ}}
         input[type=file]{display:none}
-        .tb{background:none;border:none;cursor:pointer;padding:8px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s;color:#94a3b8;white-space:nowrap}
+        .tb{background:none;border:none;cursor:pointer;padding:8px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s;color:${tk.textSub};white-space:nowrap}
         .tb.ac{background:#1e40af;color:#fff}
-        .tb:hover:not(.ac){background:#1e293b;color:#e2e8f0}
+        .tb:hover:not(.ac){background:${tk.bgCard};color:${tk.textPrimary}}
         .dr{cursor:pointer;transition:background .15s}
-        .dr:hover td{background:#1e3a5f !important}
-        .dr.sel td{background:#172554 !important}
-        .dr2:hover td{background:#1a2e1a !important}
-        .dr2.sel td{background:#0f2a0f !important}
-        .dr3:hover td{background:#2e1a0f !important}
-        .dr3.sel td{background:#2a1500 !important}
-        .dr4:hover td{background:#1a1a2e !important}
-        .dr4.sel td{background:#0d0d1f !important}
-        .mode-btn{background:none;border:1px solid #334155;cursor:pointer;padding:5px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:#64748b;transition:all .15s}
+        .dr:hover td{background:${tk.rowHoverBlue} !important}
+        .dr.sel td{background:${tk.rowSelBlue} !important}
+        .dr2:hover td{background:${tk.rowHoverGreen} !important}
+        .dr2.sel td{background:${tk.rowSelGreen} !important}
+        .dr3:hover td{background:${tk.rowHoverAmber} !important}
+        .dr3.sel td{background:${tk.rowSelAmber} !important}
+        .dr4:hover td{background:${tk.rowHoverPurp} !important}
+        .dr4.sel td{background:${tk.rowSelPurp} !important}
+        .mode-btn{background:none;border:1px solid ${tk.borderMed};cursor:pointer;padding:5px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:${tk.textMuted};transition:all .15s}
         .mode-btn.active{background:#1e40af;border-color:#3b82f6;color:#fff}
         .hm-cell{border-radius:3px;font-size:10px;font-weight:600;text-align:center;padding:3px 0;min-width:26px;transition:all .15s;cursor:default}
-        .dr{cursor:pointer}.dr:hover td{background:#1a2035!important}.dr.sel td{background:#172554!important}
-        .mode-btn{background:none;border:1px solid #1f2937;cursor:pointer;padding:4px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:#6b7280;transition:all .15s}
-        .mode-btn.active{background:#1d4ed8;border-color:#3b82f6;color:#fff}
-        .field-card{background:linear-gradient(135deg,#0a1f0a,#0b0f1a);border:1px solid #14532d;border-radius:12px;padding:18px}
+        .field-card{background:${tk.bgFieldCard};border:1px solid ${tk.borderField};border-radius:12px;padding:18px;transition:background 0.3s}
       `}</style>
 
       {/* Header */}
-      <div style={{ background: "#0f172a", borderBottom: "1px solid #1e293b", padding: "16px 32px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ background: tk.bgHeader, borderBottom: `1px solid ${tk.border}`, padding: "16px 32px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", transition: "background 0.3s" }}>
         <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
         <div>
-          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: "#f1f5f9" }}>SPM – Collections Analytics</div>
-          <div style={{ fontSize: 12, color: "#64748b" }}>Status Disposition Intelligence System · 255 Recognized Dispositions</div>
+          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: tk.textBright }}>SPM – Collections Analytics</div>
+          <div style={{ fontSize: 12, color: tk.textMuted }}>Status Disposition Intelligence System · 255 Recognized Dispositions</div>
         </div>
         {data && an && <div style={{ marginLeft: "auto", fontSize: 12, color: "#22c55e", background: "#052e16", padding: "4px 12px", borderRadius: 20, border: "1px solid #166534" }}>✓ {an.T.toLocaleString()} valid records loaded</div>}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+        <ThemeToggle size="md" />
+      </div>
         {data && an && <div style={{ textAlign: "right"}}>
-          <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }} style={{ background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>↩ Upload New File</button>
+          <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }} style={{ background: tk.bgCard, border: `1px solid ${tk.borderMed}`, color: tk.textSub, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, transition: "background 0.3s" }}>↩ Upload New File</button>
         </div> }
       
       </div>
@@ -1490,28 +1579,28 @@ export default function App() {
         {!data && (
           <div style={{ maxWidth: 540, margin: "80px auto" }}>
             <div className="card">
-              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 8, color: "#f1f5f9" }}>Upload Collections File</div>
-              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 24 }}>
-                Upload an Excel file (.xlsx/.xls) with a <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 5px", borderRadius: 4 }}>Status</code> column.
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 8, color: tk.textBright }}>Upload Collections File</div>
+              <div style={{ fontSize: 13, color: tk.textMuted, marginBottom: 24 }}>
+                Upload an Excel file (.xlsx/.xls) with a <code style={{ color: "#60a5fa", background: tk.bgCode, padding: "1px 5px", borderRadius: 4 }}>Status</code> column.
                 Rows containing system remarks are automatically excluded.
               </div>
               <div className="dz"
                 onClick={() => fRef.current.click()}
                 onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#3b82f6"; }}
-                onDragLeave={e => { e.currentTarget.style.borderColor = "#334155"; }}
-                onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#334155"; hf(e.dataTransfer.files[0]); }}>
+                onDragLeave={e => { e.currentTarget.style.borderColor = tk.borderMed; }}
+                onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = tk.borderMed; hf(e.dataTransfer.files[0]); }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📂</div>
-                <div style={{ fontWeight: 600, fontSize: 15, color: "#e2e8f0" }}>Drop your Excel file here</div>
-                <div style={{ fontSize: 13, color: "#64748b", marginTop: 6 }}>or click to browse · .xlsx / .xls accepted</div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: tk.textPrimary }}>Drop your Excel file here</div>
+                <div style={{ fontSize: 13, color: tk.textMuted, marginTop: 6 }}>or click to browse · .xlsx / .xls accepted</div>
               </div>
               <input ref={fRef} type="file" accept=".xlsx,.xls" onChange={e => hf(e.target.files[0])} />
               {loading && <div style={{ marginTop: 16, textAlign: "center", color: "#60a5fa", fontSize: 14 }}>⏳ Processing file...</div>}
-              {err && <div style={{ marginTop: 16, background: "#450a0a", border: "1px solid #7f1d1d", borderRadius: 8, padding: 12, color: "#fca5a5", fontSize: 13 }}>{err}</div>}
-              <div style={{ marginTop: 20, padding: "12px 16px", background: "#0f172a", borderRadius: 8, fontSize: 12, color: "#475569" }}>
-                <div style={{ fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Expected columns (auto-detected):</div>
+              {err && <div style={{ marginTop: 16, background: isDark ? "#450a0a" : "#fef2f2", border: `1px solid ${isDark ? "#7f1d1d" : "#fecaca"}`, borderRadius: 8, padding: 12, color: isDark ? "#fca5a5" : "#dc2626", fontSize: 13 }}>{err}</div>}
+              <div style={{ marginTop: 20, padding: "12px 16px", background: tk.bgSurface, borderRadius: 8, fontSize: 12, color: tk.textFaint }}>
+                <div style={{ fontWeight: 600, color: tk.textMuted, marginBottom: 6 }}>Expected columns (auto-detected):</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {["Status","Account No.","Remark By","Remarks","PTP Amount","PTP Date","Claim Paid Amount","Claim Paid Date","Date","Time","Client","Old IC"].map(c => (
-                    <span key={c} style={{ background: "#1e293b", padding: "2px 8px", borderRadius: 4, color: "#94a3b8" }}>{c}</span>
+                    <span key={c} style={{ background: tk.bgCard, padding: "2px 8px", borderRadius: 4, color: tk.textSub }}>{c}</span>
                   ))}
                 </div>
               </div>
@@ -1524,7 +1613,7 @@ export default function App() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12, marginBottom: 20 }}>
             {[
               { l: "Total Records", v: data.totalRaw.toLocaleString(), i: "📋", c: "#3b82f6" },
-              { l: "System Excluded", v: data.remarkExcludedCount.toLocaleString(), i: "🚫", c: "#94a3b8", sub: "auto-filtered" },
+              { l: "System Excluded", v: data.remarkExcludedCount.toLocaleString(), i: "🚫", c: tk.textSub, sub: "auto-filtered" },
               { l: "Valid Records", v: an.T.toLocaleString(), i: "✅", c: "#22c55e" },
               { l: "Clients", v: an.clientAnalytics ? an.clientAnalytics.clientList.length : "N/A", i: "🏢", c: "#a78bfa" },
               { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
@@ -1538,38 +1627,38 @@ export default function App() {
             ].map(k => (
               <div key={k.l} className="sc">
                 <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
-                <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2, wordBreak: "auto-phrase" }}>{k.v}</div>
-                {k.sub && <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                {k.sub && <div style={{ fontSize: 10, color: tk.textFaint, marginTop: 2 }}>{k.sub}</div>}
               </div>
             ))}
           </div>
 
           {/* Detected columns notice 
-          <div style={{ background: "#0f2a3f", border: "1px solid #1e4060", borderRadius: 8, padding: "8px 16px", marginBottom: 12, fontSize: 12, color: "#7dd3fc", display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ background: isDark ? "#0f2a3f" : "#e0f2fe", border: `1px solid ${isDark ? "#1e4060" : "#bae6fd"}`, borderRadius: 8, padding: "8px 16px", marginBottom: 12, fontSize: 12, color: isDark ? "#7dd3fc" : "#0369a1", display: "flex", flexWrap: "wrap", gap: 12 }}>
             <span>🔍 Detected columns:</span>
-            {data.datек && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📅 Date: <strong>{data.datек}</strong></span>}
-            {data.timek && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>⏰ Time: <strong>{data.timek}</strong></span>}
-            {data.dtk && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📅⏰ DateTime: <strong>{data.dtk}</strong></span>}
-            {data.clk && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>🏢 Client: <strong>{data.clk}</strong></span>}
-            {data.oick && <span style={{ background: "#1e3a5f", padding: "1px 8px", borderRadius: 4 }}>📍 Bucket/IC: <strong>{data.oick}</strong></span>}
-            {!data.datек && !data.timek && !data.dtk && <span style={{ color: "#64748b" }}>No date/time columns detected</span>}
-            {!data.clk && <span style={{ color: "#64748b" }}>No client column detected</span>}
-            {!data.oick && <span style={{ color: "#64748b" }}>No Old IC/Bucket column detected</span>}
+            {data.datек && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>📅 Date: <strong>{data.datек}</strong></span>}
+            {data.timek && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>⏰ Time: <strong>{data.timek}</strong></span>}
+            {data.dtk && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>📅⏰ DateTime: <strong>{data.dtk}</strong></span>}
+            {data.clk && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>🏢 Client: <strong>{data.clk}</strong></span>}
+            {data.oick && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>📍 Bucket/IC: <strong>{data.oick}</strong></span>}
+            {!data.datек && !data.timek && !data.dtk && <span style={{ color: tk.textMuted }}>No date/time columns detected</span>}
+            {!data.clk && <span style={{ color: tk.textMuted }}>No client column detected</span>}
+            {!data.oick && <span style={{ color: tk.textMuted }}>No Old IC/Bucket column detected</span>}
           </div>
           
 
           {data.remarkExcludedCount > 0 && (
-            <div style={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#a8a29e", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ background: tk.bgSurface, border: `1px solid ${tk.border}`, borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: tk.textSub, display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 16 }}>🚫</span>
-              <span><strong style={{ color: "#d6d3d1" }}>{data.remarkExcludedCount.toLocaleString()} rows</strong> excluded — system-generated remarks</span>
+              <span><strong style={{ color: tk.textPrimary }}>{data.remarkExcludedCount.toLocaleString()} rows</strong> excluded — system-generated remarks</span>
             </div>
           )}
           */}
           {/* ── Client Filter Strip (shown when multiple clients exist) ── */}
           {data?.clients?.length > 1 && (
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>
+              <div style={{ fontSize: 11, color: tk.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>
                 🏢 Viewing data for:
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1579,9 +1668,9 @@ export default function App() {
                     onClick={() => { setActiveClientFilter(cl); setSelectedDate(null); setSelectedCollector(null); setSelectedBucket(null); }}
                     style={{
                       padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                      border: activeClientFilter === cl ? "1px solid #3b82f6" : "1px solid #334155",
-                      background: activeClientFilter === cl ? "#1e40af" : "#1e293b",
-                      color: activeClientFilter === cl ? "#fff" : "#94a3b8",
+                      border: activeClientFilter === cl ? "1px solid #3b82f6" : `1px solid ${tk.borderMed}`,
+                      background: activeClientFilter === cl ? "#1e40af" : tk.border,
+                      color: activeClientFilter === cl ? "#fff" : tk.textSub,
                       transition: "all .15s",
                     }}
                   >
@@ -1590,7 +1679,7 @@ export default function App() {
                 ))}
               </div>
               {activeClientFilter !== "All" && (
-                <div style={{ marginTop: 6, fontSize: 11, color: "#f59e0b", background: "#1c1400", border: "1px solid #92400e", borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
+                <div style={{ marginTop: 6, fontSize: 11, color: "#f59e0b", background: isDark ? "#1c1400" : "#fffbeb", border: `1px solid ${isDark ? "#92400e" : "#fcd34d"}`, borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
                   ⚠️ All charts and tables below show data for <strong>{activeClientFilter}</strong> only.
                 </div>
               )}
@@ -1598,7 +1687,7 @@ export default function App() {
           )}
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 4, marginBottom: 8, background: "#0f172a", padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 4, marginBottom: 8, background: tk.bgSurface, padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
             {[
               ["overview", "📊 Overview"],
               ["status", "🏷️ Status Detail"],
@@ -1648,10 +1737,10 @@ export default function App() {
             const convRate = an.pt > 0 ? ((an.ct / an.pt) * 100).toFixed(1) + "%" : "N/A";
 
             const NoData = ({ label, icon = "📭", hint }) => (
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6, padding:"28px 16px", background:"#0f172a", borderRadius:8, border:"1px dashed #334155", textAlign:"center" }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6, padding:"28px 16px", background:tk.bgSurface, borderRadius:8, border:`1px dashed ${tk.borderMed}`, textAlign:"center" }}>
                 <span style={{ fontSize:24 }}>{icon}</span>
-                <span style={{ fontSize:12, fontWeight:600, color:"#475569" }}>{label}</span>
-                {hint && <span style={{ fontSize:11, color:"#334155" }}>{hint}</span>}
+                <span style={{ fontSize:12, fontWeight:600, color:tk.textFaint }}>{label}</span>
+                {hint && <span style={{ fontSize:11, color:tk.borderMed }}>{hint}</span>}
               </div>
             );
 
@@ -1664,23 +1753,23 @@ export default function App() {
                   { l:"PTP Rate",         v:safeRate("PTP"),  c:"#f59e0b", i:"🤝", sub:"Promise to Pay" },
                   { l:"RPC Rate",         v:safeRate("RPC"),  c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
                   { l:"NEG Rate",         v:safeRate("NEG"),  c:"#ef4444", i:"❌", sub:"Negative Outcome" },
-                  { l:"PTP Amount",       v: hasPTP   ? "₱"+fN(an.pt) : "N/A", c: hasPTP   ? "#22c55e" : "#475569", i:"💰", sub: hasPTP   ? an.pc+" records" : "No PTP column" },
-                  { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : "#475569", i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
-                  { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : "#475569", i:"📈", sub:"Claim / PTP" },
+                  { l:"PTP Amount",       v: hasPTP   ? "₱"+fN(an.pt) : "N/A", c: hasPTP   ? "#22c55e" : tk.textFaint, i:"💰", sub: hasPTP   ? an.pc+" records" : "No PTP column" },
+                  { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : tk.textFaint, i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
+                  { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : tk.textFaint, i:"📈", sub:"Claim / PTP" },
                   ...(an.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }] : []),
                   ...(an.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"BP", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
-                    <div style={{ fontSize:10, color:"#64748b", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:10, color:tk.textMuted, textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
                     <div style={{ fontSize:16, fontWeight:700, color:k.c, fontFamily:"'Space Grotesk',sans-serif", marginTop:2 }}>{k.v}</div>
-                    <div style={{ fontSize:10, color:"#475569", marginTop:2 }}>{k.sub}</div>
+                    <div style={{ fontSize:10, color:tk.textFaint, marginTop:2 }}>{k.sub}</div>
                   </div>
                 ))}
 
                 {/* ── Outcome Group pie ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Outcome Group Distribution</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Outcome Group Distribution</div>
                   {an.gd.length > 0 ? (
                     <div style={{ display:"flex", gap:12, alignItems:"center" }}>
                       <ResponsiveContainer width="55%" height={220}>
@@ -1695,10 +1784,10 @@ export default function App() {
                         {an.gd.map(g=>(
                           <div key={g.name} style={{ marginBottom:8 }}>
                             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                              <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||"#94a3b8" }}>{g.name}</span>
-                              <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||"#94a3b8" }}>{g.pct}%</span>
+                              <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||tk.textSub }}>{g.name}</span>
+                              <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||tk.textSub }}>{g.pct}%</span>
                             </div>
-                            <Pb pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
+                            <Pb tk={tk} pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
                           </div>
                         ))}
                       </div>
@@ -1708,13 +1797,13 @@ export default function App() {
 
                 {/* ── Touch Point Mix ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Touch Point Mix</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Touch Point Mix</div>
                   {an.td.length > 0 ? (
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={an.td} layout="vertical" margin={{ left:0, right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8", fontSize:10 }} width={120} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
                         <Bar dataKey="count" radius={[0,4,4,0]}>
                           {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
@@ -1726,18 +1815,18 @@ export default function App() {
 
                 {/* ── Daily Efforts Trend ── */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Daily Efforts Trend</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Daily Efforts Trend</div>
                   {hasDate ? (
                     <>
-                      <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>All efforts over time, coloured by outcome group.</div>
+                      <div style={{ fontSize:12, color:tk.textMuted, marginBottom:10 }}>All efforts over time, coloured by outcome group.</div>
                       <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={ovDateTrend} margin={{ left:0, right:16, bottom: ovDateTrend.length>20?60:16 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                          <XAxis dataKey="date" tick={{ fill:"#64748b", fontSize:10 }} angle={ovDateTrend.length>15?-35:0} textAnchor={ovDateTrend.length>15?"end":"middle"} interval={ovDateTrend.length>30?Math.floor(ovDateTrend.length/20):0} />
-                          <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                          <XAxis dataKey="date" tick={{ fill:tk.textMuted, fontSize:10 }} angle={ovDateTrend.length>15?-35:0} textAnchor={ovDateTrend.length>15?"end":"middle"} interval={ovDateTrend.length>30?Math.floor(ovDateTrend.length/20):0} />
+                          <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                           <Tooltip contentStyle={TS} />
                           <Legend wrapperStyle={{ fontSize:11 }} />
-                          {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                          {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                         </BarChart>
                       </ResponsiveContainer>
                     </>
@@ -1746,16 +1835,16 @@ export default function App() {
 
                 {/* ── Monthly Trend ── */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Monthly Efforts Trend</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Efforts Trend</div>
                   {hasMonthly ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={ovMonthly} margin={{ left:0, right:16, bottom: ovMonthly.length>6?40:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="month" tick={{ fill:"#64748b", fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize:11 }} />
-                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                       </BarChart>
                     </ResponsiveContainer>
                   ) : <NoData label="No monthly data" icon="📆" hint="Requires a Date column with multiple months" />}
@@ -1767,7 +1856,7 @@ export default function App() {
                   {hasField ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <LineChart data={ovFieldVisits} margin={{ left:0, right:16, bottom: ovFieldVisits.length>4?40:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
                         <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
@@ -1779,13 +1868,13 @@ export default function App() {
 
                 {/* ── Top 10 Statuses ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Top 10 Statuses</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Top 10 Statuses</div>
                   {an.sd.length > 0 ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={an.sd.slice(0,10)} layout="vertical" margin={{ left:0, right:16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
-                        <YAxis type="category" dataKey="status" tick={{ fill:"#94a3b8", fontSize:9 }} width={170} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
+                        <YAxis type="category" dataKey="status" tick={{ fill:tk.textSub, fontSize:9 }} width={170} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" radius={[0,4,4,0]}>
                           {an.sd.slice(0,10).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]} />)}
@@ -1797,16 +1886,16 @@ export default function App() {
 
                 {/* ── Top 5 Collectors ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Top 5 Collectors</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Top 5 Collectors</div>
                   {hasCollectors ? (
                     <>
-                      <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>By total efforts this period.</div>
+                      <div style={{ fontSize:12, color:tk.textMuted, marginBottom:10 }}>By total efforts this period.</div>
                       {ovTopCollectors.map((c,i)=>(
                         <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
                           <div style={{ width:22, height:22, borderRadius:"50%", background:PC[i%PC.length]+"33", color:PC[i%PC.length], fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</div>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:12, fontWeight:600, color:"#e2e8f0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</div>
-                            <div style={{ height:4, background:"#0f172a", borderRadius:2, marginTop:3, overflow:"hidden" }}>
+                            <div style={{ fontSize:12, fontWeight:600, color:tk.textPrimary, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</div>
+                            <div style={{ height:4, background:tk.bgSurface, borderRadius:2, marginTop:3, overflow:"hidden" }}>
                               <div style={{ height:"100%", borderRadius:2, width:`${Math.min((c.total/ovTopCollectors[0].total)*100,100)}%`, background:PC[i%PC.length] }} />
                             </div>
                           </div>
@@ -1819,16 +1908,16 @@ export default function App() {
 
                 {/* ── Efforts by Bucket ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Efforts by Bucket</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Efforts by Bucket</div>
                   {hasBuckets ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={ovBuckets} layout="vertical" margin={{ left:0, right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b", fontSize:10 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8", fontSize:10 }} width={110} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={110} />
                         <Tooltip contentStyle={TS} formatter={(v,n,p)=>[v.toLocaleString(),p.payload.name]} />
                         <Bar dataKey="total" radius={[0,4,4,0]}>
-                          {ovBuckets.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#64748b"} />)}
+                          {ovBuckets.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||tk.textMuted} />)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -1838,15 +1927,15 @@ export default function App() {
                 {/* ── Client Volume Mix (only when truly multi-client) ── */}
                 {hasClients && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f1f5f9" }}>Client Volume with Outcome Mix</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Client Volume with Outcome Mix</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={ovClients.slice(0,10).map(c=>({ name:c.name, ...c.bySG }))} margin={{ bottom: ovClients.length>6?60:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="name" tick={{ fill:"#64748b", fontSize:10 }} angle={ovClients.length>5?-25:0} textAnchor={ovClients.length>5?"end":"middle"} interval={0} />
-                        <YAxis tick={{ fill:"#64748b", fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="name" tick={{ fill:tk.textMuted, fontSize:10 }} angle={ovClients.length>5?-25:0} textAnchor={ovClients.length>5?"end":"middle"} interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize:11 }} />
-                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||"#64748b"} name={sg} />)}
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1855,30 +1944,30 @@ export default function App() {
                 {/* ── PTP + Claim summary row ── */}
                 <div className="card" style={{ gridColumn:"1/-1", display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
                   <div>
-                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>PTP Records</div>
+                    <div style={{ fontSize:11, color:tk.textMuted, fontWeight:600, textTransform:"uppercase" }}>PTP Records</div>
                     {hasPTP
                       ? <div style={{ fontSize:24, fontWeight:700, color:"#f59e0b", fontFamily:"'Space Grotesk',sans-serif" }}>{an.pc.toLocaleString()}</div>
-                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
-                    {!hasPTP && <div style={{ fontSize:11, color:"#334155", marginTop:2 }}>No PTP Amount column</div>}
+                      : <div style={{ fontSize:16, fontWeight:600, color:tk.textFaint }}>N/A</div>}
+                    {!hasPTP && <div style={{ fontSize:11, color:tk.borderMed, marginTop:2 }}>No PTP Amount column</div>}
                   </div>
                   <div>
-                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total PTP Amount</div>
+                    <div style={{ fontSize:11, color:tk.textMuted, fontWeight:600, textTransform:"uppercase" }}>Total PTP Amount</div>
                     {hasPTP
                       ? <div style={{ fontSize:22, fontWeight:700, color:"#22c55e", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.pt)}</div>
-                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
+                      : <div style={{ fontSize:16, fontWeight:600, color:tk.textFaint }}>N/A</div>}
                   </div>
                   <div>
-                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Claim Paid Records</div>
+                    <div style={{ fontSize:11, color:tk.textMuted, fontWeight:600, textTransform:"uppercase" }}>Claim Paid Records</div>
                     {hasClaim
                       ? <div style={{ fontSize:24, fontWeight:700, color:"#f97316", fontFamily:"'Space Grotesk',sans-serif" }}>{an.cc.toLocaleString()}</div>
-                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
-                    {!hasClaim && <div style={{ fontSize:11, color:"#334155", marginTop:2 }}>No Claim Paid column</div>}
+                      : <div style={{ fontSize:16, fontWeight:600, color:tk.textFaint }}>N/A</div>}
+                    {!hasClaim && <div style={{ fontSize:11, color:tk.borderMed, marginTop:2 }}>No Claim Paid column</div>}
                   </div>
                   <div>
-                    <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" }}>Total Claim Amount</div>
+                    <div style={{ fontSize:11, color:tk.textMuted, fontWeight:600, textTransform:"uppercase" }}>Total Claim Amount</div>
                     {hasClaim
                       ? <div style={{ fontSize:22, fontWeight:700, color:"#06b6d4", fontFamily:"'Space Grotesk',sans-serif" }}>₱{fN(an.ct)}</div>
-                      : <div style={{ fontSize:16, fontWeight:600, color:"#475569" }}>N/A</div>}
+                      : <div style={{ fontSize:16, fontWeight:600, color:tk.textFaint }}>N/A</div>}
                   </div>
                 </div>
 
@@ -1893,12 +1982,12 @@ export default function App() {
             return (
               <div className="card">
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:4 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>Status Detail — {an.sd.length} Valid Statuses Found</div>
                   <ExportBtn onClick={() => exportXlsx(ssd.map(s=>({ Status:s.status, Group:s.grp, "Touch Point":s.tp, Count:s.count, "Pct%":s.pct })), "status_detail.xlsx")} />
                 </div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Only statuses present in your file are shown.</div>
-                <SearchBar value={statusSearch} onChange={setStatusSearch} placeholder="Filter by status, group, or touch point..." />
-                <div style={{ fontSize: 12, color: "#475569", marginBottom: 8 }}>{ssd.length} of {an.sd.length} statuses shown</div>
+                <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 10 }}>Only statuses present in your file are shown.</div>
+                <SearchBar tk={tk} value={statusSearch} onChange={setStatusSearch} placeholder="Filter by status, group, or touch point..." />
+                <div style={{ fontSize: 12, color: tk.textFaint, marginBottom: 8 }}>{ssd.length} of {an.sd.length} statuses shown</div>
                 <div style={{ overflowX: "auto" }}>
                   <table>
                     <thead><tr>
@@ -1911,13 +2000,13 @@ export default function App() {
                       <th style={{ width: 100 }}>Bar</th>
                     </tr></thead>
                     <tbody>{ssd.map((s, i) => <tr key={s.status}>
-                      <td style={{ color: "#475569" }}>{i + 1}</td>
-                      <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{s.status}</td>
-                      <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td>
-                      <td style={{ color: "#94a3b8" }}>{s.tp}</td>
-                      <td style={{ fontWeight: 600, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td>
+                      <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                      <td style={{ fontWeight: 500, color: tk.textPrimary }}>{s.status}</td>
+                      <td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || tk.textSub }}>{s.grp}</span></td>
+                      <td style={{ color: tk.textSub }}>{s.tp}</td>
+                      <td style={{ fontWeight: 600, color: tk.textBright }}>{s.count.toLocaleString()}</td>
                       <td style={{ color: "#60a5fa" }}>{s.pct}%</td>
-                      <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
+                      <td><Pb tk={tk} pct={parseFloat(s.pct)} c={GC[s.grp] || "#3b82f6"} /></td>
                     </tr>)}</tbody>
                   </table>
                 </div>
@@ -1928,14 +2017,14 @@ export default function App() {
           {/* ── Collectors Tab ── */}
           {tab === "collectors" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card" style={{ gridColumn: "1/-1" }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Top 20 Collectors by Total Efforts</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Top 20 Collectors by Total Efforts</div>
               {an.cd.length === 0
-                ? <div style={{ color: "#64748b", fontSize: 13, marginTop: 8 }}>No "Remark By" column detected.</div>
+                ? <div style={{ color: tk.textMuted, fontSize: 13, marginTop: 8 }}>No "Remark By" column detected.</div>
                 : <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={an.cd.slice(0, 20)} margin={{ bottom: 90 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                    <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
                     <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Efforts" />
                   </BarChart>
@@ -1944,7 +2033,7 @@ export default function App() {
             {an.cd.length > 0 && <>
               <div className="card" style={{ gridColumn: "1/-1" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:4 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>Collector Efforts with Touch Point Breakdown</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>Collector Efforts with Touch Point Breakdown</div>
                   <ExportBtn onClick={() => {
                     const tps = ALL_TP.filter(tp => an.cd.some(c => c.byTP[tp]));
                     exportXlsx(an.cd.map(c => {
@@ -1955,35 +2044,35 @@ export default function App() {
                     }), "collectors.xlsx");
                   }} />
                 </div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 8 }}>
                   Click a row to drill down.
-                  {selectedCollector && <button onClick={() => setSelectedCollector(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
+                  {selectedCollector && <button onClick={() => setSelectedCollector(null)} style={{ marginLeft: 12, background: tk.borderMed, border: "none", color: tk.textSub, borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                 </div>
-                <SearchBar value={collectorSearch} onChange={setCollectorSearch} placeholder="Filter by collector name..." />
+                <SearchBar tk={tk} value={collectorSearch} onChange={setCollectorSearch} placeholder="Filter by collector name..." />
                 {(() => {
                   const CI = mkIcon(collectorSort);
                   const activeTPs = ALL_TP.filter(tp => an.cd.some(col => col.byTP[tp]));
                   const filteredCD = sortFilter(an.cd.map(c => ({ ...c, pctShare: ((c.total / an.T) * 100).toFixed(1) })), collectorSort, collectorSearch, ["name"]);
                   return (
                     <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
-                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{filteredCD.length} of {an.cd.length} collectors shown</div>
+                      <div style={{ fontSize: 12, color: tk.textFaint, marginBottom: 6 }}>{filteredCD.length} of {an.cd.length} collectors shown</div>
                       <table>
                         <thead><tr>
                           <th>#</th>
                           <th onClick={() => mkSort(collectorSort, setCollectorSort)("name")} style={{ cursor: "pointer", userSelect: "none" }}>Collector <CI col="name" /></th>
                           <th onClick={() => mkSort(collectorSort, setCollectorSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <CI col="total" /></th>
                           <th onClick={() => mkSort(collectorSort, setCollectorSort)("pctShare")} style={{ cursor: "pointer", userSelect: "none" }}>% Share <CI col="pctShare" /></th>
-                          {activeTPs.map(tp => <th key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{tp}</th>)}
+                          {activeTPs.map(tp => <th key={tp} style={{ color: TP_COLORS[tp] || tk.textSub }}>{tp}</th>)}
                           <th style={{ width: 100 }}>Bar</th>
                         </tr></thead>
                         <tbody>{filteredCD.map((c, i) => (
                           <tr key={c.name} className={`dr${selectedCollector === c.name ? " sel" : ""}`} onClick={() => setSelectedCollector(selectedCollector === c.name ? null : c.name)}>
-                            <td style={{ color: "#475569" }}>{i + 1}</td>
-                            <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
+                            <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                            <td style={{ fontWeight: 600, color: tk.textPrimary }}>{c.name}</td>
                             <td style={{ fontWeight: 700, color: "#22c55e" }}>{c.total.toLocaleString()}</td>
                             <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
-                            {activeTPs.map(tp => <td key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8" }}>{(c.byTP[tp] || 0).toLocaleString()}</td>)}
-                            <td><Pb pct={(c.total / an.cd[0].total) * 100} c="#3b82f6" /></td>
+                            {activeTPs.map(tp => <td key={tp} style={{ color: TP_COLORS[tp] || tk.textSub }}>{(c.byTP[tp] || 0).toLocaleString()}</td>)}
+                            <td><Pb tk={tk} pct={(c.total / an.cd[0].total) * 100} c="#3b82f6" /></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -1994,12 +2083,12 @@ export default function App() {
               {selectedCollector && selectedCollectorData && (
                 <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #1e40af" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>👤 {selectedCollector} — Detailed Breakdown</div>
-                    <span style={{ background: "#172554", color: "#60a5fa", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedCollectorData.total.toLocaleString()} total efforts</span>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>👤 {selectedCollector} — Detailed Breakdown</div>
+                    <span style={{ background: isDark ? "#172554" : "#dbeafe", color: isDark ? "#60a5fa" : "#2563eb", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedCollectorData.total.toLocaleString()} total efforts</span>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Touch Point</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>By Touch Point</div>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
                           <Pie data={Object.entries(selectedCollectorData.byTP).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -2010,7 +2099,7 @@ export default function App() {
                       </ResponsiveContainer>
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Outcome Group</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>By Outcome Group</div>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
                           <Pie data={Object.entries(selectedCollectorData.bySG).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -2021,11 +2110,11 @@ export default function App() {
                       </ResponsiveContainer>
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Details</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>Touch Point Details</div>
                       <table>
                         <thead><tr><th>Touch Point</th><th>Count</th><th>%</th></tr></thead>
                         <tbody>{Object.entries(selectedCollectorData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
-                          <tr key={tp}><td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td></tr>
+                          <tr key={tp}><td style={{ color: TP_COLORS[tp] || tk.textSub, fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedCollectorData.total) * 100).toFixed(1)}%</td></tr>
                         ))}</tbody>
                       </table>
                     </div>
@@ -2033,28 +2122,28 @@ export default function App() {
                 </div>
               )}
               <div className="card" style={{ gridColumn: "1/-1" }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Top 15 Collectors — Touch Point Mix</div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Top 15 Collectors — Touch Point Mix</div>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={an.cd.slice(0, 15).map(c => ({ name: c.name, ...c.byTP }))} margin={{ bottom: 90 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                    <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {ALL_TP.filter(tp => an.cd.some(c => c.byTP[tp])).map(tp => <Bar key={tp} dataKey={tp} stackId="a" fill={TP_COLORS[tp] || "#64748b"} name={tp} />)}
+                    {ALL_TP.filter(tp => an.cd.some(c => c.byTP[tp])).map(tp => <Bar key={tp} dataKey={tp} stackId="a" fill={TP_COLORS[tp] || tk.textMuted} name={tp} />)}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               <div className="card" style={{ gridColumn: "1/-1" }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Top 15 Collectors — Outcome Group Mix</div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Top 15 Collectors — Outcome Group Mix</div>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={an.cd.slice(0, 15).map(c => ({ name: c.name, ...c.bySG }))} margin={{ bottom: 90 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                    <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="b" fill={GC[sg] || "#64748b"} name={sg} />)}
+                    {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="b" fill={GC[sg] || tk.textMuted} name={sg} />)}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -2069,29 +2158,29 @@ export default function App() {
               { l: "Claim Paid Records", v: an.cc.toLocaleString(), c: "#f59e0b", s: "rows with claim paid amount > 0" },
               { l: "Total Claim Paid Amount", v: "₱" + fN(an.ct), c: "#f97316" },
             ].map(k => <div key={k.l} className="sc">
-              <div style={{ fontSize: 12, color: "#64748b", textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{k.l}</div>
+              <div style={{ fontSize: 12, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{k.l}</div>
               <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 26, fontWeight: 700, color: k.c, marginTop: 4 }}>{k.v}</div>
-              {k.s && <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>{k.s}</div>}
+              {k.s && <div style={{ fontSize: 12, color: tk.textFaint, marginTop: 4 }}>{k.s}</div>}
             </div>)}
             {an.pdd.length > 0 && <div className="card" style={{ gridColumn: "1/-1" }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>PTP Date Trend (Last 15 Dates)</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>PTP Date Trend (Last 15 Dates)</div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={an.pdd} margin={{ bottom: 70 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                  <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <Tooltip contentStyle={TS} />
                   <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="PTP Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
             {an.cdd.length > 0 && <div className="card" style={{ gridColumn: "1/-1" }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Claim Paid Date Trend (Last 15 Dates)</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Claim Paid Date Trend (Last 15 Dates)</div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={an.cdd} margin={{ bottom: 70 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                  <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <Tooltip contentStyle={TS} />
                   <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} name="Claim Records" />
                 </BarChart>
@@ -2104,8 +2193,8 @@ export default function App() {
               return (<>
                 {/* Summary table */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📍 PTP &amp; Claim Summary by Bucket</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>Number of PTPs and Claim Paid per bucket — count and amount.</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>📍 PTP &amp; Claim Summary by Bucket</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 14 }}>Number of PTPs and Claim Paid per bucket — count and amount.</div>
                   <div style={{ overflowX: "auto" }}>
                     <table>
                       <thead><tr>
@@ -2122,13 +2211,13 @@ export default function App() {
                         const maxPTP = Math.max(...ptpClaimSummary.map(x => x.ptpCount));
                         return (
                           <tr key={r.bucket}>
-                            <td><span className="bdg" style={{ background: (BUCKET_COLORS[r.bucket] || "#64748b") + "33", color: BUCKET_COLORS[r.bucket] || "#94a3b8" }}>{r.bucket}</span></td>
+                            <td><span className="bdg" style={{ background: (BUCKET_COLORS[r.bucket] || tk.textMuted) + "33", color: BUCKET_COLORS[r.bucket] || tk.textSub }}>{r.bucket}</span></td>
                             <td style={{ fontWeight: 700, color: "#f59e0b" }}>{r.ptpCount.toLocaleString()}</td>
                             <td style={{ color: "#22c55e", fontSize: 12 }}>₱{fN(r.ptpAmt)}</td>
                             <td style={{ fontWeight: 700, color: "#f97316" }}>{r.claimCount.toLocaleString()}</td>
                             <td style={{ color: "#06b6d4", fontSize: 12 }}>₱{fN(r.claimAmt)}</td>
                             <td style={{ color: "#a78bfa", fontWeight: 600 }}>{convRate}%</td>
-                            <td><Pb pct={maxPTP > 0 ? (r.ptpCount / maxPTP) * 100 : 0} c={BUCKET_COLORS[r.bucket] || "#f59e0b"} /></td>
+                            <td><Pb tk={tk} pct={maxPTP > 0 ? (r.ptpCount / maxPTP) * 100 : 0} c={BUCKET_COLORS[r.bucket] || "#f59e0b"} /></td>
                           </tr>
                         );
                       })}</tbody>
@@ -2139,12 +2228,12 @@ export default function App() {
                 {/* PTP count grouped bar by bucket */}
                 {ptpClaimSummary.some(r => r.ptpCount > 0) && (
                   <div className="card" style={{ gridColumn: "1/2" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>PTP Count by Bucket</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>PTP Count by Bucket</div>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <YAxis type="category" dataKey="bucket" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                        <YAxis type="category" dataKey="bucket" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                         <Tooltip contentStyle={TS} formatter={v => [v.toLocaleString(), "PTP Count"]} />
                         <Bar dataKey="ptpCount" radius={[0, 4, 4, 0]} name="PTP Count">
                           {ptpClaimSummary.map(r => <Cell key={r.bucket} fill={BUCKET_COLORS[r.bucket] || "#f59e0b"} />)}
@@ -2157,12 +2246,12 @@ export default function App() {
                 {/* Claim count by bucket */}
                 {ptpClaimSummary.some(r => r.claimCount > 0) && (
                   <div className="card" style={{ gridColumn: "2/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Claim Paid Count by Bucket</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Claim Paid Count by Bucket</div>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <YAxis type="category" dataKey="bucket" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                        <YAxis type="category" dataKey="bucket" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                         <Tooltip contentStyle={TS} formatter={v => [v.toLocaleString(), "Claim Count"]} />
                         <Bar dataKey="claimCount" radius={[0, 4, 4, 0]} name="Claim Count">
                           {ptpClaimSummary.map(r => <Cell key={r.bucket} fill={BUCKET_COLORS[r.bucket] || "#f97316"} />)}
@@ -2175,17 +2264,17 @@ export default function App() {
                 {/* PTP trend by bucket (multi-line) */}
                 {ptpTrend.length > 0 && (
                   <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📈 PTP Count Trend by Bucket</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Daily PTP counts broken down by bucket.</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>📈 PTP Count Trend by Bucket</div>
+                    <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>Daily PTP counts broken down by bucket.</div>
                     <ResponsiveContainer width="100%" height={260}>
                       <LineChart data={ptpTrend} margin={{ left: 0, right: 16, bottom: ptpTrend.length > 20 ? 70 : 30 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={ptpTrend.length > 15 ? -35 : 0} textAnchor={ptpTrend.length > 15 ? "end" : "middle"} interval={ptpTrend.length > 30 ? Math.floor(ptpTrend.length / 20) : 0} />
-                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={ptpTrend.length > 15 ? -35 : 0} textAnchor={ptpTrend.length > 15 ? "end" : "middle"} interval={ptpTrend.length > 30 ? Math.floor(ptpTrend.length / 20) : 0} />
+                        <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         {ptpBucketNames.map(b => (
-                          <Line key={b} type="monotone" dataKey={b} stroke={BUCKET_COLORS[b] || "#64748b"} strokeWidth={2} dot={ptpTrend.length < 40} name={b} />
+                          <Line key={b} type="monotone" dataKey={b} stroke={BUCKET_COLORS[b] || tk.textMuted} strokeWidth={2} dot={ptpTrend.length < 40} name={b} />
                         ))}
                       </LineChart>
                     </ResponsiveContainer>
@@ -2195,17 +2284,17 @@ export default function App() {
                 {/* Claim trend by bucket */}
                 {claimTrend.length > 0 && (
                   <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📈 Claim Paid Count Trend by Bucket</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Daily Claim Paid counts broken down by bucket.</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>📈 Claim Paid Count Trend by Bucket</div>
+                    <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>Daily Claim Paid counts broken down by bucket.</div>
                     <ResponsiveContainer width="100%" height={260}>
                       <LineChart data={claimTrend} margin={{ left: 0, right: 16, bottom: claimTrend.length > 20 ? 70 : 30 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={claimTrend.length > 15 ? -35 : 0} textAnchor={claimTrend.length > 15 ? "end" : "middle"} interval={claimTrend.length > 30 ? Math.floor(claimTrend.length / 20) : 0} />
-                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={claimTrend.length > 15 ? -35 : 0} textAnchor={claimTrend.length > 15 ? "end" : "middle"} interval={claimTrend.length > 30 ? Math.floor(claimTrend.length / 20) : 0} />
+                        <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         {claimBucketNames.map(b => (
-                          <Line key={b} type="monotone" dataKey={b} stroke={BUCKET_COLORS[b] || "#64748b"} strokeWidth={2} dot={claimTrend.length < 40} name={b} />
+                          <Line key={b} type="monotone" dataKey={b} stroke={BUCKET_COLORS[b] || tk.textMuted} strokeWidth={2} dot={claimTrend.length < 40} name={b} />
                         ))}
                       </LineChart>
                     </ResponsiveContainer>
@@ -2218,7 +2307,7 @@ export default function App() {
           {/* ── Touch Points Tab ── */}
           {tab === "touch" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card">
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Touch Point Distribution</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Touch Point Distribution</div>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie data={an.td} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, pct }) => `${name} ${pct}%`} labelLine={false}>
@@ -2230,12 +2319,12 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <div className="card">
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Touch Point</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Touch Point</div>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                  <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={130} />
                   <Tooltip contentStyle={TS} />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {an.td.map((e, i) => <Cell key={i} fill={TP_COLORS[e.name] || PC[i % PC.length]} />)}
@@ -2245,10 +2334,10 @@ export default function App() {
             </div>
             <div className="card" style={{ gridColumn: "1/-1" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:8 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>Touch Point Summary</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>Touch Point Summary</div>
                 <ExportBtn onClick={() => exportXlsx(an.td.map(t=>({ "Touch Point":t.name, Efforts:t.count, "Pct%":t.pct })), "touch_points.xlsx")} />
               </div>
-              <SearchBar value={touchSearch} onChange={setTouchSearch} placeholder="Filter by touch point..." />
+              <SearchBar tk={tk} value={touchSearch} onChange={setTouchSearch} placeholder="Filter by touch point..." />
               {(() => {
                 const TI = mkIcon(touchSort);
                 const filteredTP = sortFilter(an.td, touchSort, touchSearch, ["name"]);
@@ -2261,10 +2350,10 @@ export default function App() {
                       <th style={{ width: 200 }}>Bar</th>
                     </tr></thead>
                     <tbody>{filteredTP.map((t, i) => <tr key={t.name}>
-                      <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{t.name}</td>
+                      <td style={{ fontWeight: 500, color: tk.textPrimary }}>{t.name}</td>
                       <td style={{ fontWeight: 700, color: TP_COLORS[t.name] || PC[i % PC.length] }}>{t.count.toLocaleString()}</td>
                       <td>{t.pct}%</td>
-                      <td><Pb pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
+                      <td><Pb tk={tk} pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
                     </tr>)}</tbody>
                   </table>
                 );
@@ -2274,8 +2363,8 @@ export default function App() {
             {/* ── TP × Outcome Group Frequency ── */}
             {an.tpBySG && (
               <div className="card" style={{ gridColumn: "1/-1" }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>📊 Most Frequent Touch Point per Outcome Group</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>📊 Most Frequent Touch Point per Outcome Group</div>
+                <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 14 }}>
                   Which channel drives each outcome most — especially PTP &amp; KEPT conversions.
                 </div>
                 {/* Grouped horizontal bar — one panel per outcome group */}
@@ -2287,33 +2376,33 @@ export default function App() {
                     const sgTotal = rows.reduce((s, r) => s + r.count, 0);
                     return (
                       <div key={sg} style={{
-                        background: (GC[sg] || "#334155") + "11",
-                        border: `1px solid ${(GC[sg] || "#334155")}44`,
+                        background: (GC[sg] || tk.borderMed) + "11",
+                        border: `1px solid ${(GC[sg] || tk.borderMed)}44`,
                         borderRadius: 10, padding: "14px 16px"
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                          <span className="bdg" style={{ background: (GC[sg] || "#334155") + "33", color: GC[sg] || "#94a3b8", fontSize: 13 }}>{sg}</span>
-                          <span style={{ fontSize: 11, color: "#64748b" }}>{sgTotal.toLocaleString()} records</span>
+                          <span className="bdg" style={{ background: (GC[sg] || tk.borderMed) + "33", color: GC[sg] || tk.textSub, fontSize: 13 }}>{sg}</span>
+                          <span style={{ fontSize: 11, color: tk.textMuted }}>{sgTotal.toLocaleString()} records</span>
                         </div>
                         {/* Top channel highlight */}
                         <div style={{ marginBottom: 10, padding: "8px 10px", background: (TP_COLORS[top.tp] || "#3b82f6") + "18", borderRadius: 7, border: `1px solid ${(TP_COLORS[top.tp] || "#3b82f6")}33` }}>
-                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>TOP CHANNEL</div>
+                          <div style={{ fontSize: 10, color: tk.textMuted, marginBottom: 2 }}>TOP CHANNEL</div>
                           <div style={{ fontWeight: 700, color: TP_COLORS[top.tp] || "#3b82f6", fontSize: 13 }}>{top.tp}</div>
-                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{top.count.toLocaleString()} · {top.pct}%</div>
+                          <div style={{ fontSize: 11, color: tk.textSub, marginTop: 1 }}>{top.count.toLocaleString()} · {top.pct}%</div>
                         </div>
                         {/* Mini bar chart */}
                         {rows.slice(0, 5).map((r, i) => (
                           <div key={r.tp} style={{ marginBottom: 5 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                              <span style={{ fontSize: 11, color: TP_COLORS[r.tp] || "#94a3b8", fontWeight: i === 0 ? 700 : 400 }}>{r.tp}</span>
-                              <span style={{ fontSize: 11, color: "#64748b" }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: TP_COLORS[r.tp] || tk.textSub, fontWeight: i === 0 ? 700 : 400 }}>{r.tp}</span>
+                              <span style={{ fontSize: 11, color: tk.textMuted }}>{r.pct}%</span>
                             </div>
-                            <div style={{ height: 5, background: "#0f172a", borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{ height: 5, background: tk.bgSurface, borderRadius: 3, overflow: "hidden" }}>
                               <div style={{ height: "100%", borderRadius: 3, width: `${Math.min(parseFloat(r.pct), 100)}%`, background: TP_COLORS[r.tp] || PC[i % PC.length], opacity: i === 0 ? 1 : 0.6 }} />
                             </div>
                           </div>
                         ))}
-                        {rows.length > 5 && <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>+{rows.length - 5} more channels</div>}
+                        {rows.length > 5 && <div style={{ fontSize: 10, color: tk.textFaint, marginTop: 4 }}>+{rows.length - 5} more channels</div>}
                       </div>
                     );
                   })}
@@ -2321,7 +2410,7 @@ export default function App() {
 
                 {/* Full grouped bar chart */}
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 12 }}>Touch Point Volume by Outcome Group</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 12 }}>Touch Point Volume by Outcome Group</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart
                       data={ALL_TP.filter(tp => an.td.some(t => t.name === tp)).map(tp => {
@@ -2333,19 +2422,19 @@ export default function App() {
                       })}
                       margin={{ bottom: 60 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="tp" tick={{ fill: "#64748b", fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="tp" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Detailed table: TP × SG */}
                 <div style={{ overflowX: "auto" }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Full Breakdown Table</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>Full Breakdown Table</div>
                   <table>
                     <thead>
                       <tr>
@@ -2365,20 +2454,20 @@ export default function App() {
                         const keptRank = tpRankKEPT.find(r => r.tp === tp)?.rank;
                         return (
                           <tr key={tp}>
-                            <td style={{ fontWeight: 600, color: TP_COLORS[tp] || "#e2e8f0" }}>{tp}</td>
+                            <td style={{ fontWeight: 600, color: TP_COLORS[tp] || tk.textPrimary }}>{tp}</td>
                             {SG_GROUPS.map(sg => {
                               const cnt = (an.tpBySG[sg]?.find(r => r.tp === tp)?.count) || 0;
                               const pct = (an.tpBySG[sg]?.find(r => r.tp === tp)?.pct) || "0.0";
-                              return <td key={sg} style={{ textAlign: "center", color: GC[sg] || "#94a3b8" }}>
-                                {cnt > 0 ? <><span style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</span><span style={{ color: "#475569", fontSize: 11 }}> ({pct}%)</span></> : <span style={{ color: "#334155" }}>–</span>}
+                              return <td key={sg} style={{ textAlign: "center", color: GC[sg] || tk.textSub }}>
+                                {cnt > 0 ? <><span style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</span><span style={{ color: tk.textFaint, fontSize: 11 }}> ({pct}%)</span></> : <span style={{ color: tk.borderMed }}>–</span>}
                               </td>;
                             })}
                             <td style={{ fontWeight: 700, color: "#60a5fa" }}>{total.toLocaleString()}</td>
                             <td style={{ textAlign: "center" }}>
-                              {ptpRank ? <span style={{ background: "#451a03", color: "#f59e0b", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>#{ptpRank}</span> : <span style={{ color: "#334155" }}>–</span>}
+                              {ptpRank ? <span style={{ background: "#451a03", color: "#f59e0b", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>#{ptpRank}</span> : <span style={{ color: tk.borderMed }}>–</span>}
                             </td>
                             <td style={{ textAlign: "center" }}>
-                              {keptRank ? <span style={{ background: "#052e16", color: "#22c55e", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>#{keptRank}</span> : <span style={{ color: "#334155" }}>–</span>}
+                              {keptRank ? <span style={{ background: "#052e16", color: "#22c55e", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>#{keptRank}</span> : <span style={{ color: tk.borderMed }}>–</span>}
                             </td>
                           </tr>
                         );
@@ -2407,44 +2496,44 @@ export default function App() {
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
-                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                    {k.sub && <div style={{ fontSize: 11, color: tk.textFaint, marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Overall Daily Efforts Trend</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Overall Daily Efforts Trend</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={dateSorted} margin={{ left: 0, right: 16, bottom: dateSorted.length > 20 ? 70 : 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={dateSorted.length < 40} name="Total Records" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Daily Group Breakdown</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Daily Group Breakdown</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={dateSorted} margin={{ left: 0, right: 16, bottom: dateSorted.length > 20 ? 70 : 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 {hasHours && (
                   <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Activity by Hour of Day</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Activity by Hour of Day</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={hourData} margin={{ left: 0, right: 16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={1} />
-                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 10 }} interval={1} />
+                        <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" fill="#a78bfa" radius={[3, 3, 0, 0]} name="Records" />
                       </BarChart>
@@ -2453,14 +2542,14 @@ export default function App() {
                 )}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:4 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>Per-Date Summary</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>Per-Date Summary</div>
                     <ExportBtn onClick={() => exportXlsx(dateSorted.map(d=>({ Date:d.date, Total:d.total, ...Object.fromEntries(SG_GROUPS.map(sg=>[sg,d[sg]||0])) })), "date_summary.xlsx")} />
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 8 }}>
                     Click any row to drill into that date.
-                    {selectedDate && <button onClick={() => setSelectedDate(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
+                    {selectedDate && <button onClick={() => setSelectedDate(null)} style={{ marginLeft: 12, background: tk.borderMed, border: "none", color: tk.textSub, borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                   </div>
-                  <SearchBar value={dateSearch} onChange={setDateSearch} placeholder="Filter by date..." />
+                  <SearchBar tk={tk} value={dateSearch} onChange={setDateSearch} placeholder="Filter by date..." />
                   {(() => {
                     const DI = mkIcon(dateSort);
                     const filteredDates = sortFilter(dateSorted, dateSort, dateSearch, ["date"]);
@@ -2471,14 +2560,14 @@ export default function App() {
                             <th>#</th>
                             <th onClick={() => mkSort(dateSort, setDateSort)("date")} style={{ cursor: "pointer", userSelect: "none" }}>Date <DI col="date" /></th>
                             <th onClick={() => mkSort(dateSort, setDateSort)("total")} style={{ cursor: "pointer", userSelect: "none" }}>Total <DI col="total" /></th>
-                            {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(dateSort, setDateSort)(sg)} style={{ cursor: "pointer", userSelect: "none" }}><span style={{ color: GC[sg] || "#94a3b8" }}>{sg}</span> <DI col={sg} /></th>)}
+                            {SG_GROUPS.map(sg => <th key={sg} onClick={() => mkSort(dateSort, setDateSort)(sg)} style={{ cursor: "pointer", userSelect: "none" }}><span style={{ color: GC[sg] || tk.textSub }}>{sg}</span> <DI col={sg} /></th>)}
                           </tr></thead>
                           <tbody>{filteredDates.map((d, i) => (
                             <tr key={d.date} className={`dr${selectedDate === d.date ? " sel" : ""}`} onClick={() => setSelectedDate(selectedDate === d.date ? null : d.date)}>
-                              <td style={{ color: "#475569" }}>{i + 1}</td>
-                              <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{d.date}</td>
+                              <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                              <td style={{ fontWeight: 600, color: tk.textPrimary }}>{d.date}</td>
                               <td style={{ fontWeight: 700, color: "#60a5fa" }}>{d.total.toLocaleString()}</td>
-                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(d[sg] || 0).toLocaleString()}</td>)}
+                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || tk.textSub }}>{(d[sg] || 0).toLocaleString()}</td>)}
                             </tr>
                           ))}</tbody>
                         </table>
@@ -2488,13 +2577,13 @@ export default function App() {
                 </div>
                 {selectedDate && selectedDateRows && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #1e40af" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9", marginBottom: 12 }}>📅 Status Breakdown — {selectedDate}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright, marginBottom: 12 }}>📅 Status Breakdown — {selectedDate}</div>
                     <div style={{ overflowX: "auto" }}>
                       <table>
                         <thead><tr><th>#</th><th>Status</th><th>Grp</th><th>TP</th><th>Count</th><th>%</th></tr></thead>
                         <tbody>{selectedDateRows.map((s, i) => {
                           const dayTotal = selectedDateRows.reduce((a, b) => a + b.count, 0);
-                          return <tr key={s.status}><td style={{ color: "#475569" }}>{i + 1}</td><td style={{ color: "#e2e8f0", fontWeight: 500 }}>{s.status}</td><td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || "#94a3b8" }}>{s.grp}</span></td><td style={{ color: "#64748b" }}>{s.tp}</td><td style={{ fontWeight: 700, color: "#f1f5f9" }}>{s.count.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td></tr>;
+                          return <tr key={s.status}><td style={{ color: tk.textFaint }}>{i + 1}</td><td style={{ color: tk.textPrimary, fontWeight: 500 }}>{s.status}</td><td><span className="bdg" style={{ background: (GC[s.grp] || "#3b82f6") + "33", color: GC[s.grp] || tk.textSub }}>{s.grp}</span></td><td style={{ color: tk.textMuted }}>{s.tp}</td><td style={{ fontWeight: 700, color: tk.textBright }}>{s.count.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((s.count / dayTotal) * 100).toFixed(1)}%</td></tr>;
                         })}</tbody>
                       </table>
                     </div>
@@ -2535,7 +2624,7 @@ export default function App() {
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Total Efforts Trend</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                       <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
                       <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
@@ -2555,7 +2644,7 @@ export default function App() {
                   </div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                       <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
                       <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
@@ -2574,7 +2663,7 @@ export default function App() {
                     <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly PTP Amount</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
                         <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
                         <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"PTP Amount"]} />
@@ -2590,7 +2679,7 @@ export default function App() {
                     <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Claim Paid Amount</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
                         <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
                         <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"Claim Amount"]} />
@@ -2605,7 +2694,7 @@ export default function App() {
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Touch Point Mix</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={monthlySorted.map(m=>({ month:m.month,...m.byTP }))} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                       <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
                       <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
@@ -2639,7 +2728,7 @@ export default function App() {
                       </tr></thead>
                       <tbody>{monthlySorted.map(m=>(
                         <tr key={m.month}>
-                          <td style={{ fontWeight:700, color:"#e2e8f0" }}>{m.month}</td>
+                          <td style={{ fontWeight:700, color:tk.textPrimary }}>{m.month}</td>
                           <td style={{ fontWeight:700, color:"#60a5fa" }}>{m.total.toLocaleString()}</td>
                           {SG_GROUPS.map(sg=><td key={sg} style={{ color:GC[sg]||"#9ca3af" }}>{(m[sg]||0).toLocaleString()}</td>)}
                           <td style={{ color:"#22c55e", fontSize:12 }}>₱{fN(m.ptpAmt)}</td>
@@ -2674,7 +2763,7 @@ export default function App() {
                             const maxVal = Math.max(...monthList.map(m=>mData[m]||0));
                             return (
                               <tr key={cl}>
-                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:"#e2e8f0",zIndex:1 }}>{cl}</td>
+                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:tk.textPrimary,zIndex:1 }}>{cl}</td>
                                 {monthList.map(m=>{
                                   const val = mData[m]||0;
                                   const intensity = maxVal>0?val/maxVal:0;
@@ -2710,7 +2799,7 @@ export default function App() {
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                 {/* Header note */}
-                <div style={{ gridColumn: "1/-1", background: "#0f1f3d", border: "1px solid #1e3a5f", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: "#64748b" }}>
+                <div style={{ gridColumn: "1/-1", background: isDark ? "#0f1f3d" : "#eff6ff", border: `1px solid ${isDark ? "#1e3a5f" : "#bfdbfe"}`, borderRadius: 10, padding: "12px 16px", fontSize: 12, color: tk.textMuted }}>
                   💡 This view compares all clients side-by-side. To see full analytics for a single client only, use the <strong style={{ color: "#60a5fa" }}>client filter strip</strong> above the tabs.
                 </div>
 
@@ -2722,20 +2811,20 @@ export default function App() {
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
-                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                    {k.sub && <div style={{ fontSize: 11, color: tk.textFaint, marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
 
                 {/* Volume comparison bar chart */}
                 <div className="card" style={{ gridColumn: "1/3" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: "#f1f5f9" }}>Volume by Client</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: tk.textBright }}>Volume by Client</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={clientList} layout="vertical" margin={{ left: 0, right: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={120} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={120} />
                       <Tooltip contentStyle={TS} />
                       <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                         {clientList.map((c, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
@@ -2746,22 +2835,22 @@ export default function App() {
 
                 {/* Outcome group stacked comparison */}
                 <div className="card" style={{ gridColumn: "3/5" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: "#f1f5f9" }}>Outcome Group Mix per Client</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: tk.textBright }}>Outcome Group Mix per Client</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={clientSGData} margin={{ bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={clientList.length > 4 ? -25 : 0} textAnchor={clientList.length > 4 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={clientList.length > 4 ? -25 : 0} textAnchor={clientList.length > 4 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Rate comparison */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: "#f1f5f9" }}>RPC / PTP / KEPT Rate by Client (%)</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: tk.textBright }}>RPC / PTP / KEPT Rate by Client (%)</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={clientList.map(c => ({
                       name: c.name,
@@ -2769,9 +2858,9 @@ export default function App() {
                       "PTP%": c.total > 0 ? parseFloat(((c.bySG.PTP || 0) / c.total * 100).toFixed(1)) : 0,
                       "KEPT%": c.total > 0 ? parseFloat(((c.bySG.KEPT || 0) / c.total * 100).toFixed(1)) : 0,
                     }))} margin={{ bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} angle={clientList.length > 4 ? -25 : 0} textAnchor={clientList.length > 4 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={clientList.length > 4 ? -25 : 0} textAnchor={clientList.length > 4 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} unit="%" />
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       <Bar dataKey="RPC%" fill="#3b82f6" radius={[3, 3, 0, 0]} />
@@ -2783,12 +2872,12 @@ export default function App() {
 
                 {/* Summary table with switch-to-client button */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Client Summary Table</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Client Summary Table</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 8 }}>
                     Click <strong style={{ color: "#60a5fa" }}>View Only</strong> on any row to isolate that client's data across all tabs.
-                    {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear drill-down</button>}
+                    {selectedClient && <button onClick={() => setSelectedClient(null)} style={{ marginLeft: 12, background: tk.borderMed, border: "none", color: tk.textSub, borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear drill-down</button>}
                   </div>
-                  <SearchBar value={clientSearch} onChange={setClientSearch} placeholder="Filter by client name..." />
+                  <SearchBar tk={tk} value={clientSearch} onChange={setClientSearch} placeholder="Filter by client name..." />
                   {(() => {
                     const CLI = mkIcon(clientSort);
                     const filteredClients = sortFilter(clientList.map(c => ({
@@ -2815,23 +2904,23 @@ export default function App() {
                           </tr></thead>
                           <tbody>{filteredClients.map((c, i) => (
                             <tr key={c.name} className={`dr3${selectedClient === c.name ? " sel" : ""}`} onClick={() => setSelectedClient(selectedClient === c.name ? null : c.name)}>
-                              <td style={{ color: "#475569" }}>{i + 1}</td>
-                              <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{c.name}</td>
+                              <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                              <td style={{ fontWeight: 600, color: tk.textPrimary }}>{c.name}</td>
                               <td style={{ fontWeight: 700, color: PC[i % PC.length] }}>{c.total.toLocaleString()}</td>
                               <td style={{ color: "#60a5fa" }}>{c.pctShare}%</td>
-                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(c.bySG[sg] || 0).toLocaleString()}</td>)}
+                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || tk.textSub }}>{(c.bySG[sg] || 0).toLocaleString()}</td>)}
                               <td style={{ color: "#3b82f6", fontWeight: 600 }}>{c.rpcRate}%</td>
                               <td style={{ color: "#f59e0b", fontWeight: 600 }}>{c.ptpRate}%</td>
                               <td style={{ color: "#22c55e", fontWeight: 600 }}>{c.keptRate}%</td>
                               <td>
                                 <button
                                   onClick={e => { e.stopPropagation(); setActiveClientFilter(c.name); setTab("overview"); }}
-                                  style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, background: "#1e3a5f", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}
+                                  style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, background: isDark ? "#1e3a5f" : "#dbeafe", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}
                                 >
                                   View Only ↗
                                 </button>
                               </td>
-                              <td><Pb pct={(c.total / clientList[0].total) * 100} c={PC[i % PC.length]} /></td>
+                              <td><Pb tk={tk} pct={(c.total / clientList[0].total) * 100} c={PC[i % PC.length]} /></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -2844,10 +2933,10 @@ export default function App() {
                 {selectedClient && selectedClientData && (
                   <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #78350f" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>🏢 {selectedClient} — Detailed Breakdown</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>🏢 {selectedClient} — Detailed Breakdown</div>
                       <button
                         onClick={() => { setActiveClientFilter(selectedClient); setTab("overview"); }}
-                        style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, background: "#1e3a5f", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}
+                        style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, background: isDark ? "#1e3a5f" : "#dbeafe", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}
                       >
                         Switch to {selectedClient} only ↗
                       </button>
@@ -2859,15 +2948,15 @@ export default function App() {
                         { l: "RPC Rate", v: selectedClientData.total > 0 ? ((selectedClientData.bySG.RPC || 0) / selectedClientData.total * 100).toFixed(1) + "%" : "–", c: "#3b82f6" },
                         { l: "KEPT Rate", v: selectedClientData.total > 0 ? ((selectedClientData.bySG.KEPT || 0) / selectedClientData.total * 100).toFixed(1) + "%" : "–", c: "#22c55e" },
                       ].map(k => (
-                        <div key={k.l} style={{ background: "#0f172a", borderRadius: 8, padding: "12px 14px" }}>
-                          <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>{k.l}</div>
+                        <div key={k.l} style={{ background: tk.bgSurface, borderRadius: 8, padding: "12px 14px" }}>
+                          <div style={{ fontSize: 10, color: tk.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>{k.l}</div>
                           <div style={{ fontSize: 18, fontWeight: 700, color: k.c }}>{k.v}</div>
                         </div>
                       ))}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Touch Point</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>By Touch Point</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
                             <Pie data={Object.entries(selectedClientData.byTP).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -2878,7 +2967,7 @@ export default function App() {
                         </ResponsiveContainer>
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>By Outcome Group</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>By Outcome Group</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
                             <Pie data={Object.entries(selectedClientData.bySG).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -2901,9 +2990,9 @@ export default function App() {
               ? (
                 <div className="card" style={{ gridColumn: "1/-1", textAlign: "center", padding: "48px 24px" }}>
                   <div style={{ fontSize: 40, marginBottom: 16 }}>📍</div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Bucket / Placement Column Detected</div>
-                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-                    The Buckets tab requires an <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Old IC</code>, <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Placement</code>, or <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Bucket</code> column in your file.
+                  <div style={{ fontWeight: 700, fontSize: 18, color: tk.textBright, marginBottom: 8 }}>No Bucket / Placement Column Detected</div>
+                  <div style={{ fontSize: 13, color: tk.textMuted, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    The Buckets tab requires an <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Old IC</code>, <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Placement</code>, or <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Bucket</code> column in your file.
                     Please upload a file that includes one of these columns to view bucket-level analytics.
                   </div>
                 </div>
@@ -2924,7 +3013,7 @@ export default function App() {
 
                 {/* ── Unmapped warning banner ── */}
                 {bucketWarn && (
-                  <div style={{ gridColumn: "1/-1", background: "#1c1400", border: "1px solid #92400e", borderRadius: 12, padding: "16px 20px" }}>
+                  <div style={{ gridColumn: "1/-1", background: isDark ? "#1c1400" : "#fffbeb", border: `1px solid ${isDark ? "#92400e" : "#fcd34d"}`, borderRadius: 12, padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                       <span style={{ fontSize: 24 }}>⚠️</span>
                       <div>
@@ -2933,15 +3022,15 @@ export default function App() {
                         </div>
                         <div style={{ fontSize: 13, color: "#a16207", lineHeight: 1.6, marginBottom: unmappedSamples.length ? 8 : 0 }}>
                           The <strong style={{ color: "#fbbf24" }}>{data.oick}</strong> column was found but none of its values matched known patterns
-                          like <code style={{ background: "#292524", padding: "1px 5px", borderRadius: 3 }}>01OAFSA</code>,{" "}
-                          <code style={{ background: "#292524", padding: "1px 5px", borderRadius: 3 }}>01BDA</code>, etc.
+                          like <code style={{ background: tk.bgCard, padding: "1px 5px", borderRadius: 3 }}>01OAFSA</code>,{" "}
+                          <code style={{ background: tk.bgCard, padding: "1px 5px", borderRadius: 3 }}>01BDA</code>, etc.
                           All rows are grouped as <strong style={{ color: "#fbbf24" }}>Unknown / Unmapped</strong> below.
                           Touch point, outcome group, and collector analytics remain fully available.
                         </div>
                         {unmappedSamples.length > 0 && (
-                          <div style={{ fontSize: 12, color: "#78716c" }}>
+                          <div style={{ fontSize: 12, color: tk.textMuted }}>
                             Sample values found in column: {unmappedSamples.map(s => (
-                              <code key={s} style={{ background: "#292524", color: "#d6d3d1", padding: "1px 6px", borderRadius: 3, marginRight: 4 }}>{s}</code>
+                              <code key={s} style={{ background: tk.bgCard, color: tk.textPrimary, padding: "1px 6px", borderRadius: 3, marginRight: 4 }}>{s}</code>
                             ))}
                           </div>
                         )}
@@ -2952,7 +3041,7 @@ export default function App() {
 
                 {/* KPI strip — only when we have real bucket data 
                 
-                { l: "Unmapped Rows", v: unmappedCount?.toLocaleString() || "0", i: "⚠️", c: "#64748b", sub: "no matching IC code" },
+                { l: "Unmapped Rows", v: unmappedCount?.toLocaleString() || "0", i: "⚠️", c: tk.textMuted, sub: "no matching IC code" },
                  */}
                 {!bucketWarn && [
                   { l: "Total Buckets", v: bucketList.length, i: "📍", c: "#f97316" },
@@ -2964,21 +3053,21 @@ export default function App() {
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
-                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                    {k.sub && <div style={{ fontSize: 11, color: tk.textFaint, marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
 
                 {/* ── When unmapped: show full touch point + SG analytics as fallback ── */}
                 {bucketWarn && (<>
-                  <div style={{ gridColumn: "1/-1", fontSize: 13, color: "#64748b", fontStyle: "italic", marginTop: -4 }}>
+                  <div style={{ gridColumn: "1/-1", fontSize: 13, color: tk.textMuted, fontStyle: "italic", marginTop: -4 }}>
                     Showing touch point and outcome analytics for all {an.T.toLocaleString()} valid records below. Bucket-level breakdown requires matching IC codes.
                   </div>
 
                   {/* Touch Point Distribution */}
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>📱 Touch Point Distribution</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>📱 Touch Point Distribution</div>
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie data={an.td} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90}
@@ -2993,7 +3082,7 @@ export default function App() {
 
                   {/* Outcome Group Distribution */}
                   <div className="card" style={{ gridColumn: "3/5" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>🏷️ Outcome Group Distribution</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>🏷️ Outcome Group Distribution</div>
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}
@@ -3008,12 +3097,12 @@ export default function App() {
 
                   {/* Touch Point efforts bar */}
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Touch Point</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Touch Point</div>
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={130} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                           {an.td.map((e, i) => <Cell key={i} fill={TP_COLORS[e.name] || PC[i % PC.length]} />)}
@@ -3024,12 +3113,12 @@ export default function App() {
 
                   {/* Top statuses */}
                   <div className="card" style={{ gridColumn: "3/5" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Top 15 Statuses</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Top 15 Statuses</div>
                     <ResponsiveContainer width="100%" height={260}>
                       <BarChart data={an.sd.slice(0, 15)} layout="vertical" margin={{ left: 0, right: 16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <YAxis type="category" dataKey="status" tick={{ fill: "#94a3b8", fontSize: 10 }} width={200} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                        <YAxis type="category" dataKey="status" tick={{ fill: tk.textSub, fontSize: 10 }} width={200} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                           {an.sd.slice(0, 15).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
@@ -3040,7 +3129,7 @@ export default function App() {
 
                   {/* Touch point summary table */}
                   <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>Touch Point Summary</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: tk.textBright }}>Touch Point Summary</div>
                     <table>
                       <thead><tr><th>Touch Point</th><th>Efforts</th><th>%</th><th>RPC</th><th>PTP</th><th>KEPT</th><th>NEG</th><th style={{ width: 160 }}>Bar</th></tr></thead>
                       <tbody>{an.td.map((t, i) => {
@@ -3052,14 +3141,14 @@ export default function App() {
                         const neg = Object.entries(an.tpBySG?.NEG || {}).find(([tp]) => tp === t.name)?.[1] || 0;
                         return (
                           <tr key={t.name}>
-                            <td style={{ fontWeight: 500, color: TP_COLORS[t.name] || "#e2e8f0" }}>{t.name}</td>
+                            <td style={{ fontWeight: 500, color: TP_COLORS[t.name] || tk.textPrimary }}>{t.name}</td>
                             <td style={{ fontWeight: 700 }}>{t.count.toLocaleString()}</td>
                             <td style={{ color: "#60a5fa" }}>{t.pct}%</td>
                             <td style={{ color: "#3b82f6" }}>{rpc > 0 ? rpc.toLocaleString() : "–"}</td>
                             <td style={{ color: "#f59e0b" }}>{ptp > 0 ? ptp.toLocaleString() : "–"}</td>
                             <td style={{ color: "#22c55e" }}>{kept > 0 ? kept.toLocaleString() : "–"}</td>
                             <td style={{ color: "#ef4444" }}>{neg > 0 ? neg.toLocaleString() : "–"}</td>
-                            <td><Pb pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
+                            <td><Pb tk={tk} pct={parseFloat(t.pct)} c={TP_COLORS[t.name] || PC[i % PC.length]} /></td>
                           </tr>
                         );
                       })}</tbody>
@@ -3069,7 +3158,7 @@ export default function App() {
                   {/* PTP & Claim totals if available */}
                   {(an.pt > 0 || an.ct > 0) && (
                     <div className="card" style={{ gridColumn: "1/-1" }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>💰 PTP & Claim Summary (All Records)</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: tk.textBright }}>💰 PTP & Claim Summary (All Records)</div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
                         {[
                           { l: "PTP Records", v: an.pc.toLocaleString(), c: "#3b82f6" },
@@ -3078,7 +3167,7 @@ export default function App() {
                           { l: "Total Claim Amount", v: "₱" + fN(an.ct), c: "#f97316" },
                         ].map(k => (
                           <div key={k.l} className="sc">
-                            <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{k.l}</div>
+                            <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 600 }}>{k.l}</div>
                             <div style={{ fontSize: 22, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 4 }}>{k.v}</div>
                           </div>
                         ))}
@@ -3089,18 +3178,18 @@ export default function App() {
                   {/* Collectors table if available */}
                   {an.cd.length > 0 && (
                     <div className="card" style={{ gridColumn: "1/-1" }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>👥 Top Collectors</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>{an.cd.length} collectors · {an.T.toLocaleString()} total efforts</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>👥 Top Collectors</div>
+                      <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>{an.cd.length} collectors · {an.T.toLocaleString()} total efforts</div>
                       <div style={{ maxHeight: 300, overflowY: "auto" }}>
                         <table>
                           <thead><tr><th>#</th><th>Collector</th><th>Efforts</th><th>% Share</th><th style={{ width: 140 }}>Bar</th></tr></thead>
                           <tbody>{an.cd.slice(0, 20).map((c, i) => (
                             <tr key={c.name}>
-                              <td style={{ color: "#475569" }}>{i + 1}</td>
-                              <td style={{ fontWeight: 500, color: "#e2e8f0" }}>{c.name}</td>
+                              <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                              <td style={{ fontWeight: 500, color: tk.textPrimary }}>{c.name}</td>
                               <td style={{ fontWeight: 700, color: "#22c55e" }}>{c.total.toLocaleString()}</td>
                               <td style={{ color: "#60a5fa" }}>{((c.total / an.T) * 100).toFixed(1)}%</td>
-                              <td><Pb pct={(c.total / an.cd[0].total) * 100} c="#3b82f6" /></td>
+                              <td><Pb tk={tk} pct={(c.total / an.cd[0].total) * 100} c="#3b82f6" /></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -3112,11 +3201,11 @@ export default function App() {
                 {/* ── Normal bucket analytics (when codes ARE mapped) ── */}
                 {!bucketWarn && (<>
                 <div className="card" style={{ gridColumn: "1/3" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Bucket Volume Distribution</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Bucket Volume Distribution</div>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie data={bucketList.map(b => ({ name: b.name, value: b.total }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} />)}
                       </Pie>
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -3124,39 +3213,39 @@ export default function App() {
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "3/5" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Bucket</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Bucket</div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} />
                       <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Outcome Group Mix per Bucket</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Outcome Group Mix per Bucket</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={bucketList.map(b => ({ name: b.name, NEG: b.bySG.NEG||0, RPC: b.bySG.RPC||0, PTP: b.bySG.PTP||0, KEPT: b.bySG.KEPT||0, POS: b.bySG.POS||0 }))} margin={{ bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || "#64748b"} name={sg} />)}
+                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Conversion Rates by Bucket (%)</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Conversion Rates by Bucket (%)</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={bucketList.map(b => ({ name: b.name, "RPC %": parseFloat(b.rpcRate), "PTP %": parseFloat(b.ptpRate), "KEPT %": parseFloat(b.keptRate) }))} margin={{ bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} unit="%" />
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       <Bar dataKey="RPC %" fill="#3b82f6" radius={[3, 3, 0, 0]} />
@@ -3166,39 +3255,39 @@ export default function App() {
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Touch Point Mix per Bucket</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Touch Point Mix per Bucket</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={bucketList.map(b => ({ name: b.name, ...b.byTP }))} margin={{ bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 11 }} angle={bucketList.length > 5 ? -25 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {activeTPs.map(tp => <Bar key={tp} dataKey={tp} stackId="b" fill={TP_COLORS[tp] || "#64748b"} name={tp} />)}
+                      {activeTPs.map(tp => <Bar key={tp} dataKey={tp} stackId="b" fill={TP_COLORS[tp] || tk.textMuted} name={tp} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "1/3" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>PTP Amount by Bucket</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>PTP Amount by Bucket</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : v} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : v} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={v => ["₱" + fN(v), "PTP Amount"]} />
                       <Bar dataKey="ptpAmt" radius={[0, 4, 4, 0]}>
-                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} />)}
+                        {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="card" style={{ gridColumn: "3/5" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Claim Paid Amount by Bucket</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Claim Paid Amount by Bucket</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : v} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={110} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 10 }} tickFormatter={v => v >= 1e6 ? (v/1e6).toFixed(1)+"M" : v >= 1e3 ? (v/1e3).toFixed(0)+"K" : v} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={v => ["₱" + fN(v), "Claim Amount"]} />
                       <Bar dataKey="claimAmt" radius={[0, 4, 4, 0]}>
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || "#f97316"} />)}
@@ -3208,13 +3297,13 @@ export default function App() {
                 </div>
                 {bucketList.length >= 2 && (
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Bucket Outcome Profile (Radar)</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Bucket Outcome Profile (Radar)</div>
                     <ResponsiveContainer width="100%" height={300}>
                       <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={100}>
-                        <PolarGrid stroke="#334155" />
-                        <PolarAngleAxis dataKey="sg" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                        <PolarGrid stroke={tk.borderMed} />
+                        <PolarAngleAxis dataKey="sg" tick={{ fill: tk.textSub, fontSize: 12 }} />
                         {bucketList.slice(0, 6).map(b => (
-                          <Radar key={b.name} name={b.name} dataKey={b.name} stroke={BUCKET_COLORS[b.name] || "#64748b"} fill={BUCKET_COLORS[b.name] || "#64748b"} fillOpacity={0.12} />
+                          <Radar key={b.name} name={b.name} dataKey={b.name} stroke={BUCKET_COLORS[b.name] || tk.textMuted} fill={BUCKET_COLORS[b.name] || tk.textMuted} fillOpacity={0.12} />
                         ))}
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
@@ -3223,12 +3312,12 @@ export default function App() {
                   </div>
                 )}
                 <div className="card" style={{ gridColumn: bucketList.length >= 2 ? "3/5" : "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#f1f5f9" }}>Bucket PTP & Claim Summary</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: tk.textBright }}>Bucket PTP & Claim Summary</div>
                   <table>
                     <thead><tr><th>Bucket</th><th>Total</th><th>PTP#</th><th>PTP Amt</th><th>Claim#</th><th>Claim Amt</th><th>RPC%</th><th>PTP%</th><th>KEPT%</th></tr></thead>
                     <tbody>{bucketList.map(b => (
                       <tr key={b.name}>
-                        <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
+                        <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || tk.textMuted) + "33", color: BUCKET_COLORS[b.name] || tk.textSub }}>{b.name}</span></td>
                         <td style={{ fontWeight: 700 }}>{b.total.toLocaleString()}</td>
                         <td style={{ color: "#f58c0b" }}>{b.ptpCount.toLocaleString()}</td>
                         <td style={{ color: "#22c55e", fontSize: 12 }}>₱{fN(b.ptpAmt)}</td>
@@ -3244,7 +3333,7 @@ export default function App() {
                 {/* Drill-down table */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:4 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>Detailed Bucket Table</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>Detailed Bucket Table</div>
                     <ExportBtn onClick={() => exportXlsx(bucketList.map(b=>({
                       Bucket:b.name, Total:b.total, "Unique Accounts":b.uniqueAccounts, "% Share":b.pctShare,
                       ...Object.fromEntries(SG_GROUPS.map(sg=>[sg,b.bySG[sg]||0])),
@@ -3252,11 +3341,11 @@ export default function App() {
                       "PTP Count":b.ptpCount, "PTP Amount":b.ptpAmt, "Claim Count":b.claimCount, "Claim Amount":b.claimAmt
                     })), "bucket_detail.xlsx")} />
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 8 }}>
                     Click a row to see touch point and outcome breakdown.
-                    {selectedBucket && <button onClick={() => setSelectedBucket(null)} style={{ marginLeft: 12, background: "#334155", border: "none", color: "#94a3b8", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
+                    {selectedBucket && <button onClick={() => setSelectedBucket(null)} style={{ marginLeft: 12, background: tk.borderMed, border: "none", color: tk.textSub, borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>x Clear</button>}
                   </div>
-                  <SearchBar value={bucketSearch} onChange={setBucketSearch} placeholder="Filter by bucket name..." />
+                  <SearchBar tk={tk} value={bucketSearch} onChange={setBucketSearch} placeholder="Filter by bucket name..." />
                   {(() => {
                     const BI = mkIcon(bucketSort);
                     const filteredBuckets = sortFilter(bucketList, bucketSort, bucketSearch, ["name"]);
@@ -3276,12 +3365,12 @@ export default function App() {
                           </tr></thead>
                           <tbody>{filteredBuckets.map((b, i) => (
                             <tr key={b.name} className={`dr4${selectedBucket === b.name ? " sel" : ""}`} onClick={() => setSelectedBucket(selectedBucket === b.name ? null : b.name)}>
-                              <td style={{ color: "#475569" }}>{i + 1}</td>
-                              <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
+                              <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                              <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || tk.textMuted) + "33", color: BUCKET_COLORS[b.name] || tk.textSub }}>{b.name}</span></td>
                               <td style={{ fontWeight: 700, color: BUCKET_COLORS[b.name] || "#f97316" }}>{b.total.toLocaleString()}</td>
                               <td style={{ color: "#60a5fa" }}>{b.uniqueAccounts > 0 ? b.uniqueAccounts.toLocaleString() : "–"}</td>
                               <td style={{ color: "#60a5fa" }}>{b.pctShare}%</td>
-                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || "#94a3b8" }}>{(b.bySG[sg] || 0).toLocaleString()}</td>)}
+                              {SG_GROUPS.map(sg => <td key={sg} style={{ color: GC[sg] || tk.textSub }}>{(b.bySG[sg] || 0).toLocaleString()}</td>)}
                               <td style={{ color: "#3b82f6" }}>{b.rpcRate}%</td>
                               <td style={{ color: "#f58c0b" }}>{b.ptpRate}%</td>
                               <td style={{ color: "#22c55e" }}>{b.keptRate}%</td>
@@ -3293,15 +3382,15 @@ export default function App() {
                   })()}
                 </div>
                 {selectedBucket && selectedBucketData && (
-                  <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${BUCKET_COLORS[selectedBucket] || "#334155"}44` }}>
+                  <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${BUCKET_COLORS[selectedBucket] || tk.borderMed}44` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9" }}>📍 {selectedBucket} — Deep Dive</div>
-                      <span style={{ background: (BUCKET_COLORS[selectedBucket] || "#64748b") + "22", color: BUCKET_COLORS[selectedBucket] || "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedBucketData.total.toLocaleString()} records</span>
-                      {selectedBucketData.uniqueAccounts > 0 && <span style={{ background: "#172554", color: "#60a5fa", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>{selectedBucketData.uniqueAccounts.toLocaleString()} unique accounts</span>}
+                      <div style={{ fontWeight: 700, fontSize: 15, color: tk.textBright }}>📍 {selectedBucket} — Deep Dive</div>
+                      <span style={{ background: (BUCKET_COLORS[selectedBucket] || tk.textMuted) + "22", color: BUCKET_COLORS[selectedBucket] || "#f97316", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{selectedBucketData.total.toLocaleString()} records</span>
+                      {selectedBucketData.uniqueAccounts > 0 && <span style={{ background: isDark ? "#172554" : "#dbeafe", color: isDark ? "#60a5fa" : "#2563eb", borderRadius: 20, padding: "2px 10px", fontSize: 12 }}>{selectedBucketData.uniqueAccounts.toLocaleString()} unique accounts</span>}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Breakdown</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>Touch Point Breakdown</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
                             <Pie data={Object.entries(selectedBucketData.byTP).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -3312,7 +3401,7 @@ export default function App() {
                         </ResponsiveContainer>
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Outcome Group Breakdown</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>Outcome Group Breakdown</div>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
                             <Pie data={Object.entries(selectedBucketData.bySG).map(([k, v]) => ({ name: k, value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -3323,11 +3412,11 @@ export default function App() {
                         </ResponsiveContainer>
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Touch Point Details</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: tk.textSub, marginBottom: 8 }}>Touch Point Details</div>
                         <table>
                           <thead><tr><th>TP</th><th>Efforts</th><th>%</th></tr></thead>
                           <tbody>{Object.entries(selectedBucketData.byTP).sort((a, b) => b[1] - a[1]).map(([tp, cnt]) => (
-                            <tr key={tp}><td style={{ color: TP_COLORS[tp] || "#94a3b8", fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedBucketData.total) * 100).toFixed(1)}%</td></tr>
+                            <tr key={tp}><td style={{ color: TP_COLORS[tp] || tk.textSub, fontWeight: 500 }}>{tp}</td><td style={{ fontWeight: 700 }}>{cnt.toLocaleString()}</td><td style={{ color: "#60a5fa" }}>{((cnt / selectedBucketData.total) * 100).toFixed(1)}%</td></tr>
                           ))}</tbody>
                         </table>
                       </div>
@@ -3347,9 +3436,9 @@ export default function App() {
               ? (
                 <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
                   <div style={{ fontSize: 40, marginBottom: 16 }}>🎯</div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Bucket / Placement Column Detected</div>
-                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-                    Penetration analysis requires an <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Old IC</code>, <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Placement</code>, or <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Bucket</code> column plus an Account No. column.
+                  <div style={{ fontWeight: 700, fontSize: 18, color: tk.textBright, marginBottom: 8 }}>No Bucket / Placement Column Detected</div>
+                  <div style={{ fontSize: 13, color: tk.textMuted, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    Penetration analysis requires an <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Old IC</code>, <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Placement</code>, or <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Bucket</code> column plus an Account No. column.
                   </div>
                 </div>
               )
@@ -3357,13 +3446,13 @@ export default function App() {
               ? (
                 <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
                   <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>Bucket Codes Not Recognized</div>
-                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 540, margin: "0 auto", lineHeight: 1.6 }}>
-                    Penetration analysis per bucket requires matching IC codes like <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>01OAFSA</code>, <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>01BDA</code>, etc.
+                  <div style={{ fontWeight: 700, fontSize: 18, color: tk.textBright, marginBottom: 8 }}>Bucket Codes Not Recognized</div>
+                  <div style={{ fontSize: 13, color: tk.textMuted, maxWidth: 540, margin: "0 auto", lineHeight: 1.6 }}>
+                    Penetration analysis per bucket requires matching IC codes like <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>01OAFSA</code>, <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>01BDA</code>, etc.
                     The values in your <strong style={{ color: "#f59e0b" }}>{data.oick}</strong> column did not match the known mapping.
                     {an.bucketAnalytics?.unmappedSamples?.length > 0 && (
                       <span> Sample values found: {an.bucketAnalytics.unmappedSamples.map(s => (
-                        <code key={s} style={{ background: "#1e293b", color: "#94a3b8", padding: "1px 6px", borderRadius: 3, marginRight: 4 }}>{s}</code>
+                        <code key={s} style={{ background: tk.bgCard, color: tk.textSub, padding: "1px 6px", borderRadius: 3, marginRight: 4 }}>{s}</code>
                       ))}</span>
                     )}
                   </div>
@@ -3373,9 +3462,9 @@ export default function App() {
               ? (
                 <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
                   <div style={{ fontSize: 40, marginBottom: 16 }}>👤</div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>No Account Number Column Detected</div>
-                  <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-                    Penetration % requires an <code style={{ color: "#60a5fa", background: "#0f172a", padding: "1px 6px", borderRadius: 4 }}>Account No.</code> column to count unique accounts per bucket.
+                  <div style={{ fontWeight: 700, fontSize: 18, color: tk.textBright, marginBottom: 8 }}>No Account Number Column Detected</div>
+                  <div style={{ fontSize: 13, color: tk.textMuted, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                    Penetration % requires an <code style={{ color: "#60a5fa", background: tk.bgSurface, padding: "1px 6px", borderRadius: 4 }}>Account No.</code> column to count unique accounts per bucket.
                     Please upload a file that includes this column.
                   </div>
                 </div>
@@ -3403,9 +3492,9 @@ export default function App() {
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                 {/* Summary KPIs */}
-                <div className="card" style={{ gridColumn: "1/-1", background: "linear-gradient(135deg,#0f1f3d,#0f172a)", border: "1px solid #1e3a5f" }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "#f1f5f9", marginBottom: 6 }}>🎯 Touch Point Penetration per Bucket</div>
-                  <div style={{ fontSize: 13, color: "#64748b", marginBottom: 0 }}>
+                <div className="card" style={{ gridColumn: "1/-1", background: isDark ? "linear-gradient(135deg,#0f1f3d,#0f172a)" : "linear-gradient(135deg,#eff6ff,#f8fafc)", border: `1px solid ${isDark ? "#1e3a5f" : "#bfdbfe"}` }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: tk.textBright, marginBottom: 6 }}>🎯 Touch Point Penetration per Bucket</div>
+                  <div style={{ fontSize: 13, color: tk.textMuted, marginBottom: 0 }}>
                     Penetration % = Unique accounts touched by each touch point ÷ Total unique accounts in that bucket.
                     A higher % means more accounts in that bucket were reached via that channel.
                   </div>
@@ -3415,38 +3504,38 @@ export default function App() {
                 {opd && (<>
                   <div className="sc" style={{ gridColumn: "1/2" }}>
                     <div style={{ fontSize: 20, marginBottom: 6 }}>🌐</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Total Unique Accounts</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Total Unique Accounts</div>
                     <div style={{ fontSize: 22, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.totalUA.toLocaleString()}</div>
                   </div>
                   <div className="sc" style={{ gridColumn: "2/3" }}>
                     <div style={{ fontSize: 20, marginBottom: 6 }}>✅</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Accounts with Any Effort</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Accounts with Any Effort</div>
                     <div style={{ fontSize: 22, fontWeight: 700, color: "#22c55e", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.accountsWithEffort.toLocaleString()}</div>
                   </div>
                   <div className="sc" style={{ gridColumn: "3/4" }}>
                     <div style={{ fontSize: 20, marginBottom: 6 }}>🏆</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Top Penetration Channel</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Top Penetration Channel</div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: TP_COLORS[opd.tpPenetrationOverall[0]?.tp] || "#a78bfa", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.tpPenetrationOverall[0]?.tp || "–"}</div>
-                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{opd.tpPenetrationOverall[0]?.pct}% of accounts reached</div>
+                    <div style={{ fontSize: 11, color: tk.textFaint, marginTop: 2 }}>{opd.tpPenetrationOverall[0]?.pct}% of accounts reached</div>
                   </div>
                   <div className="sc" style={{ gridColumn: "4/5" }}>
                     <div style={{ fontSize: 20, marginBottom: 6 }}>📊</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Overall Penetration</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Overall Penetration</div>
                     <div style={{ fontSize: 22, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{opd.overallPct}%</div>
-                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>Avg of all TP penetration %</div>
+                    <div style={{ fontSize: 11, color: tk.textFaint, marginTop: 2 }}>Avg of all TP penetration %</div>
                   </div>
 
                   {/* Overall TP Penetration Table & Chart */}
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>🌐 Overall Penetration by Touch Point</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>🌐 Overall Penetration by Touch Point</div>
+                    <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>
                       Unique accounts reached per channel as % of all {opd.totalUA.toLocaleString()} accounts.
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={opd.tpPenetrationOverall} layout="vertical" margin={{ left: 0, right: 40 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
-                        <YAxis type="category" dataKey="tp" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} unit="%" domain={[0, 100]} />
+                        <YAxis type="category" dataKey="tp" tick={{ fill: tk.textSub, fontSize: 11 }} width={130} />
                         <Tooltip contentStyle={TS} formatter={(v, n, p) => [`${v}% (${p.payload.uniqueAccountsTouched.toLocaleString()} accts)`, "Penetration"]} />
                         <Bar dataKey="pct" radius={[0, 4, 4, 0]}>
                           {opd.tpPenetrationOverall.map((r, i) => <Cell key={i} fill={TP_COLORS[r.tp] || PC[i % PC.length]} />)}
@@ -3463,10 +3552,10 @@ export default function App() {
                         </tr></thead>
                         <tbody>{opd.tpPenetrationOverall.map((r, i) => (
                           <tr key={r.tp}>
-                            <td style={{ color: TP_COLORS[r.tp] || "#94a3b8", fontWeight: 600 }}>{r.tp}</td>
-                            <td style={{ fontWeight: 700, color: "#e2e8f0" }}>{r.uniqueAccountsTouched.toLocaleString()}</td>
+                            <td style={{ color: TP_COLORS[r.tp] || tk.textSub, fontWeight: 600 }}>{r.tp}</td>
+                            <td style={{ fontWeight: 700, color: tk.textPrimary }}>{r.uniqueAccountsTouched.toLocaleString()}</td>
                             <td style={{ color: "#60a5fa", fontWeight: 700 }}>{r.pct}%</td>
-                            <td><Pb pct={r.pct} c={TP_COLORS[r.tp] || PC[i % PC.length]} /></td>
+                            <td><Pb tk={tk} pct={r.pct} c={TP_COLORS[r.tp] || PC[i % PC.length]} /></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -3475,15 +3564,15 @@ export default function App() {
 
                   {/* Overall SG Penetration */}
                   <div className="card" style={{ gridColumn: "3/5" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>🎯 Accounts Reached per Outcome Group</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>🎯 Accounts Reached per Outcome Group</div>
+                    <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>
                       Unique accounts that received each outcome group — as % of total accounts.
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={opd.sgPenetrationOverall} layout="vertical" margin={{ left: 0, right: 40 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
-                        <YAxis type="category" dataKey="sg" tick={{ fill: "#94a3b8", fontSize: 11 }} width={50} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} unit="%" domain={[0, 100]} />
+                        <YAxis type="category" dataKey="sg" tick={{ fill: tk.textSub, fontSize: 11 }} width={50} />
                         <Tooltip contentStyle={TS} formatter={(v, n, p) => [`${v}% (${p.payload.uniqueAccounts.toLocaleString()} accts)`, "Penetration"]} />
                         <Bar dataKey="pct" radius={[0, 4, 4, 0]}>
                           {opd.sgPenetrationOverall.map((r, i) => <Cell key={i} fill={GC[r.sg] || PC[i % PC.length]} />)}
@@ -3495,10 +3584,10 @@ export default function App() {
                         <thead><tr><th>Outcome Group</th><th>Unique Accounts</th><th>% of Total</th><th style={{ width: 100 }}>Bar</th></tr></thead>
                         <tbody>{opd.sgPenetrationOverall.map((r, i) => (
                           <tr key={r.sg}>
-                            <td><span className="bdg" style={{ background: (GC[r.sg] || "#334155") + "33", color: GC[r.sg] || "#94a3b8" }}>{r.sg}</span></td>
-                            <td style={{ fontWeight: 700, color: "#e2e8f0" }}>{r.uniqueAccounts.toLocaleString()}</td>
+                            <td><span className="bdg" style={{ background: (GC[r.sg] || tk.borderMed) + "33", color: GC[r.sg] || tk.textSub }}>{r.sg}</span></td>
+                            <td style={{ fontWeight: 700, color: tk.textPrimary }}>{r.uniqueAccounts.toLocaleString()}</td>
                             <td style={{ color: "#60a5fa", fontWeight: 700 }}>{r.pct}%</td>
-                            <td><Pb pct={r.pct} c={GC[r.sg] || PC[i % PC.length]} /></td>
+                            <td><Pb tk={tk} pct={r.pct} c={GC[r.sg] || PC[i % PC.length]} /></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -3508,7 +3597,7 @@ export default function App() {
 
                 {/* View mode toggle */}
                 <div style={{ gridColumn: "1/-1", display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Display mode:</span>
+                  <span style={{ fontSize: 12, color: tk.textMuted }}>Display mode:</span>
                   {[["pct", "Penetration %"], ["efforts", "Total Efforts"], ["accounts", "Unique Accounts"]].map(([k, l]) => (
                     <button key={k} className={`mode-btn${penetrationMode === k ? " active" : ""}`} onClick={() => setPenetrationMode(k)}>{l}</button>
                   ))}
@@ -3516,32 +3605,32 @@ export default function App() {
 
                 {/* Heatmap matrix */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>
                     Penetration Heatmap — Bucket × Touch Point
-                    {penetrationMode === "pct" && <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b", marginLeft: 8 }}>Blue intensity = penetration %. Darker = higher reach.</span>}
-                    {penetrationMode === "efforts" && <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b", marginLeft: 8 }}>Total effort count per bucket × TP combination.</span>}
-                    {penetrationMode === "accounts" && <span style={{ fontWeight: 400, fontSize: 12, color: "#64748b", marginLeft: 8 }}>Unique accounts worked per bucket × TP combination.</span>}
+                    {penetrationMode === "pct" && <span style={{ fontWeight: 400, fontSize: 12, color: tk.textMuted, marginLeft: 8 }}>Blue intensity = penetration %. Darker = higher reach.</span>}
+                    {penetrationMode === "efforts" && <span style={{ fontWeight: 400, fontSize: 12, color: tk.textMuted, marginLeft: 8 }}>Total effort count per bucket × TP combination.</span>}
+                    {penetrationMode === "accounts" && <span style={{ fontWeight: 400, fontSize: 12, color: tk.textMuted, marginLeft: 8 }}>Unique accounts worked per bucket × TP combination.</span>}
                   </div>
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ fontSize: 12 }}>
                       <thead>
                         <tr>
-                          <th style={{ minWidth: 120, position: "sticky", left: 0, background: "#0f172a", zIndex: 2 }}>Bucket</th>
+                          <th style={{ minWidth: 120, position: "sticky", left: 0, background: tk.bgSurface, zIndex: 2 }}>Bucket</th>
                           <th style={{ color: "#60a5fa" }}>Unique Accts</th>
-                          <th style={{ color: "#94a3b8" }}>Total Efforts</th>
+                          <th style={{ color: tk.textSub }}>Total Efforts</th>
                           {activeTPs.map(tp => (
-                            <th key={tp} style={{ color: TP_COLORS[tp] || "#94a3b8", textAlign: "center", minWidth: 70 }}>{tp}</th>
+                            <th key={tp} style={{ color: TP_COLORS[tp] || tk.textSub, textAlign: "center", minWidth: 70 }}>{tp}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {penetrationMatrix.map(row => (
                           <tr key={row.bucket}>
-                            <td style={{ fontWeight: 600, position: "sticky", left: 0, background: "#1e293b", zIndex: 1 }}>
-                              <span className="bdg" style={{ background: (BUCKET_COLORS[row.bucket] || "#64748b") + "33", color: BUCKET_COLORS[row.bucket] || "#94a3b8" }}>{row.bucket}</span>
+                            <td style={{ fontWeight: 600, position: "sticky", left: 0, background: tk.bgCard, zIndex: 1 }}>
+                              <span className="bdg" style={{ background: (BUCKET_COLORS[row.bucket] || tk.textMuted) + "33", color: BUCKET_COLORS[row.bucket] || tk.textSub }}>{row.bucket}</span>
                             </td>
                             <td style={{ color: "#60a5fa", fontWeight: 700 }}>{row.uniqueAccounts.toLocaleString()}</td>
-                            <td style={{ color: "#94a3b8" }}>{row.total.toLocaleString()}</td>
+                            <td style={{ color: tk.textSub }}>{row.total.toLocaleString()}</td>
                             {activeTPs.map(tp => {
                               const pct = row[`${tp}_pct`] || 0;
                               const efforts = row[`${tp}_efforts`] || 0;
@@ -3551,15 +3640,15 @@ export default function App() {
                                 : (accounts > 0 ? accounts.toLocaleString() : "–");
                               const intensity = tpMaxPct[tp] > 0 ? pct / tpMaxPct[tp] : 0;
                               const bg = penetrationMode === "pct"
-                                ? (pct === 0 ? "#0f172a" : `rgba(59,130,246,${0.08 + intensity * 0.82})`)
-                                : (efforts === 0 ? "#0f172a" : `rgba(34,197,94,${0.08 + (efforts / Math.max(...penetrationMatrix.map(r => r[`${tp}_efforts`] || 0))) * 0.82})`);
-                              const textColor = intensity > 0.55 ? "#fff" : "#94a3b8";
+                                ? (pct === 0 ? tk.heatEmpty : `rgba(59,130,246,${0.08 + intensity * 0.82})`)
+                                : (efforts === 0 ? tk.heatEmpty : `rgba(34,197,94,${0.08 + (efforts / Math.max(...penetrationMatrix.map(r => r[`${tp}_efforts`] || 0))) * 0.82})`);
+                              const textColor = intensity > 0.55 ? "#fff" : tk.textSub;
                               return (
                                 <td key={tp} style={{ padding: "6px 8px", textAlign: "center" }}>
                                   <div style={{
                                     background: bg, color: textColor, borderRadius: 5,
                                     padding: "4px 2px", fontWeight: 600, fontSize: 11,
-                                    border: "1px solid #1e293b", minWidth: 54,
+                                    border: `1px solid ${tk.border}`, minWidth: 54,
                                     transition: "all 0.2s"
                                   }}>
                                     {displayVal}
@@ -3576,17 +3665,17 @@ export default function App() {
 
                 {/* Bar chart: penetration % per TP grouped by bucket */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Penetration % by Touch Point across Buckets</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Each group = one touch point. Bars = penetration % per bucket. Higher = more accounts reached in that bucket via that channel.</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Penetration % by Touch Point across Buckets</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>Each group = one touch point. Bars = penetration % per bucket. Higher = more accounts reached in that bucket via that channel.</div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={penetrationBarData} margin={{ bottom: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="tp" tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="tp" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} unit="%" domain={[0, 100]} />
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {bucketList.map(b => (
-                        <Bar key={b.name} dataKey={b.name} fill={BUCKET_COLORS[b.name] || "#64748b"} name={b.name} radius={[2, 2, 0, 0]} />
+                        <Bar key={b.name} dataKey={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} name={b.name} radius={[2, 2, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
@@ -3594,17 +3683,17 @@ export default function App() {
 
                 {/* Per-bucket penetration bar chart (grouped by TP) */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Penetration % per Bucket by Touch Point</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Each group = one bucket. Bars = penetration % per touch point within that bucket.</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Penetration % per Bucket by Touch Point</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>Each group = one bucket. Bars = penetration % per touch point within that bucket.</div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={bucketPenetrationChartData} margin={{ bottom: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} angle={bucketList.length > 5 ? -20 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} unit="%" domain={[0, 100]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 11 }} angle={bucketList.length > 5 ? -20 : 0} textAnchor={bucketList.length > 5 ? "end" : "middle"} interval={0} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} unit="%" domain={[0, 100]} />
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {activeTPs.map(tp => (
-                        <Bar key={tp} dataKey={tp} fill={TP_COLORS[tp] || "#64748b"} name={tp} radius={[2, 2, 0, 0]} />
+                        <Bar key={tp} dataKey={tp} fill={TP_COLORS[tp] || tk.textMuted} name={tp} radius={[2, 2, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
@@ -3612,17 +3701,17 @@ export default function App() {
 
                 {/* Top penetrations summary */}
                 <div className="card" style={{ gridColumn: "1/3" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>🏆 Highest Penetration by Touch Point</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: tk.textBright }}>🏆 Highest Penetration by Touch Point</div>
                   <table>
                     <thead><tr><th>Touch Point</th><th>Best Bucket</th><th>Penetration %</th><th style={{ width: 100 }}>Bar</th></tr></thead>
                     <tbody>{topPenetrations.map((t, i) => (
                       <tr key={t.tp}>
-                        <td style={{ color: TP_COLORS[t.tp] || "#94a3b8", fontWeight: 600 }}>{t.tp}</td>
+                        <td style={{ color: TP_COLORS[t.tp] || tk.textSub, fontWeight: 600 }}>{t.tp}</td>
                         <td>
-                          {t.bucket ? <span className="bdg" style={{ background: (BUCKET_COLORS[t.bucket] || "#64748b") + "33", color: BUCKET_COLORS[t.bucket] || "#94a3b8" }}>{t.bucket}</span> : "–"}
+                          {t.bucket ? <span className="bdg" style={{ background: (BUCKET_COLORS[t.bucket] || tk.textMuted) + "33", color: BUCKET_COLORS[t.bucket] || tk.textSub }}>{t.bucket}</span> : "–"}
                         </td>
                         <td style={{ color: "#3b82f6", fontWeight: 700 }}>{t.pct.toFixed(1)}%</td>
-                        <td><Pb pct={t.pct} c={TP_COLORS[t.tp] || PC[i % PC.length]} /></td>
+                        <td><Pb tk={tk} pct={t.pct} c={TP_COLORS[t.tp] || PC[i % PC.length]} /></td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -3630,21 +3719,21 @@ export default function App() {
 
                 {/* Detailed full table */}
                 <div className="card" style={{ gridColumn: "3/5" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>📊 Accounts Worked per Bucket</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: tk.textBright }}>📊 Accounts Worked per Bucket</div>
                   <table>
                     <thead><tr><th>Bucket</th><th>Unique Accts</th><th>Total Efforts</th><th>Efforts/Acct</th></tr></thead>
                     <tbody>{bucketList.map(b => (
                       <tr key={b.name}>
-                        <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || "#64748b") + "33", color: BUCKET_COLORS[b.name] || "#94a3b8" }}>{b.name}</span></td>
+                        <td><span className="bdg" style={{ background: (BUCKET_COLORS[b.name] || tk.textMuted) + "33", color: BUCKET_COLORS[b.name] || tk.textSub }}>{b.name}</span></td>
                         <td style={{ color: "#60a5fa", fontWeight: 700 }}>{b.uniqueAccounts > 0 ? b.uniqueAccounts.toLocaleString() : "–"}</td>
-                        <td style={{ color: "#94a3b8" }}>{b.total.toLocaleString()}</td>
+                        <td style={{ color: tk.textSub }}>{b.total.toLocaleString()}</td>
                         <td style={{ color: "#f59e0b", fontWeight: 600 }}>
                           {b.uniqueAccounts > 0 ? (b.total / b.uniqueAccounts).toFixed(1) : "–"}
                         </td>
                       </tr>
                     ))}</tbody>
                   </table>
-                  <div style={{ marginTop: 12, fontSize: 11, color: "#475569" }}>Efforts/Acct = avg number of attempts per unique account in each bucket.</div>
+                  <div style={{ marginTop: 12, fontSize: 11, color: tk.textFaint }}>Efforts/Acct = avg number of attempts per unique account in each bucket.</div>
                 </div>
               </div>
             );
@@ -3671,26 +3760,26 @@ export default function App() {
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
-                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
+                    <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2 }}>{k.v}</div>
-                    {k.sub && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{k.sub}</div>}
+                    {k.sub && <div style={{ fontSize: 11, color: tk.textFaint, marginTop: 2 }}>{k.sub}</div>}
                   </div>
                 ))}
 
                 {/* Total efforts by hour */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Total Efforts by Hour of Day</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>When does the most collection activity happen?</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Total Efforts by Hour of Day</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>When does the most collection activity happen?</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={hourTopData} margin={{ left: 0, right: 16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={1} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 10 }} interval={1} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} formatter={(v, n, p) => [v.toLocaleString() + " efforts", p.payload.hour]} />
                       <Bar dataKey="total" radius={[3, 3, 0, 0]} name="Efforts">
                         {hourTopData.map((h, i) => {
                           const intensity = heatmapMax > 0 ? h.total / Math.max(...hourTopData.map(x => x.total)) : 0;
-                          const color = h.total === 0 ? "#1e293b"
+                          const color = h.total === 0 ? tk.border
                             : intensity > 0.8 ? "#ef4444"
                             : intensity > 0.6 ? "#f97316"
                             : intensity > 0.4 ? "#f59e0b"
@@ -3706,12 +3795,12 @@ export default function App() {
                 {/* Shift breakdown */}
                 {shiftData.length > 0 && (
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: "#f1f5f9" }}>Efforts by Shift Window</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Shift Window</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={shiftData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={120} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={120} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" fill="#a78bfa" radius={[0, 4, 4, 0]} name="Efforts">
                           {shiftData.map((s, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
@@ -3723,32 +3812,32 @@ export default function App() {
 
                 {/* Touch point by hour stacked */}
                 <div className="card" style={{ gridColumn: shiftData.length > 0 ? "3/5" : "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Touch Point Mix by Hour</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Which channels are active at each hour?</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Touch Point Mix by Hour</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>Which channels are active at each hour?</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={hourTPData} margin={{ left: 0, right: 16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 9 }} interval={2} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 9 }} interval={2} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 10 }} />
-                      {activeTPs_hourly.map(tp => <Bar key={tp} dataKey={tp} stackId="h" fill={TP_COLORS[tp] || "#64748b"} name={tp} />)}
+                      {activeTPs_hourly.map(tp => <Bar key={tp} dataKey={tp} stackId="h" fill={TP_COLORS[tp] || tk.textMuted} name={tp} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Hourly line trend stacked */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Hourly Touch Point Trend (Lines)</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>See how each channel's activity rises and falls across the day.</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Hourly Touch Point Trend (Lines)</div>
+                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>See how each channel's activity rises and falls across the day.</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={hourTPData} margin={{ left: 0, right: 16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 10 }} interval={1} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 10 }} interval={1} />
+                      <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {activeTPs_hourly.map(tp => <Line key={tp} type="monotone" dataKey={tp} stroke={TP_COLORS[tp] || "#64748b"} strokeWidth={2} dot={false} name={tp} />)}
+                      {activeTPs_hourly.map(tp => <Line key={tp} type="monotone" dataKey={tp} stroke={TP_COLORS[tp] || tk.textMuted} strokeWidth={2} dot={false} name={tp} />)}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -3757,8 +3846,8 @@ export default function App() {
                 {!noCollector && heatmapRows.length > 0 && <>
                   <div className="card" style={{ gridColumn: "1/-1" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 12, flexWrap: "wrap" }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>🔥 Collector × Hour Heatmap</div>
-                      <div style={{ fontSize: 12, color: "#64748b" }}>Each cell = efforts for that collector at that hour. Color intensity = volume relative to max.</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>🔥 Collector × Hour Heatmap</div>
+                      <div style={{ fontSize: 12, color: tk.textMuted }}>Each cell = efforts for that collector at that hour. Color intensity = volume relative to max.</div>
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {[["heatmap","🟦 Heatmap"],["bar","📊 Bar"],["top","🏆 Top by Hour"]].map(([k, l]) => (
                           <button key={k} className={`mode-btn${hourlyCollectorView === k ? " active" : ""}`} onClick={() => setHourlyCollectorView(k)}>{l}</button>
@@ -3768,10 +3857,10 @@ export default function App() {
 
                     {/* Color legend */}
                     <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
-                      <span style={{ fontSize: 11, color: "#64748b" }}>Intensity:</span>
-                      {[["0", "#1e293b"],["Low","rgba(59,130,246,0.3)"],["Med","rgba(16,185,129,0.6)"],["High","rgba(245,158,11,0.8)"],["Peak","rgba(239,68,68,0.9)"]].map(([l, c]) => (
-                        <span key={l} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#94a3b8" }}>
-                          <span style={{ width: 14, height: 14, borderRadius: 3, background: c, display: "inline-block", border: "1px solid #334155" }} />{l}
+                      <span style={{ fontSize: 11, color: tk.textMuted }}>Intensity:</span>
+                      {[["0", tk.border],["Low","rgba(59,130,246,0.3)"],["Med","rgba(16,185,129,0.6)"],["High","rgba(245,158,11,0.8)"],["Peak","rgba(239,68,68,0.9)"]].map(([l, c]) => (
+                        <span key={l} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: tk.textSub }}>
+                          <span style={{ width: 14, height: 14, borderRadius: 3, background: c, display: "inline-block", border: `1px solid ${tk.borderMed}` }} />{l}
                         </span>
                       ))}
                     </div>
@@ -3781,11 +3870,11 @@ export default function App() {
                         <table style={{ fontSize: 11, borderCollapse: "separate", borderSpacing: 2 }}>
                           <thead>
                             <tr>
-                              <th style={{ position: "sticky", left: 0, background: "#0f172a", minWidth: 130, zIndex: 2, textAlign: "left" }}>Collector</th>
+                              <th style={{ position: "sticky", left: 0, background: tk.bgSurface, minWidth: 130, zIndex: 2, textAlign: "left" }}>Collector</th>
                               <th style={{ color: "#22c55e", minWidth: 60 }}>Total</th>
                               <th style={{ color: "#a78bfa", minWidth: 60 }}>Peak Hr</th>
                               {Array.from({ length: 24 }, (_, h) => (
-                                <th key={h} style={{ color: "#475569", minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
+                                <th key={h} style={{ color: tk.textFaint, minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
                                   {String(h).padStart(2,"0")}
                                 </th>
                               ))}
@@ -3794,7 +3883,7 @@ export default function App() {
                           <tbody>
                             {heatmapRows.map(row => (
                               <tr key={row.collector}>
-                                <td style={{ position: "sticky", left: 0, background: "#1e293b", fontWeight: 600, color: "#e2e8f0", padding: "4px 8px", zIndex: 1 }}>{row.collector}</td>
+                                <td style={{ position: "sticky", left: 0, background: tk.bgCard, fontWeight: 600, color: tk.textPrimary, padding: "4px 8px", zIndex: 1 }}>{row.collector}</td>
                                 <td style={{ color: "#22c55e", fontWeight: 700, textAlign: "center" }}>{row.total.toLocaleString()}</td>
                                 <td style={{ color: "#a78bfa", textAlign: "center" }}>{row.peakHour}</td>
                                 {Array.from({ length: 24 }, (_, h) => {
@@ -3804,7 +3893,7 @@ export default function App() {
                                     <td key={h} style={{ padding: "2px" }}>
                                       <div className="hm-cell" style={{
                                         background: bg,
-                                        color: val > heatmapMax * 0.5 ? "#fff" : "#64748b",
+                                        color: val > heatmapMax * 0.5 ? "#fff" : tk.textMuted,
                                         title: `${row.collector} @ ${String(h).padStart(2,"0")}:00 — ${val} efforts`
                                       }}>
                                         {val > 0 ? val : ""}
@@ -3821,7 +3910,7 @@ export default function App() {
 
                     {hourlyCollectorView === "bar" && (
                       <div>
-                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>Top 15 collectors — stacked bar showing effort distribution across hours</div>
+                        <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>Top 15 collectors — stacked bar showing effort distribution across hours</div>
                         <ResponsiveContainer width="100%" height={Math.max(300, heatmapRows.slice(0,15).length * 22 + 80)}>
                           <BarChart data={heatmapRows.slice(0, 15).map(r => {
                             const row = { name: r.collector };
@@ -3835,9 +3924,9 @@ export default function App() {
                             row["21-24"] = Array.from({length:3},(_,h)=>r[`h${h+21}`]||0).reduce((s,v)=>s+v,0);
                             return row;
                           })} layout="vertical" margin={{ left: 10, right: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
-                            <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} width={130} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                            <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
+                            <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={130} />
                             <Tooltip contentStyle={TS} />
                             <Legend wrapperStyle={{ fontSize: 11 }} />
                             {["00-06","06-09","09-12","12-15","15-18","18-21","21-24"].map((slot, i) => (
@@ -3850,17 +3939,17 @@ export default function App() {
 
                     {hourlyCollectorView === "top" && (
                       <div>
-                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>For each hour, the collector with the most efforts.</div>
+                        <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 12 }}>For each hour, the collector with the most efforts.</div>
                         <table>
                           <thead><tr><th>Hour</th><th>Total Efforts</th><th>Top Collector</th><th>Their Count</th><th>Share</th><th style={{ width: 120 }}>Bar</th></tr></thead>
                           <tbody>{hourTopData.map(h => (
                             <tr key={h.hour}>
                               <td style={{ fontWeight: 700, color: "#a78bfa" }}>{h.hour}</td>
-                              <td style={{ color: "#94a3b8" }}>{h.total.toLocaleString()}</td>
-                              <td style={{ color: "#e2e8f0", fontWeight: 500 }}>{h.total > 0 ? h.topCollector : "–"}</td>
+                              <td style={{ color: tk.textSub }}>{h.total.toLocaleString()}</td>
+                              <td style={{ color: tk.textPrimary, fontWeight: 500 }}>{h.total > 0 ? h.topCollector : "–"}</td>
                               <td style={{ color: "#22c55e" }}>{h.topCount > 0 ? h.topCount.toLocaleString() : "–"}</td>
                               <td style={{ color: "#60a5fa" }}>{h.total > 0 && h.topCount > 0 ? ((h.topCount / h.total) * 100).toFixed(1) + "%" : "–"}</td>
-                              <td><Pb pct={peakHourObj?.total > 0 ? (h.total / peakHourObj.total) * 100 : 0} c="#a78bfa" /></td>
+                              <td><Pb tk={tk} pct={peakHourObj?.total > 0 ? (h.total / peakHourObj.total) * 100 : 0} c="#a78bfa" /></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -3870,16 +3959,16 @@ export default function App() {
 
                   {/* Collector peak hour distribution */}
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>Collector Peak Hour Distribution</div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>How many collectors peak at each hour of the day?</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Collector Peak Hour Distribution</div>
+                    <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>How many collectors peak at each hour of the day?</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={Array.from({length:24},(_,h)=>({
                         hour: `${String(h).padStart(2,"0")}:00`,
                         collectors: heatmapRows.filter(r => r.peakHour === `${String(h).padStart(2,"0")}:00`).length
                       }))} margin={{ left: 0, right: 16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="hour" tick={{ fill: "#64748b", fontSize: 9 }} interval={2} />
-                        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 9 }} interval={2} />
+                        <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} formatter={v => [v + " collectors"]} />
                         <Bar dataKey="collectors" fill="#f59e0b" radius={[3, 3, 0, 0]} name="Collectors peaking" />
                       </BarChart>
@@ -3888,7 +3977,7 @@ export default function App() {
 
                   {/* Top collectors table with peak hours */}
                   <div className="card" style={{ gridColumn: "3/5" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#f1f5f9" }}>Collector Summary — Hourly Profile</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: tk.textBright }}>Collector Summary — Hourly Profile</div>
                     <div style={{ overflowY: "auto", maxHeight: 280 }}>
                       <table>
                         <thead><tr><th>#</th><th>Collector</th><th>Total</th><th>Peak Hr</th><th>06-12</th><th>12-18</th><th>18-24</th></tr></thead>
@@ -3898,8 +3987,8 @@ export default function App() {
                           const eve = Array.from({length:6},(_,h)=>r[`h${h+18}`]||0).reduce((s,v)=>s+v,0);
                           return (
                             <tr key={r.collector}>
-                              <td style={{ color: "#475569" }}>{i + 1}</td>
-                              <td style={{ fontWeight: 600, color: "#e2e8f0" }}>{r.collector}</td>
+                              <td style={{ color: tk.textFaint }}>{i + 1}</td>
+                              <td style={{ fontWeight: 600, color: tk.textPrimary }}>{r.collector}</td>
                               <td style={{ color: "#22c55e", fontWeight: 700 }}>{r.total.toLocaleString()}</td>
                               <td style={{ color: "#a78bfa" }}>{r.peakHour}</td>
                               <td style={{ color: "#3b82f6" }}>{am}</td>
@@ -3914,8 +4003,8 @@ export default function App() {
                 </>}
 
                 {noCollector && (
-                  <div className="card" style={{ gridColumn: "1/-1", border: "1px solid #44403c" }}>
-                    <div style={{ color: "#78716c", fontSize: 13, textAlign: "center", padding: 20 }}>
+                  <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${tk.borderMed}` }}>
+                    <div style={{ color: tk.textMuted, fontSize: 13, textAlign: "center", padding: 20 }}>
                       ℹ️ No "Remark By" column detected — collector-level hourly heatmap unavailable. The hourly charts above still show total efforts and touch point breakdown by hour.
                     </div>
                   </div>
@@ -3961,7 +4050,7 @@ export default function App() {
                   <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Total field visit count by delinquency bucket.</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={fa.bucketVisitData} layout="vertical" margin={{ left:0, right:20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                       <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={(v,n)=>[v.toLocaleString(),n]} />
@@ -4001,13 +4090,13 @@ export default function App() {
                           <div style={{ fontSize:11, color:BUCKET_COLORS[b.name]||"#9ca3af", fontWeight:700 }}>{b.name}</div>
                           <div style={{ fontSize:22, fontWeight:800, color:"#f9fafb", fontFamily:"'Syne',sans-serif" }}>{b.pctOfAccts}%</div>
                           <div style={{ fontSize:11, color:"#4b5563" }}>{b.visitedAccts.toLocaleString()} / {b.totalAccts.toLocaleString()} accts</div>
-                          <Pb pct={parseFloat(b.pctOfAccts)} c={BUCKET_COLORS[b.name]||"#3b82f6"} />
+                          <Pb tk={tk} pct={parseFloat(b.pctOfAccts)} c={BUCKET_COLORS[b.name]||"#3b82f6"} />
                         </div>
                       ))}
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.bucketVisitData.filter(b=>b.totalAccts>0)} margin={{ bottom:30 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={fa.bucketVisitData.length>5?-20:0} textAnchor={fa.bucketVisitData.length>5?"end":"middle"} interval={0} />
                         <YAxis tick={{ fill:"#6b7280",fontSize:11 }} unit="%" domain={[0,100]} />
                         <Tooltip contentStyle={TS} formatter={v=>[v+"%","Penetration"]} />
@@ -4043,7 +4132,7 @@ export default function App() {
                             <td style={{ color:"#9ca3af" }}>{b.totalAccts.toLocaleString()}</td>
                             <td style={{ fontWeight:700, color: parseFloat(b.pctOfAccts)>50?"#22c55e":parseFloat(b.pctOfAccts)>25?"#f59e0b":"#ef4444" }}>{b.pctOfAccts}%</td>
                           </>}
-                          <td><Pb pct={(b.visits/fa.bucketVisitData[0].visits)*100} c={BUCKET_COLORS[b.name]||"#3b82f6"} /></td>
+                          <td><Pb tk={tk} pct={(b.visits/fa.bucketVisitData[0].visits)*100} c={BUCKET_COLORS[b.name]||"#3b82f6"} /></td>
                         </tr>
                       ))}</tbody>
                     </table>
@@ -4085,7 +4174,7 @@ export default function App() {
                     <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Daily field activity — {fa.fieldDateSorted.length} active field dates</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.fieldDateSorted} margin={{ left:0, right:16, bottom:fa.fieldDateSorted.length>20?70:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="date" tick={{ fill:"#6b7280",fontSize:10 }} angle={fa.fieldDateSorted.length>15?-35:0} textAnchor={fa.fieldDateSorted.length>15?"end":"middle"} interval={fa.fieldDateSorted.length>30?Math.floor(fa.fieldDateSorted.length/20):0} />
                         <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
@@ -4101,7 +4190,7 @@ export default function App() {
                     <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Field Visit Trend</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <LineChart data={fa.fieldMonthSorted} margin={{ left:0, right:16, bottom:fa.fieldMonthSorted.length>6?40:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
                         <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
@@ -4117,7 +4206,7 @@ export default function App() {
                     <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Collectors</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.fieldCollectorData.slice(0,10)} layout="vertical" margin={{ left:0, right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} />
@@ -4139,11 +4228,11 @@ export default function App() {
                       <tbody>{fa.fieldStatusData.map((s,i)=>(
                         <tr key={s.status}>
                           <td style={{ color:"#4b5563" }}>{i+1}</td>
-                          <td style={{ fontWeight:500, color:"#e2e8f0" }}>{s.status}</td>
+                          <td style={{ fontWeight:500, color:tk.textPrimary }}>{s.status}</td>
                           <td><span className="bdg" style={{ background:(GC[s.grp]||"#22c55e")+"33", color:GC[s.grp]||"#22c55e" }}>{s.grp}</span></td>
                           <td style={{ fontWeight:700, color:"#22c55e" }}>{s.count.toLocaleString()}</td>
                           <td style={{ color:"#60a5fa" }}>{s.pct}%</td>
-                          <td><Pb pct={parseFloat(s.pct)} c={GC[s.grp]||"#22c55e"} /></td>
+                          <td><Pb tk={tk} pct={parseFloat(s.pct)} c={GC[s.grp]||"#22c55e"} /></td>
                         </tr>
                       ))}</tbody>
                     </table>
@@ -4162,9 +4251,9 @@ export default function App() {
             return (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:14 }}>
                 {/* Header */}
-                <div style={{ gridColumn:"1/-1", background:"#0f1f3d", border:"1px solid #1e3a5f", borderRadius:12, padding:"14px 18px" }}>
-                  <div style={{ fontWeight:700, fontSize:15, color:"#f1f5f9", marginBottom:4 }}>🔽 Promise-to-Pay Conversion Funnel</div>
-                  <div style={{ fontSize:13, color:"#64748b" }}>
+                <div style={{ gridColumn:"1/-1", background:isDark ? "#0f1f3d" : "#eff6ff", border:`1px solid ${isDark ? "#1e3a5f" : "#bfdbfe"}`, borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontWeight:700, fontSize:15, color:tk.textBright, marginBottom:4 }}>🔽 Promise-to-Pay Conversion Funnel</div>
+                  <div style={{ fontSize:13, color:tk.textMuted }}>
                     {hasAccount
                       ? `Tracks how accounts move through: All Accounts → Right Party Contact → PTP Set → PTP Kept. Based on ${totalUA?.toLocaleString()} unique accounts.`
                       : "No Account No. column — showing effort-based funnel counts instead of unique accounts."}
@@ -4173,7 +4262,7 @@ export default function App() {
 
                 {/* Visual funnel bars */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:16, color:"#f1f5f9" }}>Funnel Stages</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:16, color:tk.textBright }}>Funnel Stages</div>
                   <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                     {stages.map((s, i) => {
                       const w = maxVal > 0 ? Math.max((s.value / maxVal) * 100, 4) : 4;
@@ -4182,16 +4271,16 @@ export default function App() {
                       return (
                         <div key={s.label}>
                           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-                            <div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0" }}>{s.label}</div>
+                            <div style={{ fontSize:13, fontWeight:600, color:tk.textPrimary }}>{s.label}</div>
                             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
                               {drop !== null && parseFloat(drop) > 0 && (
                                 <span style={{ fontSize:11, color:"#ef4444", background:"#450a0a", padding:"1px 7px", borderRadius:10 }}>↓ {drop}% drop</span>
                               )}
                               <span style={{ fontSize:15, fontWeight:700, color:s.color }}>{s.value.toLocaleString()}</span>
-                              <span style={{ fontSize:12, color:"#475569" }}>{s.pct}%</span>
+                              <span style={{ fontSize:12, color:tk.textFaint }}>{s.pct}%</span>
                             </div>
                           </div>
-                          <div style={{ height:30, background:"#0f172a", borderRadius:6, overflow:"hidden" }}>
+                          <div style={{ height:30, background:tk.bgSurface, borderRadius:6, overflow:"hidden" }}>
                             <div style={{ height:"100%", width:w+"%", background:s.color, borderRadius:6, opacity:0.85, display:"flex", alignItems:"center", paddingLeft:10, transition:"width .4s" }}>
                               <span style={{ fontSize:11, fontWeight:600, color:"#fff", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.sub}</span>
                             </div>
@@ -4204,33 +4293,33 @@ export default function App() {
 
                 {/* Step conversion rates */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:16, color:"#f1f5f9" }}>Stage-to-Stage Conversion</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:16, color:tk.textBright }}>Stage-to-Stage Conversion</div>
                   <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
                     {stepConv.map((s, i) => (
                       <div key={i}>
                         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                          <div style={{ fontSize:12, color:"#94a3b8" }}>
+                          <div style={{ fontSize:12, color:tk.textSub }}>
                             <span style={{ color:"#60a5fa" }}>{s.from}</span>
-                            <span style={{ color:"#475569" }}> → </span>
+                            <span style={{ color:tk.textFaint }}> → </span>
                             <span style={{ color:"#f59e0b" }}>{s.to}</span>
                           </div>
                           <span style={{ fontWeight:700, fontSize:18, color: parseFloat(s.rate)>=50?"#22c55e":parseFloat(s.rate)>=25?"#f59e0b":"#ef4444" }}>
                             {s.rate}%
                           </span>
                         </div>
-                        <div style={{ height:12, background:"#0f172a", borderRadius:6, overflow:"hidden" }}>
+                        <div style={{ height:12, background:tk.bgSurface, borderRadius:6, overflow:"hidden" }}>
                           <div style={{ height:"100%", width:Math.min(parseFloat(s.rate),100)+"%", background:parseFloat(s.rate)>=50?"#22c55e":parseFloat(s.rate)>=25?"#f59e0b":"#ef4444", borderRadius:6 }} />
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop:20, borderTop:"1px solid #1e293b", paddingTop:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                  <div style={{ marginTop:20, borderTop:`1px solid ${tk.border}`, paddingTop:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                     {[
                       { l:"PTP Set Rate",  v: stages[0]?.value>0?((stages.find(s=>s.label.includes("PTP Set"))?.value||0)/stages[0].value*100).toFixed(1)+"%" : "N/A", c:"#f59e0b" },
                       { l:"PTP Kept Rate", v: stages[0]?.value>0?((stages.find(s=>s.label.includes("Kept"))?.value||0)/stages[0].value*100).toFixed(1)+"%" : "N/A", c:"#22c55e" },
                     ].map(k=>(
                       <div key={k.l} className="sc" style={{ padding:12 }}>
-                        <div style={{ fontSize:10, color:"#64748b", textTransform:"uppercase", letterSpacing:".06em" }}>{k.l}</div>
+                        <div style={{ fontSize:10, color:tk.textMuted, textTransform:"uppercase", letterSpacing:".06em" }}>{k.l}</div>
                         <div style={{ fontSize:24, fontWeight:700, color:k.c, fontFamily:"'Space Grotesk',sans-serif", marginTop:4 }}>{k.v}</div>
                       </div>
                     ))}
@@ -4239,14 +4328,14 @@ export default function App() {
 
                 {/* Funnel bar chart */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f1f5f9" }}>Funnel Volume Chart</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Funnel Volume Chart</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={stages.filter(s=>!s.label.includes("Broken"))} layout="vertical" margin={{ left:20, right:70 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b", fontSize:11 }} />
-                      <YAxis type="category" dataKey="label" tick={{ fill:"#94a3b8", fontSize:11 }} width={170} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:11 }} />
+                      <YAxis type="category" dataKey="label" tick={{ fill:tk.textSub, fontSize:11 }} width={170} />
                       <Tooltip contentStyle={TS} formatter={(v)=>[v.toLocaleString(), hasAccount?"Accounts":"Efforts"]} />
-                      <Bar dataKey="value" radius={[0,6,6,0]} label={{ position:"right", fill:"#64748b", fontSize:11, formatter:(v)=>v.toLocaleString() }}>
+                      <Bar dataKey="value" radius={[0,6,6,0]} label={{ position:"right", fill:tk.textMuted, fontSize:11, formatter:(v)=>v.toLocaleString() }}>
                         {stages.filter(s=>!s.label.includes("Broken")).map((s,i)=><Cell key={i} fill={s.color} />)}
                       </Bar>
                     </BarChart>
@@ -4258,8 +4347,8 @@ export default function App() {
                   <div className="card" style={{ gridColumn:"1/-1" }}>
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:8 }}>
                       <div>
-                        <div style={{ fontWeight:700, fontSize:14, color:"#f1f5f9" }}>📍 Funnel by Bucket</div>
-                        <div style={{ fontSize:12, color:"#64748b" }}>Conversion rates per bucket. Conv. Rate = Kept ÷ PTP Set.</div>
+                        <div style={{ fontWeight:700, fontSize:14, color:tk.textBright }}>📍 Funnel by Bucket</div>
+                        <div style={{ fontSize:12, color:tk.textMuted }}>Conversion rates per bucket. Conv. Rate = Kept ÷ PTP Set.</div>
                       </div>
                       <ExportBtn onClick={() => exportXlsx(bucketFunnel.map(b=>({
                         Bucket:b.name, "Total Accounts":b.total, "RPC Accounts":b.rpc, "PTP Set":b.ptp, "PTP Kept":b.kept,
@@ -4277,7 +4366,7 @@ export default function App() {
                         </tr></thead>
                         <tbody>{bucketFunnel.map(b=>(
                           <tr key={b.name}>
-                            <td><span className="bdg" style={{ background:(BUCKET_COLORS[b.name]||"#64748b")+"33", color:BUCKET_COLORS[b.name]||"#94a3b8" }}>{b.name}</span></td>
+                            <td><span className="bdg" style={{ background:(BUCKET_COLORS[b.name]||tk.textMuted)+"33", color:BUCKET_COLORS[b.name]||tk.textSub }}>{b.name}</span></td>
                             <td style={{ fontWeight:700 }}>{b.total.toLocaleString()}</td>
                             <td style={{ color:"#a78bfa" }}>{b.rpc.toLocaleString()}</td>
                             <td style={{ color:"#a78bfa" }}>{b.rpcRate}%</td>
@@ -4298,8 +4387,8 @@ export default function App() {
                   <div className="card" style={{ gridColumn:"1/-1" }}>
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:8 }}>
                       <div>
-                        <div style={{ fontWeight:700, fontSize:14, color:"#f1f5f9" }}>👥 Funnel by Collector (top 30)</div>
-                        <div style={{ fontSize:12, color:"#64748b" }}>Each collector's pipeline — unique accounts per stage.</div>
+                        <div style={{ fontWeight:700, fontSize:14, color:tk.textBright }}>👥 Funnel by Collector (top 30)</div>
+                        <div style={{ fontSize:12, color:tk.textMuted }}>Each collector's pipeline — unique accounts per stage.</div>
                       </div>
                       <ExportBtn onClick={() => exportXlsx(collectorFunnel.map(c=>({
                         Collector:c.name, "Total Accounts":c.total, "RPC Accounts":c.rpc, "PTP Set":c.ptp, "PTP Kept":c.kept,
@@ -4317,8 +4406,8 @@ export default function App() {
                         </tr></thead>
                         <tbody>{collectorFunnel.map((c,i)=>(
                           <tr key={c.name}>
-                            <td style={{ color:"#475569" }}>{i+1}</td>
-                            <td style={{ fontWeight:600, color:"#e2e8f0" }}>{c.name}</td>
+                            <td style={{ color:tk.textFaint }}>{i+1}</td>
+                            <td style={{ fontWeight:600, color:tk.textPrimary }}>{c.name}</td>
                             <td style={{ fontWeight:700 }}>{c.total.toLocaleString()}</td>
                             <td style={{ color:"#a78bfa" }}>{c.rpc.toLocaleString()}</td>
                             <td style={{ color:"#a78bfa" }}>{c.rpcRate}%</td>
@@ -4344,9 +4433,9 @@ export default function App() {
             if (!an.bpAnalytics) return (
               <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>💔</div>
-                <div style={{ fontWeight: 700, fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>Broken Promise Analysis Unavailable</div>
-                <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-                  Requires <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>Account No.</code>, <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>PTP Amount</code>, and <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>PTP Date</code> columns.
+                <div style={{ fontWeight: 700, fontSize: 18, color: tk.textBright, marginBottom: 8 }}>Broken Promise Analysis Unavailable</div>
+                <div style={{ fontSize: 13, color: tk.textMuted, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+                  Requires <code style={{ color:"#60a5fa",background:tk.bgSurface,padding:"1px 6px",borderRadius:4 }}>Account No.</code>, <code style={{ color:"#60a5fa",background:tk.bgSurface,padding:"1px 6px",borderRadius:4 }}>PTP Amount</code>, and <code style={{ color:"#60a5fa",background:tk.bgSurface,padding:"1px 6px",borderRadius:4 }}>PTP Date</code> columns.
                   Claim Paid Date is used to verify if the PTP was honored.
                 </div>
               </div>
@@ -4366,16 +4455,16 @@ export default function App() {
                 ].map(k=>(
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:20,marginBottom:6 }}>{k.i}</div>
-                    <div style={{ fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:11,color:tk.textMuted,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
                     <div style={{ fontSize:18,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2 }}>{k.v}</div>
-                    <div style={{ fontSize:11,color:"#475569",marginTop:2 }}>{k.sub}</div>
+                    <div style={{ fontSize:11,color:tk.textFaint,marginTop:2 }}>{k.sub}</div>
                   </div>
                 ))}
 
                 {/* BP Rate Gauge */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📊 PTP Fulfillment Rate</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:16 }}>
+                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📊 PTP Fulfillment Rate</div>
+                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:16 }}>
                     Accounts that honored their PTP vs those that broke it
                   </div>
                   <ResponsiveContainer width="100%" height={220}>
@@ -4397,13 +4486,13 @@ export default function App() {
                 {/* BP date trend */}
                 {bpDateTrend.length > 0 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📅 Broken PTP Date Trend</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Number of BPs by their original PTP date</div>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📅 Broken PTP Date Trend</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Number of BPs by their original PTP date</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={bpDateTrend} margin={{ bottom:60 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-40} textAnchor="end" interval={Math.max(0,Math.floor(bpDateTrend.length/12)-1)} />
-                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="date" tick={{ fill:tk.textMuted,fontSize:9 }} angle={-40} textAnchor="end" interval={Math.max(0,Math.floor(bpDateTrend.length/12)-1)} />
+                        <YAxis tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" fill="#ef4444" radius={[3,3,0,0]} name="Broken PTPs" />
                       </BarChart>
@@ -4414,13 +4503,13 @@ export default function App() {
                 {/* BP by collector */}
                 {bpCollectorData.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>👥 BPs by Collector</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Which collectors have the most broken PTPs</div>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>👥 BPs by Collector</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Which collectors have the most broken PTPs</div>
                     <ResponsiveContainer width="100%" height={Math.max(200, bpCollectorData.slice(0,10).length * 32)}>
                       <BarChart data={bpCollectorData.slice(0,10)} layout="vertical" margin={{ left:0,right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8",fontSize:10 }} width={140} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted,fontSize:11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:10 }} width={140} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" fill="#f97316" radius={[0,4,4,0]} name="Broken PTPs" />
                       </BarChart>
@@ -4431,13 +4520,13 @@ export default function App() {
                 {/* BP by bucket */}
                 {bpBucketData.length > 0 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📍 BPs by Bucket</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Broken promises distribution per bucket</div>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📍 BPs by Bucket</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Broken promises distribution per bucket</div>
                     <ResponsiveContainer width="100%" height={Math.max(200, bpBucketData.length * 36)}>
                       <BarChart data={bpBucketData} layout="vertical" margin={{ left:0,right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8",fontSize:10 }} width={120} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted,fontSize:11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" radius={[0,4,4,0]} name="Broken PTPs">
                           {bpBucketData.map((b,i)=><Cell key={i} fill={BUCKET_COLORS[b.name]||PC[i%PC.length]} />)}
@@ -4449,13 +4538,13 @@ export default function App() {
 
                 {/* Full BP account list */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>
+                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>
                      Broken Promise Account List — {bpAccounts.length.toLocaleString()} accounts
                   </div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
+                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:12 }}>
                     Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded on or after that PTP date. Sorted by most recent PTP date first.
                   </div>
-                  <SearchBar value={bpSearch} onChange={setBpSearch} placeholder="Filter by account, collector, or bucket..." />
+                  <SearchBar tk={tk} value={bpSearch} onChange={setBpSearch} placeholder="Filter by account, collector, or bucket..." />
                   <div style={{ overflowX:"auto", maxHeight:480, overflowY:"auto" }}>
                     <table>
                       <thead><tr>
@@ -4463,30 +4552,30 @@ export default function App() {
                         <th>Account No.</th>
                         <th style={{ color:"#ef4444" }}>PTP Date</th>
                         <th>PTP Amount</th>
-                        <th style={{ color:"#64748b" }}>Last Claim Date</th>
+                        <th style={{ color:tk.textMuted }}>Last Claim Date</th>
                         <th>Collector</th>
                         <th>Bucket</th>
                         {data.clk && <th>Client</th>}
                       </tr></thead>
                       <tbody>{filteredBP.map((b, i) => (
                         <tr key={b.acct}>
-                          <td style={{ color:"#475569" }}>{i+1}</td>
-                          <td style={{ fontWeight:600,color:"#e2e8f0",fontFamily:"monospace",fontSize:12 }}>{b.acct}</td>
+                          <td style={{ color:tk.textFaint }}>{i+1}</td>
+                          <td style={{ fontWeight:600,color:tk.textPrimary,fontFamily:"monospace",fontSize:12 }}>{b.acct}</td>
                           <td style={{ color:"#ef4444",fontWeight:600 }}>{b.ptpDate}</td>
                           <td style={{ color:"#f59e0b" }}>₱{fN(b.ptpAmt)}</td>
-                          <td style={{ color:"#64748b",fontStyle: b.claimDate==="–"?"italic":"normal" }}>{b.claimDate}</td>
-                          <td style={{ color:"#94a3b8" }}>{b.collector}</td>
+                          <td style={{ color:tk.textMuted,fontStyle: b.claimDate==="–"?"italic":"normal" }}>{b.claimDate}</td>
+                          <td style={{ color:tk.textSub }}>{b.collector}</td>
                           <td>
                             {b.bucket !== "–"
-                              ? <span className="bdg" style={{ background:(BUCKET_COLORS[b.bucket]||"#64748b")+"33",color:BUCKET_COLORS[b.bucket]||"#94a3b8" }}>{b.bucket}</span>
-                              : <span style={{ color:"#334155" }}>–</span>}
+                              ? <span className="bdg" style={{ background:(BUCKET_COLORS[b.bucket]||tk.textMuted)+"33",color:BUCKET_COLORS[b.bucket]||tk.textSub }}>{b.bucket}</span>
+                              : <span style={{ color:tk.borderMed }}>–</span>}
                           </td>
-                          {data.clk && <td style={{ color:"#64748b" }}>{b.client}</td>}
+                          {data.clk && <td style={{ color:tk.textMuted }}>{b.client}</td>}
                         </tr>
                       ))}</tbody>
                     </table>
                     {filteredBP.length === 0 && (
-                      <div style={{ textAlign:"center",padding:"24px",color:"#475569",fontSize:13 }}>
+                      <div style={{ textAlign:"center",padding:"24px",color:tk.textFaint,fontSize:13 }}>
                         {bpSearch ? "No results match your search." : "No broken promises found — all PTPs were honored! 🎉"}
                       </div>
                     )}
@@ -4503,9 +4592,9 @@ export default function App() {
             if (!an.collectorBucketAnalytics) return (
               <div className="card" style={{ textAlign:"center",padding:"48px 24px" }}>
                 <div style={{ fontSize:40,marginBottom:16 }}>👥📍</div>
-                <div style={{ fontWeight:700,fontSize:18,color:"#f1f5f9",marginBottom:8 }}>Collector × Bucket Analysis Unavailable</div>
-                <div style={{ fontSize:13,color:"#64748b",maxWidth:480,margin:"0 auto",lineHeight:1.6 }}>
-                  Requires both a <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>Remark By</code> column and an <code style={{ color:"#60a5fa",background:"#0f172a",padding:"1px 6px",borderRadius:4 }}>Old IC / Bucket</code> column.
+                <div style={{ fontWeight:700,fontSize:18,color:tk.textBright,marginBottom:8 }}>Collector × Bucket Analysis Unavailable</div>
+                <div style={{ fontSize:13,color:tk.textMuted,maxWidth:480,margin:"0 auto",lineHeight:1.6 }}>
+                  Requires both a <code style={{ color:"#60a5fa",background:tk.bgSurface,padding:"1px 6px",borderRadius:4 }}>Remark By</code> column and an <code style={{ color:"#60a5fa",background:tk.bgSurface,padding:"1px 6px",borderRadius:4 }}>Old IC / Bucket</code> column.
                 </div>
               </div>
             );
@@ -4513,7 +4602,7 @@ export default function App() {
 
             // Heatmap color: blue gradient
             const cbColor = (val, max) => {
-              if (!val || max === 0) return "#0f172a";
+              if (!val || max === 0) return tk.heatEmpty;
               const i = val / max;
               if (i < 0.2) return `rgba(59,130,246,${0.15+i*1.5})`;
               if (i < 0.5) return `rgba(16,185,129,${0.25+i})`;
@@ -4532,21 +4621,21 @@ export default function App() {
                 ].map(k=>(
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:20,marginBottom:6 }}>{k.i}</div>
-                    <div style={{ fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:11,color:tk.textMuted,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
                     <div style={{ fontSize:16,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2 }}>{k.v}</div>
-                    {k.sub&&<div style={{ fontSize:11,color:"#475569",marginTop:2 }}>{k.sub}</div>}
+                    {k.sub&&<div style={{ fontSize:11,color:tk.textFaint,marginTop:2 }}>{k.sub}</div>}
                   </div>
                 ))}
 
                 {/* Bucket summary */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📍 Bucket Workload Summary</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Total efforts and unique collectors assigned per bucket</div>
+                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📍 Bucket Workload Summary</div>
+                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Total efforts and unique collectors assigned per bucket</div>
                   <ResponsiveContainer width="100%" height={Math.max(180,bucketSummaryForCollectors.length*36)}>
                     <BarChart data={bucketSummaryForCollectors} layout="vertical" margin={{ left:0,right:40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                      <YAxis type="category" dataKey="bucket" tick={{ fill:"#94a3b8",fontSize:10 }} width={110} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill:tk.textMuted,fontSize:11 }} />
+                      <YAxis type="category" dataKey="bucket" tick={{ fill:tk.textSub,fontSize:10 }} width={110} />
                       <Tooltip contentStyle={TS} />
                       <Bar dataKey="totalEfforts" radius={[0,4,4,0]} name="Total Efforts">
                         {bucketSummaryForCollectors.map((b,i)=><Cell key={i} fill={BUCKET_COLORS[b.bucket]||PC[i%PC.length]} />)}
@@ -4557,13 +4646,13 @@ export default function App() {
 
                 {/* Stacked bar: top collectors colored by primary bucket */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>👥 Top Collectors by Bucket Mix</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Each collector's efforts split by bucket (top 15)</div>
+                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>👥 Top Collectors by Bucket Mix</div>
+                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Each collector's efforts split by bucket (top 15)</div>
                   <ResponsiveContainer width="100%" height={Math.max(200,Math.min(15,collectorBucketRows.length)*28+60)}>
                     <BarChart data={collectorBucketRows.slice(0,15).map(c=>({ name:c.name, ...Object.fromEntries(allBuckets.map(b=>[b,c.buckets[b]?.total||0])) }))} layout="vertical" margin={{ left:0,right:16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis type="number" tick={{ fill:"#64748b",fontSize:11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill:"#94a3b8",fontSize:9 }} width={130} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                      <XAxis type="number" tick={{ fill:tk.textMuted,fontSize:11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:9 }} width={130} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:10 }} />
                       {allBuckets.map((b,i)=><Bar key={b} dataKey={b} stackId="s" fill={BUCKET_COLORS[b]||PC[i%PC.length]} name={b} />)}
@@ -4573,13 +4662,13 @@ export default function App() {
 
                 {/* Heatmap: Collector × Bucket */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>🔥 Collector × Bucket Effort Heatmap</div>
-                  <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>Each cell = total efforts. Color = intensity relative to max.</div>
+                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>🔥 Collector × Bucket Effort Heatmap</div>
+                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Each cell = total efforts. Color = intensity relative to max.</div>
                   <div style={{ display:"flex",gap:8,marginBottom:10,alignItems:"center" }}>
-                    <span style={{ fontSize:11,color:"#64748b" }}>Intensity:</span>
-                    {[["0","#1e293b"],["Low","rgba(59,130,246,0.3)"],["Med","rgba(16,185,129,0.6)"],["High","rgba(245,158,11,0.8)"],["Peak","rgba(239,68,68,0.9)"]].map(([l,c])=>(
-                      <span key={l} style={{ display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#94a3b8" }}>
-                        <span style={{ width:12,height:12,borderRadius:2,background:c,display:"inline-block",border:"1px solid #334155" }} />{l}
+                    <span style={{ fontSize:11,color:tk.textMuted }}>Intensity:</span>
+                    {[["0",tk.border],["Low","rgba(59,130,246,0.3)"],["Med","rgba(16,185,129,0.6)"],["High","rgba(245,158,11,0.8)"],["Peak","rgba(239,68,68,0.9)"]].map(([l,c])=>(
+                      <span key={l} style={{ display:"flex",alignItems:"center",gap:4,fontSize:11,color:tk.textSub }}>
+                        <span style={{ width:12,height:12,borderRadius:2,background:c,display:"inline-block",border:`1px solid ${tk.borderMed}` }} />{l}
                       </span>
                     ))}
                   </div>
@@ -4587,30 +4676,30 @@ export default function App() {
                     <table style={{ fontSize:11,borderCollapse:"separate",borderSpacing:2 }}>
                       <thead>
                         <tr>
-                          <th style={{ position:"sticky",left:0,background:"#0f172a",minWidth:130,zIndex:2,textAlign:"left" }}>Collector</th>
+                          <th style={{ position:"sticky",left:0,background:tk.bgSurface,minWidth:130,zIndex:2,textAlign:"left" }}>Collector</th>
                           <th style={{ color:"#22c55e",minWidth:60 }}>Total</th>
                           <th style={{ color:"#f59e0b",minWidth:80 }}>Primary Bucket</th>
                           {allBuckets.map(b=>(
-                            <th key={b} style={{ color:BUCKET_COLORS[b]||"#94a3b8",minWidth:80,textAlign:"center",padding:"4px 4px" }}>{b}</th>
+                            <th key={b} style={{ color:BUCKET_COLORS[b]||tk.textSub,minWidth:80,textAlign:"center",padding:"4px 4px" }}>{b}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {cbHeatmap.map(row=>(
                           <tr key={row.collector}>
-                            <td style={{ position:"sticky",left:0,background:"#1e293b",fontWeight:600,color:"#e2e8f0",padding:"4px 8px",zIndex:1 }}>{row.collector}</td>
+                            <td style={{ position:"sticky",left:0,background:tk.bgCard,fontWeight:600,color:tk.textPrimary,padding:"4px 8px",zIndex:1 }}>{row.collector}</td>
                             <td style={{ color:"#22c55e",fontWeight:700,textAlign:"center" }}>{row.total.toLocaleString()}</td>
                             <td style={{ textAlign:"center" }}>
                               {row.primaryBucket!=="–"
-                                ?<span className="bdg" style={{ background:(BUCKET_COLORS[row.primaryBucket]||"#64748b")+"33",color:BUCKET_COLORS[row.primaryBucket]||"#94a3b8",fontSize:10 }}>{row.primaryBucket}</span>
-                                :<span style={{ color:"#334155" }}>–</span>}
+                                ?<span className="bdg" style={{ background:(BUCKET_COLORS[row.primaryBucket]||tk.textMuted)+"33",color:BUCKET_COLORS[row.primaryBucket]||tk.textSub,fontSize:10 }}>{row.primaryBucket}</span>
+                                :<span style={{ color:tk.borderMed }}>–</span>}
                             </td>
                             {allBuckets.map(b=>{
                               const val=row[b]||0;
                               const bg=cbColor(val,cbHeatmapMax);
                               return (
                                 <td key={b} style={{ padding:"2px" }}>
-                                  <div style={{ background:bg,color:val>cbHeatmapMax*0.5?"#fff":"#64748b",borderRadius:3,fontSize:10,fontWeight:600,textAlign:"center",padding:"3px 4px",minWidth:60 }}>
+                                  <div style={{ background:bg,color:val>cbHeatmapMax*0.5?"#fff":tk.textMuted,borderRadius:3,fontSize:10,fontWeight:600,textAlign:"center",padding:"3px 4px",minWidth:60 }}>
                                     {val>0?val.toLocaleString():"–"}
                                   </div>
                                 </td>
@@ -4625,7 +4714,7 @@ export default function App() {
 
                 {/* Collector detail table */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>Collector Detail — Bucket Breakdown</div>
+                  <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>Collector Detail — Bucket Breakdown</div>
                   <div style={{ overflowX:"auto",maxHeight:400,overflowY:"auto" }}>
                     <table>
                       <thead><tr>
@@ -4644,11 +4733,11 @@ export default function App() {
                         const bucketsWorked = Object.keys(c.buckets).length;
                         return (
                           <tr key={c.name}>
-                            <td style={{ color:"#475569" }}>{i+1}</td>
-                            <td style={{ fontWeight:600,color:"#e2e8f0" }}>{c.name}</td>
+                            <td style={{ color:tk.textFaint }}>{i+1}</td>
+                            <td style={{ fontWeight:600,color:tk.textPrimary }}>{c.name}</td>
                             <td style={{ fontWeight:700,color:"#60a5fa" }}>{c.total.toLocaleString()}</td>
                             <td>
-                              <span className="bdg" style={{ background:(BUCKET_COLORS[c.primaryBucket]||"#64748b")+"33",color:BUCKET_COLORS[c.primaryBucket]||"#94a3b8" }}>{c.primaryBucket}</span>
+                              <span className="bdg" style={{ background:(BUCKET_COLORS[c.primaryBucket]||tk.textMuted)+"33",color:BUCKET_COLORS[c.primaryBucket]||tk.textSub }}>{c.primaryBucket}</span>
                             </td>
                             <td style={{ color:"#a78bfa" }}>{bucketsWorked} bucket{bucketsWorked!==1?"s":""}</td>
                             <td style={{ color:"#22c55e" }}>{(c.bySG.KEPT||0).toLocaleString()}</td>
@@ -4673,9 +4762,9 @@ export default function App() {
             if (!data?.ak) return (
               <div className="card" style={{ textAlign:"center", padding:"48px 24px" }}>
                 <div style={{ fontSize:40, marginBottom:16 }}>🕐</div>
-                <div style={{ fontWeight:700, fontSize:18, color:"#f1f5f9", marginBottom:8 }}>Account Timeline Unavailable</div>
-                <div style={{ fontSize:13, color:"#64748b", maxWidth:480, margin:"0 auto" }}>
-                  Requires an <code style={{ color:"#60a5fa", background:"#0f172a", padding:"1px 6px", borderRadius:4 }}>Account No.</code> column to look up individual account histories.
+                <div style={{ fontWeight:700, fontSize:18, color:tk.textBright, marginBottom:8 }}>Account Timeline Unavailable</div>
+                <div style={{ fontSize:13, color:tk.textMuted, maxWidth:480, margin:"0 auto" }}>
+                  Requires an <code style={{ color:"#60a5fa", background:tk.bgSurface, padding:"1px 6px", borderRadius:4 }}>Account No.</code> column to look up individual account histories.
                 </div>
               </div>
             );
@@ -4734,32 +4823,32 @@ export default function App() {
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:14 }}>
                 {/* Search card */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:6, color:"#f1f5f9" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:6, color:tk.textBright }}>
                     🕐 Account Activity Timeline
                   </div>
-                  <div style={{ fontSize:12, color:"#64748b", marginBottom:12 }}>
+                  <div style={{ fontSize:12, color:tk.textMuted, marginBottom:12 }}>
                     Search an account number to see its complete activity log — all touchpoints, outcomes, PTP & claim dates, and collector history.
-                    {allAccounts.length > 0 && <span style={{ color:"#475569" }}> {allAccounts.length.toLocaleString()} unique accounts in file.</span>}
+                    {allAccounts.length > 0 && <span style={{ color:tk.textFaint }}> {allAccounts.length.toLocaleString()} unique accounts in file.</span>}
                   </div>
                   <div style={{ position:"relative", maxWidth:500 }}>
-                    <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"#475569", fontSize:14 }}>🔍</span>
+                    <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:tk.textFaint, fontSize:14 }}>🔍</span>
                     <input
                       value={timelineSearch}
                       onChange={e => { setTimelineSearch(e.target.value); if (e.target.value !== timelineAccount) setTimelineAccount(null); }}
                       placeholder="Type account number..."
-                      style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:8, color:"#e2e8f0", fontSize:13, padding:"9px 10px 9px 34px", fontFamily:"inherit", outline:"none" }}
+                      style={{ width:"100%", background:tk.bgSurface, border:`1px solid ${tk.borderMed}`, borderRadius:8, color:tk.textPrimary, fontSize:13, padding:"9px 10px 9px 34px", fontFamily:"inherit", outline:"none" }}
                     />
                     {timelineSearch && (
                       <button onClick={() => { setTimelineSearch(""); setTimelineAccount(null); }}
-                        style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"#64748b", cursor:"pointer", fontSize:14 }}>✕</button>
+                        style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:tk.textMuted, cursor:"pointer", fontSize:14 }}>✕</button>
                     )}
                   </div>
                   {suggestions.length > 0 && !timelineAccount && (
-                    <div style={{ maxWidth:500, background:"#1e293b", border:"1px solid #334155", borderRadius:8, marginTop:4, overflow:"hidden" }}>
+                    <div style={{ maxWidth:500, background:tk.bgCard, border:`1px solid ${tk.borderMed}`, borderRadius:8, marginTop:4, overflow:"hidden" }}>
                       {suggestions.map(s => (
                         <div key={s} onClick={() => { setTimelineAccount(s); setTimelineSearch(s); }}
-                          style={{ padding:"8px 14px", cursor:"pointer", fontSize:13, color:"#94a3b8", borderBottom:"1px solid #0f172a" }}
-                          onMouseOver={e=>e.currentTarget.style.background="#334155"}
+                          style={{ padding:"8px 14px", cursor:"pointer", fontSize:13, color:tk.textSub, borderBottom:`1px solid ${tk.bgSurface}` }}
+                          onMouseOver={e=>e.currentTarget.style.background=tk.borderMed}
                           onMouseOut={e=>e.currentTarget.style.background="transparent"}>
                           <span style={{ color:"#60a5fa", fontFamily:"monospace" }}>{s}</span>
                         </div>
@@ -4775,7 +4864,7 @@ export default function App() {
                 {timelineAccount && acctSummary && (<>
                   <div style={{ gridColumn:"1/-1" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", marginBottom:10 }}>
-                      <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17, color:"#f1f5f9" }}>
+                      <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17, color:tk.textBright }}>
                         📋 <span style={{ color:"#60a5fa", fontFamily:"monospace" }}>{timelineAccount}</span>
                       </div>
                       {acctSummary.hasBP && <span style={{ background:"#450a0a", color:"#f87171", border:"1px solid #7f1d1d", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>Broken Promise</span>}
@@ -4798,38 +4887,38 @@ export default function App() {
                   ].map(k=>(
                     <div key={k.l} className="sc">
                       <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
-                      <div style={{ fontSize:10, color:"#64748b", textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
+                      <div style={{ fontSize:10, color:tk.textMuted, textTransform:"uppercase", letterSpacing:".06em", fontWeight:600 }}>{k.l}</div>
                       <div style={{ fontSize:14, fontWeight:700, color:k.c, marginTop:2, wordBreak:"break-word" }}>{k.v}</div>
                     </div>
                   ))}
 
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700, fontSize:13, marginBottom:10, color:"#f1f5f9" }}>Outcome Breakdown</div>
+                    <div style={{ fontWeight:700, fontSize:13, marginBottom:10, color:tk.textBright }}>Outcome Breakdown</div>
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                       {Object.entries(acctSummary.sgC).sort((a,b)=>b[1]-a[1]).map(([sg,cnt])=>(
                         <div key={sg} style={{ display:"flex", alignItems:"center", gap:10 }}>
                           <span style={{ fontSize:14 }}>{sgIcon[sg]||"•"}</span>
-                          <span style={{ fontSize:12, color:GC[sg]||"#94a3b8", fontWeight:600, minWidth:50 }}>{sg}</span>
-                          <div style={{ flex:1, height:8, background:"#0f172a", borderRadius:4, overflow:"hidden" }}>
+                          <span style={{ fontSize:12, color:GC[sg]||tk.textSub, fontWeight:600, minWidth:50 }}>{sg}</span>
+                          <div style={{ flex:1, height:8, background:tk.bgSurface, borderRadius:4, overflow:"hidden" }}>
                             <div style={{ height:"100%", width:((cnt/timeline.length)*100)+"%", background:GC[sg]||"#3b82f6", borderRadius:4 }} />
                           </div>
-                          <span style={{ fontSize:12, color:"#94a3b8", minWidth:55, textAlign:"right" }}>{cnt} ({((cnt/timeline.length)*100).toFixed(0)}%)</span>
+                          <span style={{ fontSize:12, color:tk.textSub, minWidth:55, textAlign:"right" }}>{cnt} ({((cnt/timeline.length)*100).toFixed(0)}%)</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700, fontSize:13, marginBottom:10, color:"#f1f5f9" }}>Touch Point Breakdown</div>
+                    <div style={{ fontWeight:700, fontSize:13, marginBottom:10, color:tk.textBright }}>Touch Point Breakdown</div>
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                       {Object.entries(acctSummary.tpC).sort((a,b)=>b[1]-a[1]).map(([tp,cnt])=>(
                         <div key={tp} style={{ display:"flex", alignItems:"center", gap:10 }}>
                           <span style={{ fontSize:14 }}>{tpIcon[tp]||"•"}</span>
-                          <span style={{ fontSize:12, color:TP_COLORS[tp]||"#94a3b8", fontWeight:600, minWidth:80 }}>{tp}</span>
-                          <div style={{ flex:1, height:8, background:"#0f172a", borderRadius:4, overflow:"hidden" }}>
+                          <span style={{ fontSize:12, color:TP_COLORS[tp]||tk.textSub, fontWeight:600, minWidth:80 }}>{tp}</span>
+                          <div style={{ flex:1, height:8, background:tk.bgSurface, borderRadius:4, overflow:"hidden" }}>
                             <div style={{ height:"100%", width:((cnt/timeline.length)*100)+"%", background:TP_COLORS[tp]||"#3b82f6", borderRadius:4 }} />
                           </div>
-                          <span style={{ fontSize:12, color:"#94a3b8", minWidth:30, textAlign:"right" }}>{cnt}</span>
+                          <span style={{ fontSize:12, color:tk.textSub, minWidth:30, textAlign:"right" }}>{cnt}</span>
                         </div>
                       ))}
                     </div>
@@ -4837,28 +4926,28 @@ export default function App() {
 
                   {/* Timeline event log */}
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f1f5f9" }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:tk.textBright }}>
                       📅 Chronological Activity Log — {timeline.length} events
                     </div>
                     <div style={{ position:"relative" }}>
-                      <div style={{ position:"absolute", left:20, top:0, bottom:0, width:2, background:"#1e293b", borderRadius:2 }} />
+                      <div style={{ position:"absolute", left:20, top:0, bottom:0, width:2, background:tk.bgCard, borderRadius:2 }} />
                       <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
                         {timeline.map((e, i) => {
-                          const dotColor = GC[e.sg] || "#475569";
+                          const dotColor = GC[e.sg] || tk.textFaint;
                           const isLast = i === timeline.length - 1;
                           return (
                             <div key={i} style={{ display:"flex", gap:16, paddingBottom:isLast?0:14, position:"relative" }}>
                               <div style={{ flexShrink:0, width:42, display:"flex", justifyContent:"center", paddingTop:4 }}>
                                 <div style={{ width:14, height:14, borderRadius:"50%", background:dotColor, border:`2px solid ${dotColor}55`, boxShadow:`0 0 6px ${dotColor}44`, zIndex:1, position:"relative" }} />
                               </div>
-                              <div style={{ flex:1, background:"#0f172a", border:`1px solid ${dotColor}22`, borderLeft:`3px solid ${dotColor}`, borderRadius:"0 8px 8px 0", padding:"10px 14px", marginBottom:isLast?0:2 }}>
+                              <div style={{ flex:1, background:tk.bgSurface, border:`1px solid ${dotColor}22`, borderLeft:`3px solid ${dotColor}`, borderRadius:"0 8px 8px 0", padding:"10px 14px", marginBottom:isLast?0:2 }}>
                                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:5 }}>
                                   {e.date && <span style={{ fontSize:12, color:"#60a5fa", fontWeight:600 }}>{e.date}{e.time ? " · "+e.time : ""}</span>}
                                   <span className="bdg" style={{ background:dotColor+"22", color:dotColor }}>{e.sg}</span>
-                                  <span style={{ fontSize:11, color:TP_COLORS[e.tp]||"#64748b" }}>{tpIcon[e.tp]||""} {e.tp}</span>
+                                  <span style={{ fontSize:11, color:TP_COLORS[e.tp]||tk.textMuted }}>{tpIcon[e.tp]||""} {e.tp}</span>
                                 </div>
-                                <div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0", marginBottom:5 }}>{e.status}</div>
-                                <div style={{ display:"flex", gap:14, flexWrap:"wrap", fontSize:11, color:"#64748b" }}>
+                                <div style={{ fontSize:13, fontWeight:600, color:tk.textPrimary, marginBottom:5 }}>{e.status}</div>
+                                <div style={{ display:"flex", gap:14, flexWrap:"wrap", fontSize:11, color:tk.textMuted }}>
                                   {e.collector && <span>👤 {e.collector}</span>}
                                   {e.bucket && <span>📍 {e.bucket}</span>}
                                   {e.client && <span>🏢 {e.client}</span>}
@@ -4875,9 +4964,9 @@ export default function App() {
                 </>)}
 
                 {!timelineAccount && (
-                  <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"48px 24px", color:"#475569" }}>
+                  <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"48px 24px", color:tk.textFaint }}>
                     <div style={{ fontSize:48, marginBottom:12 }}>🔍</div>
-                    <div style={{ fontSize:15, fontWeight:600, color:"#64748b", marginBottom:6 }}>Search for an account to view its full timeline</div>
+                    <div style={{ fontSize:15, fontWeight:600, color:tk.textMuted, marginBottom:6 }}>Search for an account to view its full timeline</div>
                     <div style={{ fontSize:13 }}>Type at least 2 characters to see matching account numbers</div>
                   </div>
                 )}
@@ -5032,7 +5121,7 @@ export default function App() {
 
             // ── Trend direction labels ───────────────────────────────────
             const trendLabel = (slope, unit="") => {
-              if (Math.abs(slope) < 0.05) return { label:"Stable ➡", color:"#94a3b8" };
+              if (Math.abs(slope) < 0.05) return { label:"Stable ➡", color:tk.textSub };
               if (slope > 0) return { label:`↑ +${slope.toFixed(2)}${unit}/day`, color:"#22c55e" };
               return { label:`↓ ${slope.toFixed(2)}${unit}/day`, color:"#ef4444" };
             };
@@ -5047,9 +5136,9 @@ export default function App() {
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:14 }}>
 
                 {/* Header banner */}
-                <div style={{ gridColumn:"1/-1", background:"linear-gradient(135deg,#0f1f3d,#130a2e)", border:"1px solid #1e3a5f", borderRadius:12, padding:"16px 20px" }}>
-                  <div style={{ fontWeight:700, fontSize:16, color:"#f1f5f9", marginBottom:4 }}>🔮 Predictive Analysis</div>
-                  <div style={{ fontSize:13, color:"#64748b" }}>
+                <div style={{ gridColumn:"1/-1", background:isDark ? "linear-gradient(135deg,#0f1f3d,#130a2e)" : "linear-gradient(135deg,#eff6ff,#f5f3ff)", border:`1px solid ${isDark ? "#1e3a5f" : "#bfdbfe"}`, borderRadius:12, padding:"16px 20px" }}>
+                  <div style={{ fontWeight:700, fontSize:16, color:tk.textBright, marginBottom:4 }}>🔮 Predictive Analysis</div>
+                  <div style={{ fontSize:13, color:tk.textMuted }}>
                     Linear regression on historical effort, PTP, and claim data — extrapolated {FORECAST_DAYS} days ahead.
                     Forecasts are model estimates and will vary with real-world conditions.
                   </div>
@@ -5064,25 +5153,25 @@ export default function App() {
                 ].map(k=>(
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:18,marginBottom:4 }}>{k.i}</div>
-                    <div style={{ fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
+                    <div style={{ fontSize:10,color:tk.textMuted,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600 }}>{k.l}</div>
                     <div style={{ fontSize:14,fontWeight:700,color:k.c,fontFamily:"'Space Grotesk',sans-serif",marginTop:2 }}>{k.v}</div>
-                    <div style={{ fontSize:10,color:"#475569",marginTop:2 }}>{k.sub}</div>
+                    <div style={{ fontSize:10,color:tk.textFaint,marginTop:2 }}>{k.sub}</div>
                   </div>
                 ))}
 
                 {/* ── Daily Efforts forecast chart ── */}
                 {dailySeries.length >= 3 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📈 Daily Efforts — Trend &amp; 7-Day Forecast</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📈 Daily Efforts — Trend &amp; 7-Day Forecast</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:12 }}>
                       Blue bars = actual. Orange line = regression trend. Purple bars = forecast.
                       <span style={{ marginLeft:12, color:effortTrend.color, fontWeight:600 }}>{effortTrend.label}</span>
                     </div>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={effortChartData} margin={{ left:0,right:16,bottom:effortChartData.length>20?70:30 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(effortChartData.length/15)} />
-                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="date" tick={{ fill:tk.textMuted,fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(effortChartData.length/15)} />
+                        <YAxis tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize:11 }} />
                         <Bar dataKey="actual" fill="#3b82f6" name="Actual" radius={[2,2,0,0]} />
@@ -5093,14 +5182,14 @@ export default function App() {
                     </ResponsiveContainer>
                     {/* 7-day forecast table */}
                     <div style={{ marginTop:14, overflowX:"auto" }}>
-                      <div style={{ fontWeight:600,fontSize:12,color:"#94a3b8",marginBottom:6 }}>7-Day Effort Forecast</div>
+                      <div style={{ fontWeight:600,fontSize:12,color:tk.textSub,marginBottom:6 }}>7-Day Effort Forecast</div>
                       <table>
                         <thead><tr><th>Date</th><th>Predicted Efforts</th><th style={{width:160}}>Bar</th></tr></thead>
                         <tbody>{effortForecast.map(f=>(
                           <tr key={f.date}>
                             <td style={{ color:"#a78bfa",fontWeight:600 }}>{f.date}</td>
-                            <td style={{ fontWeight:700,color:"#e2e8f0" }}>{f.predicted.toLocaleString()}</td>
-                            <td><Pb pct={totalNext7>0?(f.predicted/Math.max(...effortForecast.map(x=>x.predicted)))*100:0} c="#a78bfa" /></td>
+                            <td style={{ fontWeight:700,color:tk.textPrimary }}>{f.predicted.toLocaleString()}</td>
+                            <td><Pb tk={tk} pct={totalNext7>0?(f.predicted/Math.max(...effortForecast.map(x=>x.predicted)))*100:0} c="#a78bfa" /></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -5111,16 +5200,16 @@ export default function App() {
                 {/* ── PTP forecast ── */}
                 {ptpSeries.length >= 3 && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>🤝 PTP Count Forecast (7 days)</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>🤝 PTP Count Forecast (7 days)</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>
                       <span style={{ color:ptpTrend.color,fontWeight:600 }}>{ptpTrend.label}</span>
-                      <span style={{ color:"#475569",marginLeft:8 }}>R²={ptpReg.r2.toFixed(2)}</span>
+                      <span style={{ color:tk.textFaint,marginLeft:8 }}>R²={ptpReg.r2.toFixed(2)}</span>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={ptpChartData} margin={{ left:0,right:12,bottom:50 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(ptpChartData.length/10)} />
-                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="date" tick={{ fill:tk.textMuted,fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(ptpChartData.length/10)} />
+                        <YAxis tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize:10 }} />
                         <Bar dataKey="actual" fill="#f59e0b" name="Actual PTP" radius={[2,2,0,0]} />
@@ -5142,16 +5231,16 @@ export default function App() {
                 {/* ── Claim forecast ── */}
                 {claimSeries.length >= 3 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>💳 Claim Paid Forecast (7 days)</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:10 }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>💳 Claim Paid Forecast (7 days)</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>
                       <span style={{ color:claimTrend.color,fontWeight:600 }}>{claimTrend.label}</span>
-                      <span style={{ color:"#475569",marginLeft:8 }}>R²={claimReg.r2.toFixed(2)}</span>
+                      <span style={{ color:tk.textFaint,marginLeft:8 }}>R²={claimReg.r2.toFixed(2)}</span>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={claimChartData} margin={{ left:0,right:12,bottom:50 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" tick={{ fill:"#64748b",fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(claimChartData.length/10)} />
-                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="date" tick={{ fill:tk.textMuted,fontSize:9 }} angle={-35} textAnchor="end" interval={Math.floor(claimChartData.length/10)} />
+                        <YAxis tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize:10 }} />
                         <Bar dataKey="actual" fill="#f97316" name="Actual Claims" radius={[2,2,0,0]} />
@@ -5173,13 +5262,13 @@ export default function App() {
                 {/* ── Monthly forecast ── */}
                 {monthly.length >= 2 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>📆 Monthly Efforts — Trend &amp; {MONTHS_AHEAD}-Month Forecast</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>Green bars = actual. Purple bars = forecast. R²={monthReg.r2.toFixed(2)}</div>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📆 Monthly Efforts — Trend &amp; {MONTHS_AHEAD}-Month Forecast</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:12 }}>Green bars = actual. Purple bars = forecast. R²={monthReg.r2.toFixed(2)}</div>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={monthChartData} margin={{ left:0,right:16,bottom:monthly.length>6?50:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="month" tick={{ fill:"#64748b",fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#64748b",fontSize:11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted,fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
                         <Legend wrapperStyle={{ fontSize:11 }} />
                         <Bar dataKey="actual" fill="#3b82f6" name="Actual" radius={[2,2,0,0]} />
@@ -5188,7 +5277,7 @@ export default function App() {
                       </BarChart>
                     </ResponsiveContainer>
                     <div style={{ marginTop:12,overflowX:"auto" }}>
-                      <div style={{ fontWeight:600,fontSize:12,color:"#94a3b8",marginBottom:6 }}>Monthly Forecast</div>
+                      <div style={{ fontWeight:600,fontSize:12,color:tk.textSub,marginBottom:6 }}>Monthly Forecast</div>
                       <table>
                         <thead><tr><th>Month</th><th>Predicted Efforts</th><th>Predicted PTP (est.)</th><th style={{width:160}}>Bar</th></tr></thead>
                         <tbody>{forecastMonths.map((m,k)=>{
@@ -5198,9 +5287,9 @@ export default function App() {
                           return (
                             <tr key={m}>
                               <td style={{ color:"#a78bfa",fontWeight:600 }}>{m}</td>
-                              <td style={{ fontWeight:700,color:"#e2e8f0" }}>{pred.toLocaleString()}</td>
+                              <td style={{ fontWeight:700,color:tk.textPrimary }}>{pred.toLocaleString()}</td>
                               <td style={{ color:"#22c55e" }}>₱{fN(predPTP)}</td>
-                              <td><Pb pct={(pred/Math.max(maxActual,pred))*100} c="#a78bfa" /></td>
+                              <td><Pb tk={tk} pct={(pred/Math.max(maxActual,pred))*100} c="#a78bfa" /></td>
                             </tr>
                           );
                         })}</tbody>
@@ -5212,8 +5301,8 @@ export default function App() {
                 {/* ── Collector productivity forecast ── */}
                 {topForecastCollectors.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:"#f1f5f9" }}>👥 Collector Productivity Forecast (Next 7 Days)</div>
-                    <div style={{ fontSize:12,color:"#64748b",marginBottom:12 }}>
+                    <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>👥 Collector Productivity Forecast (Next 7 Days)</div>
+                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:12 }}>
                       Estimated based on each collector's historical daily effort rate × 7 days.
                     </div>
                     <div style={{ overflowX:"auto" }}>
@@ -5231,14 +5320,14 @@ export default function App() {
                         <tbody>{topForecastCollectors.map((c,i)=>(
                           <tr key={c.name}>
                             <td style={{ color:"#4b5563" }}>{i+1}</td>
-                            <td style={{ fontWeight:600,color:"#e2e8f0" }}>{c.name}</td>
-                            <td style={{ color:"#94a3b8" }}>{c.total.toLocaleString()}</td>
+                            <td style={{ fontWeight:600,color:tk.textPrimary }}>{c.name}</td>
+                            <td style={{ color:tk.textSub }}>{c.total.toLocaleString()}</td>
                             <td style={{ color:"#60a5fa" }}>{c.dailyRate}/day</td>
                             <td style={{ fontWeight:700,color:"#a78bfa" }}>{c.next7.toLocaleString()}</td>
                             <td style={{ color:"#3b82f6" }}>{c.rpcRate}%</td>
                             <td style={{ color:"#f59e0b" }}>{c.ptpRate}%</td>
                             <td style={{ color:"#22c55e" }}>{c.keptRate}%</td>
-                            <td><Pb pct={(c.next7/Math.max(...topForecastCollectors.map(x=>x.next7),1))*100} c={PC[i%PC.length]} /></td>
+                            <td><Pb tk={tk} pct={(c.next7/Math.max(...topForecastCollectors.map(x=>x.next7),1))*100} c={PC[i%PC.length]} /></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -5247,7 +5336,7 @@ export default function App() {
                 )}
 
                 {/* ── Model accuracy note ── */}
-                <div style={{ gridColumn:"1/-1", background:"#1c1917", border:"1px solid #292524", borderRadius:10, padding:"12px 16px" }}>
+                <div style={{ gridColumn:"1/-1", background:tk.bgSurface, border:`1px solid ${tk.border}`, borderRadius:10, padding:"12px 16px" }}>
                   <div style={{ fontSize:12,color:"#78716c" }}>
                     ⚠️ <strong style={{ color:"#a8a29e" }}>Model Notes:</strong> Forecasts use ordinary least-squares linear regression on historical data.
                     R² (0–1) measures fit quality — values closer to 1 indicate stronger predictive power.

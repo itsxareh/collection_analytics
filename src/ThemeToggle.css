@@ -1,0 +1,114 @@
+/* ─────────────────────────────────────────────
+   ThemeToggle.css
+   Scoped styles for the toggle pill component.
+   All colours reference the CSS variables
+   defined in index.css so the toggle itself
+   is always correct for both themes.
+───────────────────────────────────────────── */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    background  var(--transition),
+    border-color var(--transition),
+    color        var(--transition),
+    box-shadow   var(--transition);
+  user-select: none;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Sizes ── */
+.theme-toggle--sm { font-size: 0.75rem; }
+.theme-toggle--sm .theme-toggle__track  { width: 2.2rem; height: 1.1rem; }
+.theme-toggle--sm .theme-toggle__thumb  { width: 0.85rem; height: 0.85rem; }
+.theme-toggle--sm .theme-toggle__icon   { width: 0.65rem; height: 0.65rem; }
+
+.theme-toggle--md { font-size: 0.875rem; }
+.theme-toggle--md .theme-toggle__track  { width: 2.75rem; height: 1.4rem; }
+.theme-toggle--md .theme-toggle__thumb  { width: 1.05rem; height: 1.05rem; }
+.theme-toggle--md .theme-toggle__icon   { width: 0.8rem;  height: 0.8rem;  }
+
+.theme-toggle--lg { font-size: 1rem; }
+.theme-toggle--lg .theme-toggle__track  { width: 3.25rem; height: 1.65rem; }
+.theme-toggle--lg .theme-toggle__thumb  { width: 1.25rem; height: 1.25rem; }
+.theme-toggle--lg .theme-toggle__icon   { width: 0.95rem; height: 0.95rem; }
+
+/* ── Track ── */
+.theme-toggle__track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--toggle-track-bg);
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+
+/* ── Icons inside track ── */
+.theme-toggle__icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.theme-toggle__icon--sun  { left: 0.22rem; color: #f59e0b; }
+.theme-toggle__icon--moon { right: 0.22rem; color: #818cf8; }
+
+/* Show correct icon based on theme */
+[data-theme="dark"]  .theme-toggle__icon--sun  { opacity: 0; transform: scale(0.6); }
+[data-theme="dark"]  .theme-toggle__icon--moon { opacity: 1; transform: scale(1);   }
+[data-theme="light"] .theme-toggle__icon--sun  { opacity: 1; transform: scale(1);   }
+[data-theme="light"] .theme-toggle__icon--moon { opacity: 0; transform: scale(0.6); }
+
+/* ── Thumb ── */
+.theme-toggle__thumb {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--toggle-thumb-bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  transition: transform var(--transition), background var(--transition);
+}
+
+/* Thumb offset calculations — left edge + 2px breathing room */
+.theme-toggle--sm .theme-toggle__thumb { transform: translateX(2px); }
+.theme-toggle--md .theme-toggle__thumb { transform: translateX(3px); }
+.theme-toggle--lg .theme-toggle__thumb { transform: translateX(3px); }
+
+/* Slide thumb right when LIGHT */
+[data-theme="light"] .theme-toggle--sm .theme-toggle__thumb {
+  transform: translateX(calc(2.2rem - 0.85rem - 2px));
+}
+[data-theme="light"] .theme-toggle--md .theme-toggle__thumb {
+  transform: translateX(calc(2.75rem - 1.05rem - 3px));
+}
+[data-theme="light"] .theme-toggle--lg .theme-toggle__thumb {
+  transform: translateX(calc(3.25rem - 1.25rem - 3px));
+}
+
+/* ── Label ── */
+.theme-toggle__label {
+  line-height: 1;
+}

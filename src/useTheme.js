@@ -6,7 +6,7 @@ function getInitialTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === "light" || saved === "dark") return saved;
   if (window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
-  return "dark";
+  return "light";
 }
 
 const ThemeContext = createContext(null);

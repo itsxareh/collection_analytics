@@ -805,7 +805,7 @@ export default function App() {
     if (fieldRows.length > 0) {
       const totalFieldVisits = fieldRows.length;
       const uniqueFieldAccounts = ak ? new Set(fieldRows.map(r=>r[ak]).filter(Boolean)).size : null;
-      const fieldRate = uniqueFieldAccounts > 0 ? (( uniqueFieldAccounts / totalFieldVisits) * 100).toFixed(1) : "0.0";
+      const fieldRate = uniqueFieldAccounts > 0 ? (( uniqueFieldAccounts / ua  ) * 100).toFixed(1) : "0.0";
 
       // Visits per bucket
       const bucketVisitMap = {};

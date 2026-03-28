@@ -24,10 +24,10 @@ const DISP = {
   "CALL - PTP FULL UPDATE": { tp: "CALL", sg: "PTP" },
   "CALL - PTP PUSH BACK": { tp: "CALL", sg: "PTP" },
   "CALL - PTP PARTIAL": { tp: "CALL", sg: "PTP" },
-  "CALL - FOLLOW UP KOR": { tp: "CALL", sg: "NEG" },
-  "CALL - FOLLOW UP UNCONTACTABLE": { tp: "CALL", sg: "NEG" },
-  "CALL - FOLLOW UP LMTRC": { tp: "CALL", sg: "NEG" },
-  "CALL - FOLLOW UP COMPLIANT": { tp: "CALL", sg: "NEG" },
+  "CALL - FOLLOW UP KOR": { tp: "CALL", sg: "RPC" },
+  "CALL - FOLLOW UP UNCONTACTABLE": { tp: "CALL", sg: "RPC" },
+  "CALL - FOLLOW UP LMTRC": { tp: "CALL", sg: "RPC" },
+  "CALL - FOLLOW UP COMPLIANT": { tp: "CALL", sg: "RPC" },
   "CALL - POS_CBR": { tp: "CALL", sg: "NEG" },
   "CALL - NEG_UNATTENDED": { tp: "CALL", sg: "NEG" },
   "CALL - NEG_KOR": { tp: "CALL", sg: "NEG" },
@@ -66,7 +66,7 @@ const DISP = {
   "CARAVAN - PTP PAYOFF": { tp: "FIELD", sg: "PTP" },
   "CARAVAN - PTP PUSHBACK": { tp: "FIELD", sg: "PTP" },
   "CARAVAN - PTP PARTIAL": { tp: "FIELD", sg: "PTP" },
-  "CARAVAN - FOLLOW UP COMPLIANT": { tp: "FIELD", sg: "NEG" },
+  "CARAVAN - FOLLOW UP COMPLIANT": { tp: "FIELD", sg: "RPC" },
   "CARAVAN - CLAIMING PAID": { tp: "FIELD", sg: "RPC" },
   "CARAVAN - INSURANCE CLAIM": { tp: "FIELD", sg: "RPC" },
   "CARAVAN - UNIT CARNAPPED": { tp: "FIELD", sg: "RPC" },
@@ -105,8 +105,8 @@ const DISP = {
   "SMEDIA - PTP FULL UPDATE": { tp: "INTERNET", sg: "PTP" },
   "SMEDIA - PTP PUSH BACK": { tp: "INTERNET", sg: "PTP" },
   "SMEDIA - PTP PARTIAL": { tp: "INTERNET", sg: "PTP" },
-  "SMEDIA - FOLLOW UP MESSAGE": { tp: "INTERNET", sg: "NEG" },
-  "SMEDIA - FOLLOW UP COMPLIANT": { tp: "INTERNET", sg: "NEG" },
+  "SMEDIA - FOLLOW UP MESSAGE": { tp: "INTERNET", sg: "RPC" },
+  "SMEDIA - FOLLOW UP COMPLIANT": { tp: "INTERNET", sg: "RPC" },
   "SMEDIA - CLAIMING PAID": { tp: "INTERNET", sg: "RPC" },
   "SMEDIA - INSURANCE CLAIM": { tp: "INTERNET", sg: "RPC" },
   "SMEDIA - UNIT CARNAPPED": { tp: "INTERNET", sg: "RPC" },
@@ -137,7 +137,7 @@ const DISP = {
   "FIELD - PTP_PAYOFF": { tp: "FIELD", sg: "PTP" },
   "FIELD - PTP_PUSHBACK": { tp: "FIELD", sg: "PTP" },
   "FIELD - PTP_PARTIAL": { tp: "FIELD", sg: "PTP" },
-  "FIELD - FOLLOW UP COMPLIANT": { tp: "FIELD", sg: "NEG" },
+  "FIELD - FOLLOW UP COMPLIANT": { tp: "FIELD", sg: "RPC" },
   "FIELD - CLAIMING PAID": { tp: "FIELD", sg: "RPC" },
   "FIELD - INSURANCE CLAIM": { tp: "FIELD", sg: "RPC" },
   "FIELD - UNIT CARNAPPED": { tp: "FIELD", sg: "RPC" },
@@ -171,8 +171,8 @@ const DISP = {
   "EMAIL - UNIT_IMPOUNDED": { tp: "EMAIL", sg: "RPC" },
   "EMAIL - UNIT ASSUMED": { tp: "EMAIL", sg: "RPC" },
   "EMAIL - UNIT DAMAGE OR WRECK": { tp: "EMAIL", sg: "RPC" },
-  "EMAIL - FOLLOW UP MESSAGE": { tp: "EMAIL", sg: "NEG" },
-  "EMAIL - FOLLOW UP COMPLIANT": { tp: "EMAIL", sg: "NEG" },
+  "EMAIL - FOLLOW UP MESSAGE": { tp: "EMAIL", sg: "RPC" },
+  "EMAIL - FOLLOW UP COMPLIANT": { tp: "EMAIL", sg: "RPC" },
   "EMAIL - CEASE COLLECTION": { tp: "EMAIL", sg: "NEG" },
   "EMAIL - KEPT_ REPO CLIENT": { tp: "EMAIL", sg: "KEPT" },
   "EMAIL - KEPT_REPO 3RD PARTY": { tp: "EMAIL", sg: "KEPT" },
@@ -199,8 +199,8 @@ const DISP = {
   "SMS - UNIT DAMAGE OR WRECK": { tp: "SMS", sg: "RPC" },
   "SMS - UNIT CARNAPPED": { tp: "SMS", sg: "RPC" },
   "SMS - NO INTENTION TO PAY": { tp: "SMS", sg: "NEG" },
-  "SMS - FOLLOW UP MESSAGE": { tp: "SMS", sg: "NEG" },
-  "SMS - FOLLOW UP COMPLIANT": { tp: "SMS", sg: "NEG" },
+  "SMS - FOLLOW UP MESSAGE": { tp: "SMS", sg: "RPC" },
+  "SMS - FOLLOW UP COMPLIANT": { tp: "SMS", sg: "RPC" },
   "SMS - KEPT_REPO CLIENT": { tp: "SMS", sg: "KEPT" },
   "SMS - KEPT_REPO 3RD PARTY": { tp: "SMS", sg: "KEPT" },
   "SMS - KEPT PAYOFF": { tp: "SMS", sg: "KEPT" },
@@ -208,6 +208,8 @@ const DISP = {
   "SMS - KEPT_PUSH BACK": { tp: "SMS", sg: "KEPT" },
   "SMS - KEPT_PARTIAL": { tp: "SMS", sg: "KEPT" },
   "SMS SENT": { tp: "SMS", sg: "NEG" },
+  "SMS REPLY": { tp: "SMS", sg: "RPC" },
+  "SMS Replied": { tp: "SMS", sg: "RPC" },
   "BULK SMS SENT": { tp: "SMS", sg: "NEG" },
   "VIBER - NO VIBER": { tp: "VIBER", sg: "NEG" },
   "VIBER - DELIVERED": { tp: "VIBER", sg: "NEG" },
@@ -222,8 +224,8 @@ const DISP = {
   "VIBER - PTP FULL UPDATE": { tp: "VIBER", sg: "PTP" },
   "VIBER - PTP PUSH BACK": { tp: "VIBER", sg: "PTP" },
   "VIBER - PARTIAL": { tp: "VIBER", sg: "PTP" },
-  "VIBER - FOLLOW UP MESSAGE": { tp: "VIBER", sg: "NEG" },
-  "VIBER - FOLLOW UP COMPLIANT": { tp: "VIBER", sg: "NEG" },
+  "VIBER - FOLLOW UP MESSAGE": { tp: "VIBER", sg: "RPC" },
+  "VIBER - FOLLOW UP COMPLIANT": { tp: "VIBER", sg: "RPC" },
   "VIBER - CLAIMING PAID": { tp: "VIBER", sg: "RPC" },
   "VIBER - INSURANCE CLAIM": { tp: "VIBER", sg: "RPC" },
   "VIBER - UNIT CARNAPPED": { tp: "VIBER", sg: "RPC" },
@@ -270,19 +272,23 @@ const BUCKET_MAP = {
   "01OAFSA": "Bucket 1", "02OAFSA": "Bucket 2", "03OAFSA": "Bucket 3",
   "04OAFSA": "Bucket 4", "05OAFSA": "Bucket 5", "06OAFSA": "Bucket 6",
   "01BMIM": "Regular", "02BMIM": "NPA", "03BMIM": "Write Off",
+  "04CBSCAA" : "CURING", "02CBSRRA" : "RECOV", "03CBSWOA": "Write Off",
+  "01RCBA" : "FFA/NPL", "04RCBA" : "Pre-Write Off", "02RCSA": "Saturation",
+  "02SBCALA" : "CURING", "06SBRALA": "Saturation", "06SBRAL": "Bucket 6",
+  "07SBRAL": "Bucket 7", "08SBRAL": "Bucket 8"
 };
 
 const BUCKET_ORDER = [
   "Bucket 1","Bucket 2","Bucket 3","Bucket 4","Bucket 5","Bucket 6",
   "Sub Standard 1","Sub Standard 2","Substandard 3",
-  "Regular","NPA","Write Off"
+  "Regular","NPA","Write Off","Pre-Write Off","CURING","RECOV","FFA/NPL","Saturation"
 ];
 
 const BUCKET_COLORS = {
   "Bucket 1": "#3b82f6", "Bucket 2": "#06b6d4", "Bucket 3": "#a78bfa",
   "Bucket 4": "#f59e0b", "Bucket 5": "#f97316", "Bucket 6": "#ef4444",
   "Sub Standard 1": "#84cc16", "Sub Standard 2": "#22c55e", "Substandard 3": "#14b8a6",
-  "Regular": "#60a5fa", "NPA": "#fb923c", "Write Off": "#dc2626",
+  "Regular": "#60a5fa", "NPA": "#fb923c", "Write Off": "#dc2626", "Saturation": "#9ca3af", "Pre-Write Off": "#6b7280", "CURING": "#10b981", "RECOV": "#3b82f6", "FFA/NPL": "#eb6868"
 };
 
 const resolveBucket = (rawVal) => {
@@ -354,12 +360,29 @@ const fD = v => {
     return `${mo}/${dy}/${yr}`;
   }
   const s = String(v).trim();
+  const monthNames = { Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6, Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12 };
+  const mmmMatch = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  if (mmmMatch) {
+    const [, day, monStr, yr] = mmmMatch;
+    const mon = monthNames[monStr];
+    if (mon) {
+      return `${String(mon).padStart(2, "0")}/${String(parseInt(day)).padStart(2, "0")}/${yr}`;
+    }
+  }
+  const fullMonthMatch = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (fullMonthMatch) {
+    const [, day, monStr, yr] = fullMonthMatch;
+    const mon = monthNames[monStr.substring(0,3)];
+    if (mon) {
+      return `${String(mon).padStart(2, "0")}/${String(parseInt(day)).padStart(2, "0")}/${yr}`;
+    }
+  }
   const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (dmyMatch) {
     const [, a, b, yr] = dmyMatch;
     const day = parseInt(a), mon = parseInt(b);
     if (day > 12 || (day <= 12 && mon <= 12)) {
-      return `${String(mon).padStart(2, "0")}/${String(day).padStart(2, "0")}/${yr}`;
+      return `${String(day).padStart(2, "0")}/${String(mon).padStart(2, "0")}/${yr}`;
     }
   }
   const d = new Date(s);
@@ -542,6 +565,8 @@ export default function App() {
   const [selectedBucket, setSelectedBucket] = useState(null);
   const [penetrationMode, setPenetrationMode] = useState("pct"); // "pct" | "efforts" | "accounts"
   const [hourlyCollectorView, setHourlyCollectorView] = useState("heatmap"); // "heatmap" | "bar" | "top"
+  const [globalDateFrom, setGlobalDateFrom] = useState(""); // YYYY-MM-DD
+  const [globalDateTo, setGlobalDateTo] = useState(""); // YYYY-MM-DD
   const fRef = useRef();
 
   const [monthCompareMetric, setMonthCompareMetric] = useState("total");
@@ -605,6 +630,8 @@ export default function App() {
         const sk = keys.find(k => k.trim().toLowerCase() === "status");
         if (!sk) { setErr("Error: The uploaded file does not contain a 'Status' column."); setLoading(false); return; }
         const ak = keys.find(k => k.toLowerCase().includes("account no") || k.toLowerCase().includes("acct no"));
+        const dik = keys.find(k => k.toLowerCase().includes("debtor id") || k.toLowerCase().includes("debtor no"));
+        const dnk = keys.find(k => { const l = k.trim().toLowerCase(); return l === "debtor" || l === "debtor name" || l === "name" || l === "client name" || l.includes("debtor name"); });
         const rk = keys.find(k => k.toLowerCase().includes("remark by"));
         const rmk = keys.find(k => {
           const l = k.toLowerCase();
@@ -616,7 +643,8 @@ export default function App() {
         const cdk = keys.find(k => k.toLowerCase().includes("claim paid date"));
         const datек = keys.find(k => {
           const l = k.trim().toLowerCase();
-          return l === "date" || l === "remark date" || l === "activity date" || l === "log date";
+          return l === "date" || l === "remark date" || l === "activity date" || l === "log date" ||
+                 l.includes("date") && !l.includes("time") && !l.includes("amount") && !l.includes("paid");
         });
         const timek = keys.find(k => {
           const l = k.trim().toLowerCase();
@@ -655,6 +683,65 @@ export default function App() {
             _d: DU[r._su],
             _bucket: oick ? resolveBucket(r[oick]) : null,
           _dateStr: (() => { const key = datек||dtk; return key ? fD(r[key]) : null; })(),
+          _dateISO: (() => {
+            const key = datек||dtk;
+            if (!key) return null;
+            const raw = r[key];
+            if (!raw) return null;
+            // Convert to YYYY-MM-DD for comparison with <input type="date"> values
+            if (raw instanceof Date && !isNaN(raw.getTime())) {
+              return `${raw.getFullYear()}-${String(raw.getMonth()+1).padStart(2,"0")}-${String(raw.getDate()).padStart(2,"0")}`;
+            }
+            const s = String(raw).trim();
+            // Try DD-MMM-YYYY (e.g., 15-Mar-2023)
+            const monthNames = { Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6, Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12 };
+            const mmmMatch = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+            if (mmmMatch) {
+              const [, day, monStr, yr] = mmmMatch;
+              const mon = monthNames[monStr];
+              if (mon) {
+                return `${yr}-${String(mon).padStart(2,"0")}-${String(parseInt(day)).padStart(2,"0")}`;
+              }
+            }
+            // Try DD Month YYYY (e.g., 15 March 2023)
+            const fullMonthMatch = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+            if (fullMonthMatch) {
+              const [, day, monStr, yr] = fullMonthMatch;
+              const mon = monthNames[monStr.substring(0,3)]; // Take first 3 letters
+              if (mon) {
+                return `${yr}-${String(mon).padStart(2,"0")}-${String(parseInt(day)).padStart(2,"0")}`;
+              }
+            }
+            // Try MM/DD/YYYY or DD/MM/YYYY
+            const slashMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (slashMatch) {
+              const [,a,b,yr] = slashMatch;
+              const num1 = parseInt(a), num2 = parseInt(b);
+              let mon, day;
+              if (num1 > 12) {
+                // num1 >12, must be day, so DD/MM/YYYY
+                day = num1;
+                mon = num2;
+              } else if (num2 > 12) {
+                // num2 >12, must be day, so MM/DD/YYYY
+                mon = num1;
+                day = num2;
+              } else {
+                // Both <=12, assume DD/MM/YYYY
+                day = num1;
+                mon = num2;
+              }
+              mon = String(mon).padStart(2,"0");
+              day = String(day).padStart(2,"0");
+              return `${yr}-${mon}-${day}`;
+            }
+            // Try YYYY-MM-DD already
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            // Fallback: parse via Date
+            const d = new Date(s);
+            if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+            return null;
+          })(),
           _monthYear: (() => { const key = datек||dtk; return key ? getMonthYear(fD(r[key])) : null; })(),
           _client: clk ? (r[clk] ? String(r[clk]).trim() : null) : null,
           }));
@@ -662,7 +749,7 @@ export default function App() {
         if (!rows.length) { setErr("Error: No valid recognized statuses found in the file."); setLoading(false); return; }
         const clients = clk ? [...new Set(rows.map(r=>r._client).filter(Boolean))].sort() : [];
         
-        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, totalRaw, remarkExcludedCount, clients });
+        setData({ rows, sk, ak, rk, rmk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, dik, dnk, totalRaw, remarkExcludedCount, clients });
       } catch (ex) { setErr("Error parsing file: " + ex.message); }
       setLoading(false);
     };
@@ -671,11 +758,20 @@ export default function App() {
 
   const an = useMemo(() => {
     if (!data) return null;
-    const { rows: allRows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick } = data;
-    // Filter rows to the active client (or use all rows when "All" is selected)
-    const rows = (activeClientFilter && activeClientFilter !== "All" && clk)
-      ? allRows.filter(r => r._client === activeClientFilter)
-      : allRows;
+    const { rows: allRows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, dik } = data;
+    const activeDateKey = datек || dtk;
+
+    // Filter by client AND by global date range
+    const rows = allRows.filter(r => {
+      if (activeClientFilter && activeClientFilter !== "All" && clk && r._client !== activeClientFilter) return false;
+      if (globalDateFrom || globalDateTo) {
+        const d = r._dateISO; // YYYY-MM-DD — safe for string comparison with input[type=date] values
+        if (!d) return false;
+        if (globalDateFrom && d < globalDateFrom) return false;
+        if (globalDateTo   && d > globalDateTo)   return false;
+      }
+      return true;
+    });
     const sc = {}, gc = {}, tc = {};
     rows.forEach(r => {
       sc[r._status] = (sc[r._status] || 0) + 1;
@@ -690,9 +786,9 @@ export default function App() {
     }));
     const gd = Object.entries(gc).sort((a, b) => b[1] - a[1]).map(([g, c]) => ({ name: g, value: c, pct: ((c / T) * 100).toFixed(1) }));
     const td = Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([t, c]) => ({ name: t, count: c, pct: ((c / T) * 100).toFixed(1) }));
-    const ua = ak ? new Set(rows.map(r => r[ak]).filter(Boolean)).size : null;
+    const ua = (ak ? new Set(rows.map(r => r[ak]).filter(Boolean)).size : dik ? new Set(rows.map(r => r[dik]).filter(Boolean)).size : null);
 
-    const collectorMap = {};
+    const collectorMap = {};  
     if (rk) {
       rows.forEach(r => {
         const v = r[rk]; if (!v) return;
@@ -717,7 +813,6 @@ export default function App() {
     const cdd = Object.entries(cdc).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-15).map(([d, c]) => ({ date: d, count: c }));
 
     let dateAnalytics = null;
-    const activeDateKey = datек || dtk;
     if (activeDateKey || timek) {
       const dateMap = {};
       rows.forEach(r => {
@@ -1096,7 +1191,7 @@ export default function App() {
 
       hourlyCollectorAnalytics = {
         heatmapRows, heatmapMax, hourTopData, peakHourDist, shiftData, hourTPData,
-        allCollectors, collectorHourMap,
+        allCollectors, collectorHourMap, rawRows: rows,
       };
     } else if (activeTimeKey && !rk) {
       // Only time available, no collector column – still compute hourly TP
@@ -1238,10 +1333,9 @@ export default function App() {
     }
 
     // ── Broken Promise (BP) Analytics ────────────────────────────────────────
-    // BP = account has a PTP date but NO Claim Paid date that is >= PTP date
+    // BP = account has a PTP date but NO Claim Paid recorded
     let bpAnalytics = null;
     if (ak && pak && pdk) {
-      // Group rows by account: track latest PTP date, latest PTP amount, latest Claim Paid date, collector, bucket, client
       const acctMap = {};
       rows.forEach(r => {
         const acct = r[ak] ? String(r[ak]).trim() : null;
@@ -1255,12 +1349,16 @@ export default function App() {
         const collector = rk && r[rk] ? String(r[rk]).trim() : null;
         const bucket = r._bucket || null;
         const client = r._client || null;
+        const debtor = data.dnk && r[data.dnk] ? String(r[data.dnk]).trim() : null;
 
-        if (!acctMap[acct]) acctMap[acct] = { ptpDates: [], claimDates: [], ptpAmt: 0, claimAmt: 0, collector, bucket, client, statuses: [] };
+        if (!acctMap[acct]) acctMap[acct] = { ptpDates: [], claimDates: [], ptpAmt: 0, claimAmt: 0, ptpCollector: null, collector, bucket, client, debtor, statuses: [] };
 
         if (ptpDate && !isNaN(ptpAmt) && ptpAmt > 0) {
           acctMap[acct].ptpDates.push(ptpDate);
-          acctMap[acct].ptpAmt = Math.max(acctMap[acct].ptpAmt, ptpAmt);
+          if (ptpAmt > acctMap[acct].ptpAmt) {
+            acctMap[acct].ptpAmt = ptpAmt;
+            acctMap[acct].ptpCollector = collector; // collector who set the highest PTP
+          }
         }
         if (claimDate && !isNaN(claimAmt) && claimAmt > 0) {
           acctMap[acct].claimDates.push(claimDate);
@@ -1281,11 +1379,13 @@ export default function App() {
         totalPTPAccounts++;
         const latestPTP = v.ptpDates.sort((a, b) => new Date(b) - new Date(a))[0];
         const latestClaim = v.claimDates.length > 0 ? v.claimDates.sort((a, b) => new Date(b) - new Date(a))[0] : null;
-        const isBP = !latestClaim || new Date(latestClaim) < new Date(latestPTP);
+        // BP: no claim paid at all
+        // NOT BP: has any claim paid (even if before PTP date — claim was made so not broken)
+        const isBP = !latestClaim;
         if (isBP) {
-          bpAccounts.push({ acct, ptpDate: latestPTP, claimDate: latestClaim || "–", ptpAmt: v.ptpAmt, collector: v.collector || "–", bucket: v.bucket || "–", client: v.client || "–", statuses: [...new Set(v.statuses)] });
+          bpAccounts.push({ acct, ptpDate: latestPTP, claimDate: "–", ptpAmt: v.ptpAmt, debtor: v.debtor || "–", collector: v.ptpCollector || v.collector || "–", bucket: v.bucket || "–", client: v.client || "–", statuses: [...new Set(v.statuses)] });
         } else {
-          keptAccounts.push({ acct, ptpDate: latestPTP, claimDate: latestClaim, ptpAmt: v.ptpAmt, claimAmt: v.claimAmt, collector: v.collector || "–", bucket: v.bucket || "–" });
+          keptAccounts.push({ acct, ptpDate: latestPTP, claimDate: latestClaim, ptpAmt: v.ptpAmt, claimAmt: v.claimAmt, collector: v.ptpCollector || v.collector || "–", bucket: v.bucket || "–" });
         }
       });
 
@@ -1476,9 +1576,17 @@ export default function App() {
     }
     
     return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, bpAnalytics, collectorBucketAnalytics, funnelAnalytics };
-  }, [data, activeClientFilter]);
+  }, [data, activeClientFilter, globalDateFrom, globalDateTo]);
 
   const TS = { background: tk.bgTooltip, border: `1px solid ${tk.borderMed}`, borderRadius: 8, fontSize: 12, color: tk.textPrimary };
+
+  // ── Analytic insight description strip ──────────────────────────────────
+  const Insight = ({ text, color = "#60a5fa", icon = "💡" }) => (
+    <div style={{ fontSize: 12, color: tk.textSub, background: isDark ? `${color}11` : `${color}18`, border: `1px solid ${color}33`, borderRadius: 7, padding: "7px 12px", marginBottom: 10, lineHeight: 1.55, display: "flex", gap: 8 }}>
+      <span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
+      <span dangerouslySetInnerHTML={{ __html: text }} />
+    </div>
+  );
 
   const selectedDateRows = useMemo(() => {
     if (!selectedDate || !data || !an?.dateAnalytics) return null;
@@ -1686,6 +1794,42 @@ export default function App() {
             </div>
           )}
 
+          {/* ── Global Date Range Filter ── */}
+          {(data?.datек || data?.dtk) && (() => {
+            // Use _dateISO (YYYY-MM-DD) so it works correctly with input[type="date"]
+            const allDatesISO = [...new Set(data.rows.map(r => r._dateISO).filter(Boolean))].sort();
+            if (allDatesISO.length === 0) return null;
+            const minISO = allDatesISO[0];
+            const maxISO = allDatesISO[allDatesISO.length - 1];
+            const hasFilter = !!(globalDateFrom || globalDateTo);
+            return (
+              <div style={{ marginBottom: 10, background: tk.bgCard, border: `1px solid ${hasFilter ? "#3b82f6" : tk.borderMed}`, borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", transition: "border-color 0.2s" }}>
+                <span style={{ fontSize: 12, color: tk.textSub, fontWeight: 600, flexShrink: 0 }}>📅 Date Range:</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <label style={{ fontSize: 12, color: tk.textMuted }}>From</label>
+                  <input type="date" value={globalDateFrom} min={minISO} max={maxISO}
+                    onChange={e => setGlobalDateFrom(e.target.value)}
+                    style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
+                  <label style={{ fontSize: 12, color: tk.textMuted }}>To</label>
+                  <input type="date" value={globalDateTo} min={minISO} max={maxISO}
+                    onChange={e => setGlobalDateTo(e.target.value)}
+                    style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
+                </div>
+                {hasFilter && (
+                  <button onClick={() => { setGlobalDateFrom(""); setGlobalDateTo(""); }}
+                    style={{ fontSize: 11, padding: "3px 12px", borderRadius: 6, background: isDark ? "#172554" : "#dbeafe", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}>
+                    ✕ Clear Filter
+                  </button>
+                )}
+                <span style={{ fontSize: 11, color: hasFilter ? "#60a5fa" : tk.textFaint, marginLeft: 4 }}>
+                  {hasFilter
+                    ? `Showing ${an?.T?.toLocaleString() ?? 0} of ${data.rows.length.toLocaleString()} records · ${minISO} → ${maxISO}`
+                    : `${allDatesISO.length} active dates · ${minISO} → ${maxISO}`}
+                </span>
+              </div>
+            );
+          })()}
+
           {/* Tabs */}
           <div style={{ display: "flex", gap: 4, marginBottom: 8, background: tk.bgSurface, padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
             {[
@@ -1697,7 +1841,7 @@ export default function App() {
               ...(an.bucketAnalytics?.hasAccountData ? [["penetration", "🎯 Penetration"]] : []),
               ...(an?.fieldAnalytics ? [["field","🚗 Field Analytics"]] : []),
               ["collectors", "👥 Collectors"],
-              ...(data?.ak ? [["timeline", "🕐 Account Timeline"]] : []),
+              ...(data?.ak ?? data?.dik ? [["timeline", "🕐 Account Timeline"]] : []),
               ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
               ...(an?.monthlyAnalytics ? [["monthly","📆 Monthly"]] : []),
               // Only show combined Clients tab when viewing All
@@ -1734,6 +1878,13 @@ export default function App() {
               const entry = an.gd.find(g => g.name === grp);
               return entry ? entry.pct + "%" : "N/A";
             };
+
+            const rpcGroup = ["KEPT", "PTP", "RPC"];
+            const rpcRate = rpcGroup.reduce((sum, grp) => {
+              const entry = an.gd.find(g => g.name === grp);
+              return sum + (entry ? Number(entry.pct) : 0);
+            }, 0);
+
             const convRate = an.pt > 0 ? ((an.ct / an.pt) * 100).toFixed(1) + "%" : "N/A";
 
             const NoData = ({ label, icon = "📭", hint }) => (
@@ -1749,13 +1900,12 @@ export default function App() {
 
                 {/* ── KPI strip ── */}
                 {[
-                  { l:"KEPT Rate",        v:safeRate("KEPT"), c:"#22c55e", i:"✅", sub:"Kept Promise" },
+                  { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : tk.textFaint, i:"📈", sub:"Claim / PTP" },
                   { l:"PTP Rate",         v:safeRate("PTP"),  c:"#f59e0b", i:"🤝", sub:"Promise to Pay" },
-                  { l:"RPC Rate",         v:safeRate("RPC"),  c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
+                  { l:"RPC Rate",         v:rpcRate > 0 ? rpcRate.toFixed(1) + "%" : "N/A",  c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
                   { l:"NEG Rate",         v:safeRate("NEG"),  c:"#ef4444", i:"❌", sub:"Negative Outcome" },
                   { l:"PTP Amount",       v: hasPTP   ? "₱"+fN(an.pt) : "N/A", c: hasPTP   ? "#22c55e" : tk.textFaint, i:"💰", sub: hasPTP   ? an.pc+" records" : "No PTP column" },
                   { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : tk.textFaint, i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
-                  { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : tk.textFaint, i:"📈", sub:"Claim / PTP" },
                   ...(an.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }] : []),
                   ...(an.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"BP", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
                 ].map(k => (
@@ -1769,29 +1919,38 @@ export default function App() {
 
                 {/* ── Outcome Group pie ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Outcome Group Distribution</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:6, color:tk.textBright }}>Outcome Group Distribution</div>
                   {an.gd.length > 0 ? (
-                    <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-                      <ResponsiveContainer width="55%" height={220}>
-                        <PieChart>
-                          <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
-                            {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
-                          </Pie>
-                          <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div style={{ flex:1 }}>
-                        {an.gd.map(g=>(
-                          <div key={g.name} style={{ marginBottom:8 }}>
-                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                              <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||tk.textSub }}>{g.name}</span>
-                              <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||tk.textSub }}>{g.pct}%</span>
+                    <>
+                      {(() => {
+                        const neg = an.gd.find(g=>g.name==="NEG");
+                        const rpc = an.gd.find(g=>g.name==="RPC");
+                        const kept = an.gd.find(g=>g.name==="KEPT");
+                        const negPct = parseFloat(neg?.pct||0);
+                        return <Insight icon="🥧" color={negPct>60?"#ef4444":"#22c55e"} text={`${negPct>60?`⚠️ <strong>NEG (${neg?.pct}%)</strong> is dominant — most efforts are uncontactable. Consider updating contact info.`:`✅ <strong>RPC rate is ${rpc?.pct||0}%</strong> of total efforts.`} ${kept?`<strong>KEPT (${kept.pct}%)</strong> reflects honored promises — aim to grow this group.`:""}`} />;
+                      })()}
+                      <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                        <ResponsiveContainer width="55%" height={220}>
+                          <PieChart>
+                            <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
+                              {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
+                            </Pie>
+                            <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div style={{ flex:1 }}>
+                          {an.gd.map(g=>(
+                            <div key={g.name} style={{ marginBottom:8 }}>
+                              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                                <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||tk.textSub }}>{g.name}</span>
+                                <span style={{ fontSize:12, fontWeight:700, color:GC[g.name]||tk.textSub }}>{g.pct}%</span>
+                              </div>
+                              <Pb tk={tk} pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
                             </div>
-                            <Pb tk={tk} pct={parseFloat(g.pct)} c={GC[g.name]||"#3b82f6"} />
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   ) : <NoData label="No outcome data" icon="🥧" hint="No recognised statuses for this filter" />}
                 </div>
 
@@ -1799,17 +1958,20 @@ export default function App() {
                 <div className="card" style={{ gridColumn:"3/5" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Touch Point Mix</div>
                   {an.td.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={an.td} layout="vertical" margin={{ left:0, right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={120} />
-                        <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
-                        <Bar dataKey="count" radius={[0,4,4,0]}>
-                          {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <>
+                      <Insight icon="📱" color="#3b82f6" text={`<strong>${an.td[0]?.name}</strong> is the most-used channel with <strong>${an.td[0]?.count?.toLocaleString()}</strong> efforts (${an.td[0]?.pct}% of total). ${an.td.length > 1 ? `Combined top-2 channels cover ${(parseFloat(an.td[0]?.pct||0)+parseFloat(an.td[1]?.pct||0)).toFixed(1)}% of all activity.` : ""}`} />
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={an.td} layout="vertical" margin={{ left:0, right:50 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                          <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
+                          <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={120} />
+                          <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
+                          <Bar dataKey="count" radius={[0,4,4,0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
+                            {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </>
                   ) : <NoData label="No touch point data" icon="📱" hint="No effort records for this filter" />}
                 </div>
 
@@ -1818,7 +1980,11 @@ export default function App() {
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Daily Efforts Trend</div>
                   {hasDate ? (
                     <>
-                      <div style={{ fontSize:12, color:tk.textMuted, marginBottom:10 }}>All efforts over time, coloured by outcome group.</div>
+                      {ovDateTrend.length > 0 && (() => {
+                        const peak = ovDateTrend.reduce((a,b)=>b.total>a.total?b:a, ovDateTrend[0]);
+                        const avg = (ovDateTrend.reduce((s,d)=>s+d.total,0)/ovDateTrend.length).toFixed(0);
+                        return <Insight icon="📈" color="#3b82f6" text={`Peak day: <strong>${peak?.date}</strong> with <strong>${peak?.total?.toLocaleString()}</strong> efforts. Daily average: <strong>${parseInt(avg).toLocaleString()}</strong> efforts. Days far below average may indicate low activity periods worth investigating.`} />;
+                      })()}
                       <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={ovDateTrend} margin={{ left:0, right:16, bottom: ovDateTrend.length>20?60:16 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
@@ -1868,19 +2034,22 @@ export default function App() {
 
                 {/* ── Top 10 Statuses ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Top 10 Statuses</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:8, color:tk.textBright }}>Top 10 Statuses</div>
                   {an.sd.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={an.sd.slice(0,10)} layout="vertical" margin={{ left:0, right:16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
-                        <YAxis type="category" dataKey="status" tick={{ fill:tk.textSub, fontSize:9 }} width={170} />
-                        <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0,4,4,0]}>
-                          {an.sd.slice(0,10).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <>
+                      <Insight icon="🏷️" color="#a78bfa" text={`<strong>${an.sd[0]?.status}</strong> leads with <strong>${an.sd[0]?.count?.toLocaleString()}</strong> records (${an.sd[0]?.pct}%). ${an.sd[0]?.grp ? `Classified as <strong>${an.sd[0]?.grp}</strong>.` : ""} Top 10 cover ${(an.sd.slice(0,10).reduce((s,x)=>s+parseFloat(x.pct||0),0)).toFixed(1)}% of all activity.`} />
+                      <ResponsiveContainer width="100%" height={240}>
+                        <BarChart data={an.sd.slice(0,10)} layout="vertical" margin={{ left:0, right:50 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                          <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
+                          <YAxis type="category" dataKey="status" tick={{ fill:tk.textSub, fontSize:9 }} width={170} />
+                          <Tooltip contentStyle={TS} />
+                          <Bar dataKey="count" radius={[0,4,4,0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
+                            {an.sd.slice(0,10).map((e,i)=><Cell key={i} fill={GC[e.grp]||PC[i%PC.length]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </>
                   ) : <NoData label="No status data" icon="🏷️" hint="No recognised statuses for this filter" />}
                 </div>
 
@@ -1889,7 +2058,7 @@ export default function App() {
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Top 5 Collectors</div>
                   {hasCollectors ? (
                     <>
-                      <div style={{ fontSize:12, color:tk.textMuted, marginBottom:10 }}>By total efforts this period.</div>
+                      <Insight icon="👥" color="#06b6d4" text={`<strong>${ovTopCollectors[0]?.name}</strong> is the top performer with <strong>${ovTopCollectors[0]?.total?.toLocaleString()}</strong> efforts. ${ovTopCollectors.length > 1 ? `The top 2 collectors together contribute ${((ovTopCollectors[0].total+ovTopCollectors[1].total)/an.T*100).toFixed(1)}% of all records.` : ""}`} />
                       {ovTopCollectors.map((c,i)=>(
                         <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
                           <div style={{ width:22, height:22, borderRadius:"50%", background:PC[i%PC.length]+"33", color:PC[i%PC.length], fontSize:11, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</div>
@@ -1908,19 +2077,22 @@ export default function App() {
 
                 {/* ── Efforts by Bucket ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Efforts by Bucket</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:8, color:tk.textBright }}>Efforts by Bucket</div>
                   {hasBuckets ? (
-                    <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={ovBuckets} layout="vertical" margin={{ left:0, right:20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={110} />
-                        <Tooltip contentStyle={TS} formatter={(v,n,p)=>[v.toLocaleString(),p.payload.name]} />
-                        <Bar dataKey="total" radius={[0,4,4,0]}>
-                          {ovBuckets.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||tk.textMuted} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <>
+                      {hasBuckets && ovBuckets.length > 0 && <Insight icon="📍" color="#f97316" text={`<strong>${ovBuckets[0]?.name}</strong> has the highest workload with <strong>${ovBuckets[0]?.total?.toLocaleString()}</strong> efforts. ${ovBuckets.length > 1 ? 'The top bucket alone represents ' + ((ovBuckets[0].total / an.T)*100).toFixed(1) + '% of all records.' : ''} Review lower-volume buckets — they may need more collection attention.`} />}
+                      <ResponsiveContainer width="100%" height={240}>
+                        <BarChart data={ovBuckets} layout="vertical" margin={{ left:0, right:50 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
+                          <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
+                          <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={110} />
+                          <Tooltip contentStyle={TS} formatter={(v,n,p)=>[v.toLocaleString(),p.payload.name]} />
+                          <Bar dataKey="total" radius={[0,4,4,0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
+                            {ovBuckets.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||tk.textMuted} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </>
                   ) : <NoData label="No bucket data" icon="📍" hint="No Old IC / Placement column detected" />}
                 </div>
 
@@ -2230,12 +2402,12 @@ export default function App() {
                   <div className="card" style={{ gridColumn: "1/2" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>PTP Count by Bucket</div>
                     <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 50 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <YAxis type="category" dataKey="bucket" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                         <Tooltip contentStyle={TS} formatter={v => [v.toLocaleString(), "PTP Count"]} />
-                        <Bar dataKey="ptpCount" radius={[0, 4, 4, 0]} name="PTP Count">
+                        <Bar dataKey="ptpCount" radius={[0, 4, 4, 0]} name="PTP Count" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v>0?v.toLocaleString():"" }}>
                           {ptpClaimSummary.map(r => <Cell key={r.bucket} fill={BUCKET_COLORS[r.bucket] || "#f59e0b"} />)}
                         </Bar>
                       </BarChart>
@@ -2248,12 +2420,12 @@ export default function App() {
                   <div className="card" style={{ gridColumn: "2/3" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Claim Paid Count by Bucket</div>
                     <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <BarChart data={ptpClaimSummary} layout="vertical" margin={{ left: 0, right: 50 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <YAxis type="category" dataKey="bucket" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                         <Tooltip contentStyle={TS} formatter={v => [v.toLocaleString(), "Claim Count"]} />
-                        <Bar dataKey="claimCount" radius={[0, 4, 4, 0]} name="Claim Count">
+                        <Bar dataKey="claimCount" radius={[0, 4, 4, 0]} name="Claim Count" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v>0?v.toLocaleString():"" }}>
                           {ptpClaimSummary.map(r => <Cell key={r.bucket} fill={BUCKET_COLORS[r.bucket] || "#f97316"} />)}
                         </Bar>
                       </BarChart>
@@ -2321,12 +2493,12 @@ export default function App() {
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Touch Point</div>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 20 }}>
+                <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 55 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                   <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={130} />
                   <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                     {an.td.map((e, i) => <Cell key={i} fill={TP_COLORS[e.name] || PC[i % PC.length]} />)}
                   </Bar>
                 </BarChart>
@@ -2821,12 +2993,12 @@ export default function App() {
                 <div className="card" style={{ gridColumn: "1/3" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: tk.textBright }}>Volume by Client</div>
                   <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={clientList} layout="vertical" margin={{ left: 0, right: 20 }}>
+                    <BarChart data={clientList} layout="vertical" margin={{ left: 0, right: 55 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                       <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={120} />
                       <Tooltip contentStyle={TS} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                         {clientList.map((c, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
                       </Bar>
                     </BarChart>
@@ -3099,12 +3271,12 @@ export default function App() {
                   <div className="card" style={{ gridColumn: "1/3" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Touch Point</div>
                     <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <BarChart data={an.td} layout="vertical" margin={{ left: 0, right: 55 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={130} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        <Bar dataKey="count" radius={[0, 4, 4, 0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                           {an.td.map((e, i) => <Cell key={i} fill={TP_COLORS[e.name] || PC[i % PC.length]} />)}
                         </Bar>
                       </BarChart>
@@ -3115,12 +3287,12 @@ export default function App() {
                   <div className="card" style={{ gridColumn: "3/5" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Top 15 Statuses</div>
                     <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={an.sd.slice(0, 15)} layout="vertical" margin={{ left: 0, right: 16 }}>
+                      <BarChart data={an.sd.slice(0, 15)} layout="vertical" margin={{ left: 0, right: 55 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <YAxis type="category" dataKey="status" tick={{ fill: tk.textSub, fontSize: 10 }} width={200} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        <Bar dataKey="count" radius={[0, 4, 4, 0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                           {an.sd.slice(0, 15).map((e, i) => <Cell key={i} fill={GC[e.grp] || PC[i % PC.length]} />)}
                         </Bar>
                       </BarChart>
@@ -3215,12 +3387,12 @@ export default function App() {
                 <div className="card" style={{ gridColumn: "3/5" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Bucket</div>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 20 }}>
+                    <BarChart data={bucketList} layout="vertical" margin={{ left: 0, right: 55 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                       <XAxis type="number" tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={110} />
                       <Tooltip contentStyle={TS} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                      <Bar dataKey="total" radius={[0, 4, 4, 0]} label={{ position:"right", fill:tk.textMuted, fontSize:11, formatter:v=>v.toLocaleString() }}>
                         {bucketList.map(b => <Cell key={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} />)}
                       </Bar>
                     </BarChart>
@@ -3743,7 +3915,80 @@ export default function App() {
               ── ⏱️ HOURLY EFFORTS TAB (NEW) ──
           ═══════════════════════════════════════════════════════════════ */}
           {tab === "hourly" && an.hourlyCollectorAnalytics && (() => {
-            const { heatmapRows, heatmapMax, hourTopData, shiftData, hourTPData, allCollectors, noCollector } = an.hourlyCollectorAnalytics;
+            const { rawRows, allCollectors, noCollector } = an.hourlyCollectorAnalytics;
+            const activeTimeKey = data.timek || data.dtk;
+            const activeDateKey = data.datек || data.dtk;
+
+            // ── Date Range filter (uses global date filter) ───────────────
+            const hasDateFilter = !!(globalDateFrom || globalDateTo);
+
+            const filteredRows = rawRows.filter(r => {
+              if (!hasDateFilter) return true;
+              const d = r._dateISO; // YYYY-MM-DD — safe string comparison
+              if (!d) return false;
+              if (globalDateFrom && d < globalDateFrom) return false;
+              if (globalDateTo   && d > globalDateTo)   return false;
+              return true;
+            });
+
+            // Recompute heatmap data from filtered rows
+            const collectorHourMap2 = {};
+            const hourCollectorMap2 = {};
+            filteredRows.forEach(r => {
+              const collector = data.rk && r[data.rk] ? String(r[data.rk]).trim() : null;
+              const tRaw = activeTimeKey ? r[activeTimeKey] : null;
+              if (!collector || !tRaw) return;
+              const hr = parseTimeHour(tRaw);
+              if (hr === null) return;
+              if (!collectorHourMap2[collector]) collectorHourMap2[collector] = {};
+              collectorHourMap2[collector][hr] = (collectorHourMap2[collector][hr] || 0) + 1;
+              if (!hourCollectorMap2[hr]) hourCollectorMap2[hr] = {};
+              hourCollectorMap2[hr][collector] = (hourCollectorMap2[hr][collector] || 0) + 1;
+            });
+
+            const sortedCollectors = Object.keys(collectorHourMap2).sort((a, b) => {
+              const ta = Object.values(collectorHourMap2[a]).reduce((s, v) => s + v, 0);
+              const tb = Object.values(collectorHourMap2[b]).reduce((s, v) => s + v, 0);
+              return tb - ta;
+            });
+
+            const heatmapRows = sortedCollectors.slice(0, 30).map(col => {
+              const hours = collectorHourMap2[col];
+              const total = Object.values(hours).reduce((s, v) => s + v, 0);
+              const peakHour = Object.entries(hours).sort((a, b) => b[1] - a[1])[0]?.[0];
+              const row = { collector: col, total, peakHour: peakHour != null ? `${String(peakHour).padStart(2, "0")}:00` : "–" };
+              for (let h = 0; h < 24; h++) row[`h${h}`] = hours[h] || 0;
+              return row;
+            });
+
+            let heatmapMax = 0;
+            heatmapRows.forEach(r => { for (let h = 0; h < 24; h++) { if (r[`h${h}`] > heatmapMax) heatmapMax = r[`h${h}`]; } });
+
+            const hourTopData = Array.from({ length: 24 }, (_, h) => {
+              const hMap = hourCollectorMap2[h] || {};
+              const total = Object.values(hMap).reduce((s, v) => s + v, 0);
+              const topCol = Object.entries(hMap).sort((a, b) => b[1] - a[1])[0];
+              return { hour: `${String(h).padStart(2, "0")}:00`, total, topCollector: topCol?.[0] || "–", topCount: topCol?.[1] || 0 };
+            });
+
+            // Hourly TP breakdown for filtered rows
+            const hourTPMap2 = {};
+            filteredRows.forEach(r => {
+              const tRaw = activeTimeKey ? r[activeTimeKey] : null;
+              if (!tRaw) return;
+              const hr = parseTimeHour(tRaw);
+              if (hr === null) return;
+              if (!hourTPMap2[hr]) hourTPMap2[hr] = {};
+              hourTPMap2[hr][r._d.tp] = (hourTPMap2[hr][r._d.tp] || 0) + 1;
+            });
+            const hourTPData = Array.from({ length: 24 }, (_, h) => ({ hour: `${String(h).padStart(2, "0")}:00`, ...hourTPMap2[h] || {} }));
+
+            const shiftMap2 = { "Early (6–9)": [6,7,8], "Morning (9–12)": [9,10,11], "Afternoon (12–17)": [12,13,14,15,16], "Evening (17–21)": [17,18,19,20], "Night (21–6)": [21,22,23,0,1,2,3,4,5] };
+            const shiftData = Object.entries(shiftMap2).map(([label, hours]) => ({
+              name: label,
+              count: hours.reduce((s, h) => s + (Object.values(hourCollectorMap2[h] || {}).reduce((a, b) => a + b, 0)), 0),
+            }));
+
             const peakHourObj = hourTopData.reduce((a, b) => b.total > a.total ? b : a, hourTopData[0]);
             const totalWithTime = hourTopData.reduce((s, r) => s + r.total, 0);
             const activeTPs_hourly = ALL_TP.filter(tp => hourTPData.some(r => r[tp] > 0));
@@ -3751,12 +3996,18 @@ export default function App() {
 
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                {/* Note: Date range is controlled by the global filter above the tabs */}
+                {(globalDateFrom || globalDateTo) && (
+                  <div style={{ gridColumn: "1/-1", fontSize: 11, color: "#60a5fa", background: isDark ? "#172554" : "#dbeafe", border: "1px solid #3b82f6", borderRadius: 7, padding: "6px 14px" }}>
+                    📅 Filtered to date range: <strong>{globalDateFrom || "start"}</strong> → <strong>{globalDateTo || "end"}</strong> · {filteredRows.length.toLocaleString()} of {rawRows.length.toLocaleString()} records
+                  </div>
+                )}
                 {/* KPIs */}
                 {[
                   { l: "Records w/ Time", v: totalWithTime.toLocaleString(), i: "⏱️", c: "#a78bfa" },
                   { l: "Peak Hour", v: peakHourObj?.hour || "–", i: "🔝", c: "#f59e0b", sub: peakHourObj?.total.toLocaleString() + " efforts" },
                   { l: "Busiest Shift", v: topShift?.name || "–", i: "📊", c: "#3b82f6", sub: topShift?.count.toLocaleString() + " efforts" },
-                  { l: "Collectors Tracked", v: noCollector ? "N/A" : allCollectors.length, i: "👥", c: "#06b6d4", sub: noCollector ? "No Remark By col" : "" },
+                  { l: "Collectors Tracked", v: noCollector ? "N/A" : sortedCollectors.length, i: "👥", c: "#06b6d4", sub: noCollector ? "No Remark By col" : "" },
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
@@ -3769,7 +4020,9 @@ export default function App() {
                 {/* Total efforts by hour */}
                 <div className="card" style={{ gridColumn: "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Total Efforts by Hour of Day</div>
-                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>When does the most collection activity happen?</div>
+                  {totalWithTime > 0 && peakHourObj && (
+                    <Insight icon="⏰" color="#f59e0b" text={`Peak activity is at <strong>${peakHourObj.hour}</strong> with <strong>${peakHourObj.total.toLocaleString()}</strong> efforts. ${topShift ? `The <strong>${topShift.name}</strong> window is the busiest shift. ` : ""}Consider scheduling follow-ups and priority calls during peak hours for better contact rates.`} />
+                  )}
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={hourTopData} margin={{ left: 0, right: 16 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
@@ -3795,7 +4048,8 @@ export default function App() {
                 {/* Shift breakdown */}
                 {shiftData.length > 0 && (
                   <div className="card" style={{ gridColumn: "1/3" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: tk.textBright }}>Efforts by Shift Window</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Efforts by Shift Window</div>
+                    {topShift && <Insight icon="🕐" color="#3b82f6" text={`<strong>${topShift.name}</strong> is the most active shift with <strong>${topShift.count.toLocaleString()}</strong> efforts. Allocate more collectors to this window for maximum coverage.`} />}
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={shiftData} layout="vertical" margin={{ left: 10, right: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
@@ -3813,7 +4067,14 @@ export default function App() {
                 {/* Touch point by hour stacked */}
                 <div className="card" style={{ gridColumn: shiftData.length > 0 ? "3/5" : "1/-1" }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Touch Point Mix by Hour</div>
-                  <div style={{ fontSize: 12, color: tk.textMuted, marginBottom: 16 }}>Which channels are active at each hour?</div>
+                  {activeTPs_hourly.length > 0 && (() => {
+                    const dominantTP = activeTPs_hourly.reduce((best, tp) => {
+                      const total = hourTPData.reduce((s, r) => s + (r[tp] || 0), 0);
+                      const bestTotal = hourTPData.reduce((s, r) => s + (r[best] || 0), 0);
+                      return total > bestTotal ? tp : best;
+                    }, activeTPs_hourly[0]);
+                    return <Insight icon="📡" color="#06b6d4" text={`<strong>${dominantTP}</strong> is the most active channel throughout the day. Watch for hours where multiple channels overlap — this signals high-intensity collection periods.`} />;
+                  })()}
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={hourTPData} margin={{ left: 0, right: 16 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
@@ -3845,15 +4106,19 @@ export default function App() {
                 {/* ── COLLECTOR HEATMAP (only if rk available) ── */}
                 {!noCollector && heatmapRows.length > 0 && <>
                   <div className="card" style={{ gridColumn: "1/-1" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 12, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 8, flexWrap: "wrap" }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>🔥 Collector × Hour Heatmap</div>
-                      <div style={{ fontSize: 12, color: tk.textMuted }}>Each cell = efforts for that collector at that hour. Color intensity = volume relative to max.</div>
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {[["heatmap","🟦 Heatmap"],["bar","📊 Bar"],["top","🏆 Top by Hour"]].map(([k, l]) => (
                           <button key={k} className={`mode-btn${hourlyCollectorView === k ? " active" : ""}`} onClick={() => setHourlyCollectorView(k)}>{l}</button>
                         ))}
                       </div>
                     </div>
+                    {(() => {
+                      const topC = heatmapRows[0];
+                      const peakH = topC?.peakHour;
+                      return <Insight icon="🔥" color="#ef4444" text={`<strong>${topC?.collector}</strong> leads with <strong>${topC?.total?.toLocaleString()}</strong> efforts${peakH && peakH !== "–" ? `, peaking at <strong>${peakH}</strong>` : ""}. Red/orange cells indicate high-volume hours per collector. Use this to identify overworked collectors and optimize shift assignments.`} />;
+                    })()}
 
                     {/* Color legend */}
                     <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
@@ -4210,7 +4475,7 @@ export default function App() {
                         <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits">
+                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits" label={{ position:"right", fill:"#6b7280", fontSize:10, formatter:v=>v.toLocaleString() }}>
                           {fa.fieldCollectorData.slice(0,10).map((_,i)=><Cell key={i} fill={PC[i%PC.length]} />)}
                         </Bar>
                       </BarChart>
@@ -4442,7 +4707,7 @@ export default function App() {
             );
             const { bpAccounts, keptAccounts, totalPTPAccounts, bpRate, bpTotalAmt, bpDateTrend, bpCollectorData, bpBucketData } = an.bpAnalytics;
             const filteredBP = bpSearch.trim()
-              ? bpAccounts.filter(b => b.acct.toLowerCase().includes(bpSearch.toLowerCase()) || b.collector.toLowerCase().includes(bpSearch.toLowerCase()) || b.bucket.toLowerCase().includes(bpSearch.toLowerCase()))
+              ? bpAccounts.filter(b => b.acct.toLowerCase().includes(bpSearch.toLowerCase()) || b.collector.toLowerCase().includes(bpSearch.toLowerCase()) || b.bucket.toLowerCase().includes(bpSearch.toLowerCase()) || (b.debtor && b.debtor.toLowerCase().includes(bpSearch.toLowerCase())))
               : bpAccounts;
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
@@ -4464,9 +4729,7 @@ export default function App() {
                 {/* BP Rate Gauge */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
                   <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📊 PTP Fulfillment Rate</div>
-                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:16 }}>
-                    Accounts that honored their PTP vs those that broke it
-                  </div>
+                  <Insight icon="💔" color={parseFloat(bpRate)>50?"#ef4444":"#22c55e"} text={`<strong>${bpRate}%</strong> of PTP accounts are broken promises — <strong>${bpAccounts.length.toLocaleString()}</strong> accounts have no claim paid recorded. ${parseFloat(bpRate)>50?"⚠️ More than half of PTPs are unfulfilled. Prioritize follow-ups on these accounts.":"✅ Fulfillment rate is healthy. Continue monitoring for new broken promises."}`} />
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
                       <Pie data={[
@@ -4487,14 +4750,17 @@ export default function App() {
                 {bpDateTrend.length > 0 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
                     <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📅 Broken PTP Date Trend</div>
-                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Number of BPs by their original PTP date</div>
+                    {(() => {
+                      const peak = bpDateTrend.reduce((a,b)=>b.count>a.count?b:a, bpDateTrend[0]);
+                      return <Insight icon="📅" color="#ef4444" text={`Peak broken promises occurred on <strong>${peak?.date}</strong> with <strong>${peak?.count}</strong> accounts. Dates with many BPs may indicate a batch of follow-ups that were missed — review collector activity around those dates.`} />;
+                    })()}
                     <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={bpDateTrend} margin={{ bottom:60 }}>
+                      <BarChart data={bpDateTrend} margin={{ bottom:60, top:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis dataKey="date" tick={{ fill:tk.textMuted,fontSize:9 }} angle={-40} textAnchor="end" interval={Math.max(0,Math.floor(bpDateTrend.length/12)-1)} />
                         <YAxis tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" fill="#ef4444" radius={[3,3,0,0]} name="Broken PTPs" />
+                        <Bar dataKey="count" fill="#ef4444" radius={[3,3,0,0]} name="Broken PTPs" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v>0?v:"" }} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -4504,14 +4770,14 @@ export default function App() {
                 {bpCollectorData.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
                     <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>👥 BPs by Collector</div>
-                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Which collectors have the most broken PTPs</div>
+                    <Insight icon="👥" color="#f97316" text={`<strong>${bpCollectorData[0]?.name}</strong> has the most broken promises (<strong>${bpCollectorData[0]?.count}</strong>, ${bpCollectorData[0]?.pct}% of all BPs). High BP counts may indicate missed follow-ups or accounts needing reassignment.`} />
                     <ResponsiveContainer width="100%" height={Math.max(200, bpCollectorData.slice(0,10).length * 32)}>
-                      <BarChart data={bpCollectorData.slice(0,10)} layout="vertical" margin={{ left:0,right:20 }}>
+                      <BarChart data={bpCollectorData.slice(0,10)} layout="vertical" margin={{ left:0,right:50 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:10 }} width={140} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" fill="#f97316" radius={[0,4,4,0]} name="Broken PTPs" />
+                        <Bar dataKey="count" fill="#f97316" radius={[0,4,4,0]} name="Broken PTPs" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -4521,14 +4787,14 @@ export default function App() {
                 {bpBucketData.length > 0 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
                     <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>📍 BPs by Bucket</div>
-                    <div style={{ fontSize:12,color:tk.textMuted,marginBottom:10 }}>Broken promises distribution per bucket</div>
+                    <Insight icon="📍" color="#ef4444" text={`<strong>${bpBucketData[0]?.name}</strong> has the highest concentration of broken promises with <strong>${bpBucketData[0]?.count}</strong> accounts (${bpBucketData[0]?.pct}%). Focus recovery efforts on this bucket first.`} />
                     <ResponsiveContainer width="100%" height={Math.max(200, bpBucketData.length * 36)}>
-                      <BarChart data={bpBucketData} layout="vertical" margin={{ left:0,right:20 }}>
+                      <BarChart data={bpBucketData} layout="vertical" margin={{ left:0,right:50 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                         <XAxis type="number" tick={{ fill:tk.textMuted,fontSize:11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0,4,4,0]} name="Broken PTPs">
+                        <Bar dataKey="count" radius={[0,4,4,0]} name="Broken PTPs" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                           {bpBucketData.map((b,i)=><Cell key={i} fill={BUCKET_COLORS[b.name]||PC[i%PC.length]} />)}
                         </Bar>
                       </BarChart>
@@ -4542,14 +4808,15 @@ export default function App() {
                      Broken Promise Account List — {bpAccounts.length.toLocaleString()} accounts
                   </div>
                   <div style={{ fontSize:12,color:tk.textMuted,marginBottom:12 }}>
-                    Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded on or after that PTP date. Sorted by most recent PTP date first.
+                    Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded. Sorted by most recent PTP date first.
                   </div>
-                  <SearchBar tk={tk} value={bpSearch} onChange={setBpSearch} placeholder="Filter by account, collector, or bucket..." />
+                  <SearchBar tk={tk} value={bpSearch} onChange={setBpSearch} placeholder="Filter by account, debtor, collector, or bucket..." />
                   <div style={{ overflowX:"auto", maxHeight:480, overflowY:"auto" }}>
                     <table>
                       <thead><tr>
                         <th>#</th>
                         <th>Account No.</th>
+                        {data.dnk && <th>Debtor</th>}
                         <th style={{ color:"#ef4444" }}>PTP Date</th>
                         <th>PTP Amount</th>
                         <th style={{ color:tk.textMuted }}>Last Claim Date</th>
@@ -4561,6 +4828,7 @@ export default function App() {
                         <tr key={b.acct}>
                           <td style={{ color:tk.textFaint }}>{i+1}</td>
                           <td style={{ fontWeight:600,color:tk.textPrimary,fontFamily:"monospace",fontSize:12 }}>{b.acct}</td>
+                          {data.dnk && <td style={{ color:tk.textSub,fontSize:12 }}>{b.debtor !== "–" ? b.debtor : <span style={{ color:tk.borderMed }}>–</span>}</td>}
                           <td style={{ color:"#ef4444",fontWeight:600 }}>{b.ptpDate}</td>
                           <td style={{ color:"#f59e0b" }}>₱{fN(b.ptpAmt)}</td>
                           <td style={{ color:tk.textMuted,fontStyle: b.claimDate==="–"?"italic":"normal" }}>{b.claimDate}</td>
@@ -4759,7 +5027,11 @@ export default function App() {
               ── 🕐 ACCOUNT ACTIVITY TIMELINE TAB ──
           ════════════════════════════════════════════════════════════════ */}
           {tab === "timeline" && (() => {
-            if (!data?.ak) return (
+            const td = data?.ak || data?.dik; // primary account key
+            const dnk = data?.dnk; // debtor name key
+            const oick = data?.oick; // old IC key
+            const dik2 = data?.dik && data?.ak ? data?.dik : null; // debtor ID key (secondary)
+            if (!td && !dnk && !oick) return (
               <div className="card" style={{ textAlign:"center", padding:"48px 24px" }}>
                 <div style={{ fontSize:40, marginBottom:16 }}>🕐</div>
                 <div style={{ fontWeight:700, fontSize:18, color:tk.textBright, marginBottom:8 }}>Account Timeline Unavailable</div>
@@ -4769,14 +5041,44 @@ export default function App() {
               </div>
             );
 
-            const allAccounts = [...new Set(data.rows.map(r => r[data.ak]).filter(Boolean).map(v => String(v).trim()))].sort();
+            // Build search index: for each row, collect all searchable fields
+            const buildKey = r => [
+              td ? String(r[td] || "").trim() : "",
+              dnk ? String(r[dnk] || "").trim() : "",
+              oick ? String(r[oick] || "").trim() : "",
+              dik2 ? String(r[dik2] || "").trim() : "",
+            ].filter(Boolean).join("|");
+
+            const allAccounts = [...new Map(
+              data.rows
+                .map(r => ({
+                  acctNo: td ? String(r[td] || "").trim() : "",
+                  debtor: dnk ? String(r[dnk] || "").trim() : "",
+                  oldIc:  oick ? String(r[oick] || "").trim() : "",
+                  debtorId: dik2 ? String(r[dik2] || "").trim() : "",
+                }))
+                .filter(x => x.acctNo || x.debtor || x.oldIc || x.debtorId)
+                .map(x => [x.acctNo || x.debtorId || x.oldIc, x])
+            ).values()].sort((a,b) => (a.acctNo||a.debtorId||"").localeCompare(b.acctNo||b.debtorId||""));
+
             const suggestions = timelineSearch.trim().length >= 2
-              ? allAccounts.filter(a => a.toLowerCase().includes(timelineSearch.toLowerCase())).slice(0, 12)
+              ? allAccounts.filter(a => {
+                  const q = timelineSearch.toLowerCase();
+                  return a.acctNo.toLowerCase().includes(q)
+                    || a.debtor.toLowerCase().includes(q)
+                    || a.oldIc.toLowerCase().includes(q)
+                    || a.debtorId.toLowerCase().includes(q);
+                }).slice(0, 12)
               : [];
 
+            // When an account is selected, match by the primary key value
             const timeline = timelineAccount
               ? data.rows
-                  .filter(r => r[data.ak] && String(r[data.ak]).trim() === timelineAccount)
+                  .filter(r => {
+                    const acctVal = td ? String(r[td] || "").trim() : "";
+                    const diVal = dik2 ? String(r[dik2] || "").trim() : "";
+                    return acctVal === timelineAccount || diVal === timelineAccount;
+                  })
                   .map(r => {
                     const dateKey = data.datек || data.dtk;
                     return {
@@ -4786,6 +5088,7 @@ export default function App() {
                       sg:      r._d.sg,
                       tp:      r._d.tp,
                       collector: data.rk && r[data.rk] ? String(r[data.rk]).trim() : null,
+                      remark:  data.rmk && r[data.rmk] ? String(r[data.rmk]).trim() : null,
                       bucket:  r._bucket || null,
                       client:  r._client || null,
                       ptpDate: data.pdk ? fD(r[data.pdk]) : null,
@@ -4827,7 +5130,7 @@ export default function App() {
                     🕐 Account Activity Timeline
                   </div>
                   <div style={{ fontSize:12, color:tk.textMuted, marginBottom:12 }}>
-                    Search an account number to see its complete activity log — all touchpoints, outcomes, PTP & claim dates, and collector history.
+                    Search by account number, debtor name, old IC, or debtor ID to see its complete activity log.
                     {allAccounts.length > 0 && <span style={{ color:tk.textFaint }}> {allAccounts.length.toLocaleString()} unique accounts in file.</span>}
                   </div>
                   <div style={{ position:"relative", maxWidth:500 }}>
@@ -4835,7 +5138,7 @@ export default function App() {
                     <input
                       value={timelineSearch}
                       onChange={e => { setTimelineSearch(e.target.value); if (e.target.value !== timelineAccount) setTimelineAccount(null); }}
-                      placeholder="Type account number..."
+                      placeholder="Account No., Debtor Name, Old IC, Debtor ID…"
                       style={{ width:"100%", background:tk.bgSurface, border:`1px solid ${tk.borderMed}`, borderRadius:8, color:tk.textPrimary, fontSize:13, padding:"9px 10px 9px 34px", fontFamily:"inherit", outline:"none" }}
                     />
                     {timelineSearch && (
@@ -4845,14 +5148,20 @@ export default function App() {
                   </div>
                   {suggestions.length > 0 && !timelineAccount && (
                     <div style={{ maxWidth:500, background:tk.bgCard, border:`1px solid ${tk.borderMed}`, borderRadius:8, marginTop:4, overflow:"hidden" }}>
-                      {suggestions.map(s => (
-                        <div key={s} onClick={() => { setTimelineAccount(s); setTimelineSearch(s); }}
-                          style={{ padding:"8px 14px", cursor:"pointer", fontSize:13, color:tk.textSub, borderBottom:`1px solid ${tk.bgSurface}` }}
-                          onMouseOver={e=>e.currentTarget.style.background=tk.borderMed}
-                          onMouseOut={e=>e.currentTarget.style.background="transparent"}>
-                          <span style={{ color:"#60a5fa", fontFamily:"monospace" }}>{s}</span>
-                        </div>
-                      ))}
+                      {suggestions.map(s => {
+                        const key = s.acctNo || s.debtorId || s.oldIc;
+                        return (
+                          <div key={key} onClick={() => { setTimelineAccount(key); setTimelineSearch(key); }}
+                            style={{ padding:"8px 14px", cursor:"pointer", fontSize:13, color:tk.textSub, borderBottom:`1px solid ${tk.bgSurface}` }}
+                            onMouseOver={e=>e.currentTarget.style.background=tk.borderMed}
+                            onMouseOut={e=>e.currentTarget.style.background="transparent"}>
+                            <span style={{ color:"#60a5fa", fontFamily:"monospace" }}>{key}</span>
+                            {s.debtor && <span style={{ color:tk.textMuted, marginLeft:8, fontSize:12 }}>— {s.debtor}</span>}
+                            {s.oldIc && key !== s.oldIc && <span style={{ color:tk.textFaint, marginLeft:6, fontSize:11 }}>IC: {s.oldIc}</span>}
+                            {s.debtorId && key !== s.debtorId && <span style={{ color:tk.textFaint, marginLeft:6, fontSize:11 }}>ID: {s.debtorId}</span>}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {timelineSearch.trim().length >= 2 && !timelineAccount && suggestions.length === 0 && (
@@ -4863,20 +5172,63 @@ export default function App() {
                 {/* Account loaded */}
                 {timelineAccount && acctSummary && (<>
                   <div style={{ gridColumn:"1/-1" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", marginBottom:10 }}>
-                      <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17, color:tk.textBright }}>
-                        📋 <span style={{ color:"#60a5fa", fontFamily:"monospace" }}>{timelineAccount}</span>
-                      </div>
-                      {acctSummary.hasBP && <span style={{ background:"#450a0a", color:"#f87171", border:"1px solid #7f1d1d", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>Broken Promise</span>}
-                      {acctSummary.hasKept && <span style={{ background:"#052e16", color:"#4ade80", border:"1px solid #166534", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:600 }}>Promise Kept</span>}
-                      <ExportBtn onClick={() => exportXlsx(timeline.map(e=>({
-                        "Account No": timelineAccount, Date:e.date||"–", Time:e.time||"–",
-                        Status:e.status, Group:e.sg, "Touch Point":e.tp,
-                        Collector:e.collector||"–", Bucket:e.bucket||"–", Client:e.client||"–",
-                        "PTP Date":e.ptpDate||"–", "PTP Amount":e.ptpAmt||"",
-                        "Claim Date":e.claimDate||"–", "Claim Amount":e.claimAmt||"",
-                      })), `timeline_${timelineAccount}.xlsx`)} label="Export Timeline" />
-                    </div>
+                    {/* Account Identity Card */}
+                    {(() => {
+                      const matchedRow = data.rows.find(r => {
+                        const acctVal = td ? String(r[td] || "").trim() : "";
+                        const diVal = dik2 ? String(r[dik2] || "").trim() : "";
+                        return acctVal === timelineAccount || diVal === timelineAccount;
+                      });
+                      const debtorName = dnk && matchedRow ? String(matchedRow[dnk] || "").trim() : "";
+                      const oldIcVal   = oick && matchedRow ? String(matchedRow[oick] || "").trim() : "";
+                      const debtorIdVal= dik2 && matchedRow ? String(matchedRow[dik2] || "").trim() : "";
+                      const acctNoVal  = td && matchedRow ? String(matchedRow[td] || "").trim() : "";
+                      return (
+                        <div style={{ background: tk.bgCard, border: `1px solid ${tk.borderMed}`, borderRadius: 12, padding: "14px 18px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
+                          <div style={{ flex: 1, minWidth: 240 }}>
+                            <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", fontWeight: 600, letterSpacing: ".06em", marginBottom: 4 }}>Account Profile</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                              {acctNoVal && (
+                                <div>
+                                  <div style={{ fontSize: 10, color: tk.textFaint, fontWeight: 600, textTransform: "uppercase" }}>Account No.</div>
+                                  <div style={{ fontSize: 15, fontWeight: 700, color: "#60a5fa", fontFamily: "monospace" }}>{acctNoVal}</div>
+                                </div>
+                              )}
+                              {debtorName && (
+                                <div>
+                                  <div style={{ fontSize: 10, color: tk.textFaint, fontWeight: 600, textTransform: "uppercase" }}>Debtor Name</div>
+                                  <div style={{ fontSize: 15, fontWeight: 700, color: tk.textBright }}>{debtorName}</div>
+                                </div>
+                              )}
+                              {oldIcVal && (
+                                <div>
+                                  <div style={{ fontSize: 10, color: tk.textFaint, fontWeight: 600, textTransform: "uppercase" }}>Old IC</div>
+                                  <div style={{ fontSize: 14, fontWeight: 600, color: "#a78bfa", fontFamily: "monospace" }}>{oldIcVal}</div>
+                                </div>
+                              )}
+                              {debtorIdVal && debtorIdVal !== acctNoVal && (
+                                <div>
+                                  <div style={{ fontSize: 10, color: tk.textFaint, fontWeight: 600, textTransform: "uppercase" }}>Debtor ID</div>
+                                  <div style={{ fontSize: 14, fontWeight: 600, color: "#f59e0b", fontFamily: "monospace" }}>{debtorIdVal}</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                            {acctSummary.hasBP && <span style={{ background:"#450a0a", color:"#f87171", border:"1px solid #7f1d1d", borderRadius:20, padding:"3px 12px", fontSize:12, fontWeight:600 }}>💔 Broken Promise</span>}
+                            {acctSummary.hasKept && <span style={{ background:"#052e16", color:"#4ade80", border:"1px solid #166534", borderRadius:20, padding:"3px 12px", fontSize:12, fontWeight:600 }}>✅ Promise Kept</span>}
+                            <ExportBtn onClick={() => exportXlsx(timeline.map(e=>({
+                              "Account No": timelineAccount, "Debtor": debtorName||"–", "Old IC": oldIcVal||"–",
+                              "Debtor ID": debtorIdVal||"–", Date:e.date||"–", Time:e.time||"–",
+                              Status:e.status, Group:e.sg, "Touch Point":e.tp,
+                              Collector:e.collector||"–", Bucket:e.bucket||"–", Client:e.client||"–",
+                              "PTP Date":e.ptpDate||"–", "PTP Amount":e.ptpAmt||"",
+                              "Claim Date":e.claimDate||"–", "Claim Amount":e.claimAmt||"",
+                            })), `timeline_${timelineAccount}.xlsx`)} label="Export Timeline" />
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {[
@@ -4954,6 +5306,11 @@ export default function App() {
                                   {e.ptpDate && <span style={{ color:"#f59e0b" }}>🤝 PTP: {e.ptpDate}{e.ptpAmt ? " · ₱"+fN(e.ptpAmt) : ""}</span>}
                                   {e.claimDate && <span style={{ color:"#22c55e" }}>💳 Claim: {e.claimDate}{e.claimAmt ? " · ₱"+fN(e.claimAmt) : ""}</span>}
                                 </div>
+                                {e.remark && (
+                                  <div style={{ marginTop:7, fontSize:12, color:tk.textSub, background:tk.bgCard, border:`1px solid ${tk.border}`, borderRadius:6, padding:"6px 10px", lineHeight:1.5 }}>
+                                    <span style={{ color:tk.textFaint, fontWeight:600, marginRight:6 }}>📝 Remark:</span>{e.remark}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

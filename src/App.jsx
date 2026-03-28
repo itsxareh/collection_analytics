@@ -2428,7 +2428,6 @@ export default function App() {
                           label={collectorTimelineSelected ? `Export ${collectorTimelineSelected}` : "Export All"}
                           onClick={() => exportXlsx(
                             ctRows.map(e => ({
-                              "Collector": e.collector,
                               "Date": e.date || "–",
                               "Time": e.time || "–",
                               "Debtor ID": e.dik || "–",
@@ -2441,10 +2440,11 @@ export default function App() {
                               "Bucket": e.bucket || "–",
                               "Client": e.client || "–",
                               "Remark": e.remark || "–",
+                              "Remark By": e.collector,
                               "PTP Date": e.ptpDate || "–",
                               "PTP Amount": e.ptpAmt || "",
-                              "Claim Date": e.claimDate || "–",
-                              "Claim Amount": e.claimAmt || "",
+                              "Claim Paid Date": e.claimDate || "–",
+                              "Claim Paid Amount": e.claimAmt || "",
                             })),
                             collectorTimelineSelected
                               ? `collector_timeline_${collectorTimelineSelected.replace(/\s+/g,"_")}.xlsx`

@@ -356,10 +356,22 @@ const fD = v => {
   const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (dmyMatch) {
     const [, a, b, yr] = dmyMatch;
-    const day = parseInt(a), mon = parseInt(b);
-    if (day > 12 || (day <= 12 && mon <= 12)) {
-      return `${String(mon).padStart(2, "0")}/${String(day).padStart(2, "0")}/${yr}`;
+    const num1 = parseInt(a, 10), num2 = parseInt(b, 10);
+    let day, mon;
+    if (num1 > 12) {
+      // Unambiguous dd/mm
+      day = num1;
+      mon = num2;
+    } else if (num2 > 12) {
+      // Unambiguous mm/dd
+      mon = num1;
+      day = num2;
+    } else {
+      // Ambiguous; default to dd/mm for your data format
+      day = num1;
+      mon = num2;
     }
+    return `${String(mon).padStart(2, "0")}/${String(day).padStart(2, "0")}/${yr}`;
   }
   const d = new Date(s);
   if (!isNaN(d.getTime())) {

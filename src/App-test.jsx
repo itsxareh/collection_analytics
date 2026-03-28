@@ -380,22 +380,10 @@ const fD = v => {
   const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (dmyMatch) {
     const [, a, b, yr] = dmyMatch;
-    const num1 = parseInt(a, 10), num2 = parseInt(b, 10);
-    let day, mon;
-    if (num1 > 12) {
-      // Unambiguous dd/mm
-      day = num1;
-      mon = num2;
-    } else if (num2 > 12) {
-      // Unambiguous mm/dd
-      mon = num1;
-      day = num2;
-    } else {
-      // Ambiguous; default to dd/mm for your data format
-      day = num1;
-      mon = num2;
+    const day = parseInt(a), mon = parseInt(b);
+    if (day > 12 || (day <= 12 && mon <= 12)) {
+      return `${String(day).padStart(2, "0")}/${String(mon).padStart(2, "0")}/${yr}`;
     }
-    return `${String(mon).padStart(2, "0")}/${String(day).padStart(2, "0")}/${yr}`;
   }
   const d = new Date(s);
   if (!isNaN(d.getTime())) {
@@ -728,18 +716,18 @@ export default function App() {
             const slashMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
             if (slashMatch) {
               const [,a,b,yr] = slashMatch;
-              const num1 = parseInt(a, 10), num2 = parseInt(b, 10);
+              const num1 = parseInt(a), num2 = parseInt(b);
               let mon, day;
               if (num1 > 12) {
-                // Unambiguous dd/mm
+                // num1 >12, must be day, so DD/MM/YYYY
                 day = num1;
                 mon = num2;
               } else if (num2 > 12) {
-                // Unambiguous mm/dd
+                // num2 >12, must be day, so MM/DD/YYYY
                 mon = num1;
                 day = num2;
               } else {
-                // Ambiguous; default to dd/mm for your data format
+                // Both <=12, assume DD/MM/YYYY
                 day = num1;
                 mon = num2;
               }
@@ -754,15 +742,7 @@ export default function App() {
             if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
             return null;
           })(),
-          _monthYear: (() => {
-            const iso = r._dateISO;
-            if (iso) {
-              const [yr, mo] = iso.split("-");
-              return `${MONTHS[parseInt(mo, 10)-1]} ${yr}`;
-            }
-            const key = datек||dtk;
-            return key ? getMonthYear(fD(r[key])) : null;
-          })(),
+          _monthYear: (() => { const key = datек||dtk; return key ? getMonthYear(fD(r[key])) : null; })(),
           _client: clk ? (r[clk] ? String(r[clk]).trim() : null) : null,
           }));
 
@@ -1691,7 +1671,7 @@ export default function App() {
         <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
         <div>
           <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: tk.textBright }}>SPM – Collections Analytics</div>
-          <div style={{ fontSize: 12, color: tk.textMuted }}>Status Disposition Intelligence System · 257 Recognized Dispositions</div>
+          <div style={{ fontSize: 12, color: tk.textMuted }}>Status Disposition Intelligence System · 255 Recognized Dispositions</div>
         </div>
         {data && an && <div style={{ marginLeft: "auto", fontSize: 12, color: "#22c55e", background: "#052e16", padding: "4px 12px", borderRadius: 20, border: "1px solid #166534" }}>✓ {an.T.toLocaleString()} valid records loaded</div>}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>

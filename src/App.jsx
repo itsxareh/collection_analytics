@@ -602,6 +602,10 @@ export default function App() {
   const [timelineSearch, setTimelineSearch] = useState("");
   const [timelineAccount, setTimelineAccount] = useState(null);
 
+  // Collector Timeline
+  const [collectorTimelineSearch, setCollectorTimelineSearch] = useState("");
+  const [collectorTimelineSelected, setCollectorTimelineSelected] = useState(""); // "" = all collectors
+
   // Active client filter – "All" shows combined data; a client name shows only that client's rows
   const [activeClientFilter, setActiveClientFilter] = useState("All");
 
@@ -2339,6 +2343,241 @@ export default function App() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+
+              {/* ── Collector Activity Timeline ── */}
+              {data.rk && (() => {
+                const activeDateKey = data.datек || data.dtk;
+
+                // All unique collector names sorted
+                const allCollectorNames = [...new Set(
+                  data.rows.filter(r => r[data.rk]).map(r => String(r[data.rk]).trim())
+                )].sort();
+
+                // Suggestions for search dropdown
+                const ctSuggestions = collectorTimelineSearch.trim().length >= 1
+                  ? allCollectorNames.filter(n => n.toLowerCase().includes(collectorTimelineSearch.toLowerCase())).slice(0, 10)
+                  : [];
+
+                // Build the flat event list: all rows for selected collector (or all), sorted newest→oldest
+                const ctRows = data.rows
+                  .filter(r => {
+                    if (!r[data.rk]) return false;
+                    const name = String(r[data.rk]).trim();
+                    if (collectorTimelineSelected && name !== collectorTimelineSelected) return false;
+                    return true;
+                  })
+                  .map(r => ({
+                    date:      activeDateKey ? r._dateStr : null,
+                    dateISO:   r._dateISO || null,
+                    time:      data.timek ? String(r[data.timek] || "").trim() || null : null,
+                    collector: String(r[data.rk]).trim(),
+                    status:    r._status,
+                    sg:        r._d.sg,
+                    tp:        r._d.tp,
+                    dik:      data.dik ? String(r[data.dik] || "").trim() || null : null,
+                    acctNo:    data.ak ? String(r[data.ak] || "").trim() || null : null,
+                    oick:      data.oick ? String(r[data.oick] || "").trim() || null : null,
+                    debtor:    data.dnk ? String(r[data.dnk] || "").trim() || null : null,
+                    bucket:    r._bucket || null,
+                    client:    r._client || null,
+                    remark:    data.rmk ? String(r[data.rmk] || "").trim() || null : null,
+                    ptpDate:   data.pdk ? fD(r[data.pdk]) : null,
+                    ptpAmt:    (() => { const v = data.pak ? parseAmt(r[data.pak]) : NaN; return !isNaN(v) && v > 0 ? v : null; })(),
+                    claimDate: data.cdk ? fD(r[data.cdk]) : null,
+                    claimAmt:  (() => { const v = data.cak ? parseAmt(r[data.cak]) : NaN; return !isNaN(v) && v > 0 ? v : null; })(),
+                  }))
+                  .sort((a, b) => {
+                    // Sort newest first: compare dateISO then time
+                    if (a.dateISO && b.dateISO) {
+                      if (b.dateISO !== a.dateISO) return b.dateISO.localeCompare(a.dateISO);
+                    } else if (a.dateISO) return -1;
+                    else if (b.dateISO) return 1;
+                    if (a.time && b.time) return b.time.localeCompare(a.time);
+                    return 0;
+                  });
+
+                const tpIcon = { CALL:"📱", FIELD:"🚗", SMS:"💬", VIBER:"💜", EMAIL:"📧", INTERNET:"🌐", "CEASE COLLECTION":"🛑", "REPO AI":"🤖", "FIELD REQUEST":"📋" };
+                const sgIcon = { KEPT:"✅", PTP:"🤝", RPC:"📞", POS:"💬", NEG:"❌" };
+
+                // Stats for selected collector
+                const ctStats = collectorTimelineSelected ? (() => {
+                  const sgC = {}, tpC = {};
+                  let ptpTotal = 0, claimTotal = 0;
+                  ctRows.forEach(e => {
+                    sgC[e.sg] = (sgC[e.sg] || 0) + 1;
+                    tpC[e.tp] = (tpC[e.tp] || 0) + 1;
+                    if (e.ptpAmt) ptpTotal += e.ptpAmt;
+                    if (e.claimAmt) claimTotal += e.claimAmt;
+                  });
+                  return { sgC, tpC, ptpTotal, claimTotal, total: ctRows.length };
+                })() : null;
+
+                return (
+                  <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${collectorTimelineSelected ? "#3b82f6" : tk.borderMed}` }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>🕐 Collector Activity Timeline</div>
+                      <div style={{ fontSize: 12, color: tk.textMuted }}>
+                        {collectorTimelineSelected
+                          ? <span>Showing <strong style={{ color: "#60a5fa" }}>{collectorTimelineSelected}</strong> — {ctRows.length.toLocaleString()} efforts</span>
+                          : <span>All collectors — <strong>{ctRows.length.toLocaleString()}</strong> efforts, sorted newest first</span>}
+                      </div>
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                        {/* Export button */}
+                        <ExportBtn
+                          label={collectorTimelineSelected ? `Export ${collectorTimelineSelected}` : "Export All"}
+                          onClick={() => exportXlsx(
+                            ctRows.map(e => ({
+                              "Collector": e.collector,
+                              "Date": e.date || "–",
+                              "Time": e.time || "–",
+                              "Debtor ID": e.dik || "–",
+                              "Account No.": e.acctNo || "–",
+                              "Old IC": e.oick || "–",
+                              "Debtor": e.debtor || "–",
+                              "Status": e.status,
+                              "Group": e.sg,
+                              "Touch Point": e.tp,
+                              "Bucket": e.bucket || "–",
+                              "Client": e.client || "–",
+                              "Remark": e.remark || "–",
+                              "PTP Date": e.ptpDate || "–",
+                              "PTP Amount": e.ptpAmt || "",
+                              "Claim Date": e.claimDate || "–",
+                              "Claim Amount": e.claimAmt || "",
+                            })),
+                            collectorTimelineSelected
+                              ? `collector_timeline_${collectorTimelineSelected.replace(/\s+/g,"_")}.xlsx`
+                              : "collector_timeline_all.xlsx"
+                          )}
+                        />
+                        {collectorTimelineSelected && (
+                          <button
+                            onClick={() => { setCollectorTimelineSelected(""); setCollectorTimelineSearch(""); }}
+                            style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, color: tk.textMuted, cursor: "pointer" }}>
+                            ✕ Show All
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Collector search */}
+                    <div style={{ position: "relative", maxWidth: 420, marginBottom: 12 }}>
+                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: tk.textFaint, fontSize: 14 }}>🔍</span>
+                      <input
+                        value={collectorTimelineSearch}
+                        onChange={e => { setCollectorTimelineSearch(e.target.value); if (e.target.value !== collectorTimelineSelected) setCollectorTimelineSelected(""); }}
+                        placeholder="Search collector name to filter timeline…"
+                        style={{ width: "100%", background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 8, color: tk.textPrimary, fontSize: 13, padding: "8px 10px 8px 34px", fontFamily: "inherit", outline: "none" }}
+                      />
+                      {collectorTimelineSearch && (
+                        <button onClick={() => { setCollectorTimelineSearch(""); setCollectorTimelineSelected(""); }}
+                          style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: tk.textMuted, cursor: "pointer", fontSize: 14 }}>✕</button>
+                      )}
+                    </div>
+
+                    {/* Suggestion dropdown */}
+                    {ctSuggestions.length > 0 && !collectorTimelineSelected && (
+                      <div style={{ maxWidth: 420, background: tk.bgCard, border: `1px solid ${tk.borderMed}`, borderRadius: 8, marginTop: -8, marginBottom: 12, overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+                        {ctSuggestions.map(name => (
+                          <div key={name}
+                            onClick={() => { setCollectorTimelineSelected(name); setCollectorTimelineSearch(name); }}
+                            style={{ padding: "8px 14px", cursor: "pointer", fontSize: 13, color: tk.textSub, borderBottom: `1px solid ${tk.bgSurface}`, display: "flex", alignItems: "center", gap: 8 }}
+                            onMouseOver={e => e.currentTarget.style.background = tk.borderMed}
+                            onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                            <span style={{ fontSize: 16 }}>👤</span>
+                            <span style={{ color: "#60a5fa", fontWeight: 600 }}>{name}</span>
+                            <span style={{ fontSize: 11, color: tk.textFaint, marginLeft: "auto" }}>
+                              {data.rows.filter(r => r[data.rk] && String(r[data.rk]).trim() === name).length} efforts
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Stats for selected collector */}
+                    {ctStats && (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px,1fr))", gap: 10, marginBottom: 14 }}>
+                        {[
+                          { l: "Total Efforts", v: ctStats.total.toLocaleString(), c: "#3b82f6", i: "📋" },
+                          { l: "PTP Amount", v: ctStats.ptpTotal > 0 ? "₱" + fN(ctStats.ptpTotal) : "–", c: "#f59e0b", i: "🤝" },
+                          { l: "Claim Paid", v: ctStats.claimTotal > 0 ? "₱" + fN(ctStats.claimTotal) : "–", c: "#22c55e", i: "💳" },
+                          { l: "KEPT", v: (ctStats.sgC.KEPT || 0).toLocaleString(), c: "#22c55e", i: "✅" },
+                          { l: "PTP Set", v: (ctStats.sgC.PTP || 0).toLocaleString(), c: "#f59e0b", i: "🤝" },
+                          { l: "RPC", v: (ctStats.sgC.RPC || 0).toLocaleString(), c: "#3b82f6", i: "📞" },
+                          { l: "NEG", v: (ctStats.sgC.NEG || 0).toLocaleString(), c: "#ef4444", i: "❌" },
+                        ].map(k => (
+                          <div key={k.l} style={{ background: tk.bgSurface, borderRadius: 8, padding: "10px 12px", border: `1px solid ${tk.border}` }}>
+                            <div style={{ fontSize: 10, color: tk.textMuted, textTransform: "uppercase", fontWeight: 600, letterSpacing: ".05em" }}>{k.i} {k.l}</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: k.c, marginTop: 3 }}>{k.v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Timeline feed */}
+                    {ctRows.length === 0 ? (
+                      <div style={{ textAlign: "center", padding: "32px 16px", color: tk.textFaint }}>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
+                        <div style={{ fontSize: 13 }}>No efforts found. Search a collector name above.</div>
+                      </div>
+                    ) : (
+                      <div style={{ maxHeight: 520, overflowY: "auto", position: "relative" }}>
+                        <div style={{ position: "absolute", left: 20, top: 0, bottom: 0, width: 2, background: tk.border, borderRadius: 2 }} />
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          {ctRows.slice(0, collectorTimelineSelected ? 200 : 100).map((e, i) => {
+                            const dotColor = GC[e.sg] || tk.textFaint;
+                            const isLast = i === Math.min(ctRows.length, collectorTimelineSelected ? 200 : 100) - 1;
+                            return (
+                              <div key={i} style={{ display: "flex", gap: 16, paddingBottom: isLast ? 0 : 12, position: "relative" }}>
+                                <div style={{ flexShrink: 0, width: 42, display: "flex", justifyContent: "center", paddingTop: 4 }}>
+                                  <div style={{ width: 13, height: 13, borderRadius: "50%", background: dotColor, border: `2px solid ${dotColor}55`, boxShadow: `0 0 5px ${dotColor}44`, zIndex: 1, position: "relative" }} />
+                                </div>
+                                <div style={{ flex: 1, background: tk.bgSurface, border: `1px solid ${dotColor}22`, borderLeft: `3px solid ${dotColor}`, borderRadius: "0 8px 8px 0", padding: "9px 13px", marginBottom: isLast ? 0 : 2 }}>
+                                  {/* Row 1: date/time, outcome badge, TP */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                                    {e.date && <span style={{ fontSize: 12, color: "#60a5fa", fontWeight: 600 }}>{e.date}{e.time ? " · " + e.time : ""}</span>}
+                                    <span className="bdg" style={{ background: dotColor + "22", color: dotColor }}>{sgIcon[e.sg] || ""} {e.sg}</span>
+                                    <span style={{ fontSize: 11, color: TP_COLORS[e.tp] || tk.textMuted }}>{tpIcon[e.tp] || ""} {e.tp}</span>
+                                    {!collectorTimelineSelected && (
+                                      <span style={{ fontSize: 11, color: "#a78bfa", fontWeight: 600, marginLeft: 4 }}>👤 {e.collector}</span>
+                                    )}
+                                  </div>
+                                  {/* Row 2: status */}
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: tk.textPrimary, marginBottom: 4 }}>{e.status}</div>
+                                  {/* Row 3: metadata */}
+                                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: tk.textMuted }}>
+                                    {e.dik && <span>🆔 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.dik}</span></span>}
+                                    {e.acctNo && <span>🗂 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.acctNo}</span></span>}
+                                    {e.oick && <span>🔖 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.oick}</span></span>}
+                                    {e.debtor && <span>👤 {e.debtor}</span>}
+                                    {e.bucket && <span>📍 {e.bucket}</span>}
+                                    {e.client && <span>🏢 {e.client}</span>}
+                                    {e.ptpDate && <span style={{ color: "#f59e0b" }}>🤝 PTP: {e.ptpDate}{e.ptpAmt ? " · ₱" + fN(e.ptpAmt) : ""}</span>}
+                                    {e.claimDate && <span style={{ color: "#22c55e" }}>💳 Claim: {e.claimDate}{e.claimAmt ? " · ₱" + fN(e.claimAmt) : ""}</span>}
+                                  </div>
+                                  {/* Row 4: remark */}
+                                  {e.remark && (
+                                    <div style={{ marginTop: 6, fontSize: 12, color: tk.textSub, background: tk.bgCard, border: `1px solid ${tk.border}`, borderRadius: 5, padding: "5px 9px", lineHeight: 1.5 }}>
+                                      <span style={{ color: tk.textFaint, fontWeight: 600, marginRight: 6 }}>📝</span>{e.remark}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {ctRows.length > (collectorTimelineSelected ? 200 : 100) && (
+                            <div style={{ textAlign: "center", padding: "12px", fontSize: 12, color: tk.textFaint, borderTop: `1px solid ${tk.border}`, marginTop: 8 }}>
+                              Showing {collectorTimelineSelected ? 200 : 100} of {ctRows.length.toLocaleString()} efforts.
+                              Export to see all records.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </>}
           </div>}
 
@@ -5730,4 +5969,4 @@ export default function App() {
       </div>
     </div>
   );
-}
+}   

@@ -608,6 +608,7 @@ export default function App() {
 
   // Active client filter – "All" shows combined data; a client name shows only that client's rows
   const [activeClientFilter, setActiveClientFilter] = useState("All");
+  const [accountMapping, setAccountMapping] = useState("auto");
 
   const mkSort = (ss, setSS) => (key) => setSS(prev => ({ key, dir: prev.key === key && prev.dir === "desc" ? "asc" : "desc" }));
   const mkIcon = (ss) => ({ col }) => col !== ss.key
@@ -785,6 +786,14 @@ export default function App() {
     const { rows: allRows, ak, rk, pak, pdk, cak, cdk, datек, timek, dtk, clk, oick, dik } = data;
     const activeDateKey = datек || dtk;
 
+    const accountCandidates = [...new Set([ak, oick, dik].filter(Boolean))];
+    const accountKey = accountMapping === "auto"
+      ? (ak || oick || dik || null)
+      : (accountCandidates.includes(accountMapping) ? accountMapping : (ak || oick || dik  || null));
+    const ua = accountKey ? new Set(allRows.map(r => r[accountKey]).filter(Boolean)).size : null;
+
+    const accountKeyLabelValue = accountKey === ak ? "Account No." : accountKey === dik ? "Debtor ID" : accountKey === oick ? "Old IC" : "Account";
+
     // Filter by client AND by global date range
     const rows = allRows.filter(r => {
       if (activeClientFilter && activeClientFilter !== "All" && clk && r._client !== activeClientFilter) return false;
@@ -810,7 +819,7 @@ export default function App() {
     }));
     const gd = Object.entries(gc).sort((a, b) => b[1] - a[1]).map(([g, c]) => ({ name: g, value: c, pct: ((c / T) * 100).toFixed(1) }));
     const td = Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([t, c]) => ({ name: t, count: c, pct: ((c / T) * 100).toFixed(1) }));
-    const ua = (ak ? new Set(rows.map(r => r[ak]).filter(Boolean)).size : dik ? new Set(rows.map(r => r[dik]).filter(Boolean)).size : null);
+    // ua is already prepared from accountKey above
 
     const collectorMap = {};  
     if (rk) {
@@ -923,8 +932,8 @@ export default function App() {
     const fieldRows = rows.filter(r => r._d.tp === "FIELD");
     if (fieldRows.length > 0) {
       const totalFieldVisits = fieldRows.length;
-      const uniqueFieldAccounts = ak ? new Set(fieldRows.map(r=>r[ak]).filter(Boolean)).size : null;
-      const fieldRate = uniqueFieldAccounts > 0 ? (( uniqueFieldAccounts / ua  ) * 100).toFixed(1) : "0.0";
+      const uniqueFieldAccounts = accountKey ? new Set(fieldRows.map(r=>r[accountKey]).filter(Boolean)).size : null;
+      const fieldRate = uniqueFieldAccounts > 0 ? (( uniqueFieldAccounts / ua ) * 100).toFixed(1) : "0.0";
 
       // Visits per bucket
       const bucketVisitMap = {};
@@ -932,24 +941,24 @@ export default function App() {
       fieldRows.forEach(r => {
         const b = r._bucket || "Unassigned";
         bucketVisitMap[b]=(bucketVisitMap[b]||0)+1;
-        if (ak && r[ak]) { if(!bucketAccountMap[b]) bucketAccountMap[b]=new Set(); bucketAccountMap[b].add(String(r[ak]).trim()); }
+        if (accountKey && r[accountKey]) { if(!bucketAccountMap[b]) bucketAccountMap[b]=new Set(); bucketAccountMap[b].add(String(r[accountKey]).trim()); }
       });
 
       // Total accounts per bucket (from ALL rows, not just field)
       const totalAccountsByBucket = {};
-      if (ak) {
+      if (accountKey) {
         rows.forEach(r => {
           const b = r._bucket || "Unassigned";
           if (!totalAccountsByBucket[b]) totalAccountsByBucket[b] = new Set();
-          if (r[ak]) totalAccountsByBucket[b].add(String(r[ak]).trim());
+          if (r[accountKey]) totalAccountsByBucket[b].add(String(r[accountKey]).trim());
         });
       }
 
       const bucketVisitData = Object.entries(bucketVisitMap)
         .sort((a,b) => { const ai=BUCKET_ORDER.indexOf(a[0]),bi=BUCKET_ORDER.indexOf(b[0]); if(ai===-1&&bi===-1) return a[0].localeCompare(b[0]); if(ai===-1) return 1; if(bi===-1) return -1; return ai-bi; })
         .map(([name, visits]) => {
-          const visitedAccts = ak ? (bucketAccountMap[name]?.size||0) : 0;
-          const totalAccts = ak ? (totalAccountsByBucket[name]?.size||0) : 0;
+          const visitedAccts = accountKey ? (bucketAccountMap[name]?.size||0) : 0;
+          const totalAccts = accountKey ? (totalAccountsByBucket[name]?.size||0) : 0;
           const pctOfTotal = totalFieldVisits > 0 ? ((visits/totalFieldVisits)*100).toFixed(1) : "0.0";
           const pctOfAccts = totalAccts > 0 ? ((visitedAccts/totalAccts)*100).toFixed(1) : "0.0";
           return { name, visits, visitedAccts, totalAccts, pctOfTotal, pctOfAccts };
@@ -1310,14 +1319,14 @@ export default function App() {
     // ── Overall Penetration ───────────────────────────────────────────────────
     // overall = unique accounts that had ANY touchpoint effort / total unique accounts
     let overallPenetrationData = null;
-    if (ak) {
-      const totalUniqueAccounts = new Set(rows.map(r => r[ak]).filter(Boolean));
+    if (accountKey) {
+      const totalUniqueAccounts = new Set(rows.map(r => r[accountKey]).filter(Boolean));
       const totalUA = totalUniqueAccounts.size;
 
       // Per-TP unique accounts touched overall (not per-bucket)
       const tpAccountMap = {};
       rows.forEach(r => {
-        const acct = r[ak]; if (!acct) return;
+        const acct = r[accountKey]; if (!acct) return;
         const tp = r._d.tp;
         if (!tpAccountMap[tp]) tpAccountMap[tp] = new Set();
         tpAccountMap[tp].add(String(acct).trim());
@@ -1334,7 +1343,7 @@ export default function App() {
       // Per-SG penetration: unique accounts per outcome group
       const sgAccountMap = {};
       rows.forEach(r => {
-        const acct = r[ak]; if (!acct) return;
+        const acct = r[accountKey]; if (!acct) return;
         const sg = r._d.sg;
         if (!sgAccountMap[sg]) sgAccountMap[sg] = new Set();
         sgAccountMap[sg].add(String(acct).trim());
@@ -1359,10 +1368,10 @@ export default function App() {
     // ── Broken Promise (BP) Analytics ────────────────────────────────────────
     // BP = account has a PTP date but NO Claim Paid recorded
     let bpAnalytics = null;
-    if (ak && pak && pdk) {
+    if (accountKey && pak && pdk) {
       const acctMap = {};
       rows.forEach(r => {
-        const acct = r[ak] ? String(r[ak]).trim() : null;
+        const acct = r[accountKey] ? String(r[accountKey]).trim() : null;
         if (!acct) return;
         const ptpDateRaw = r[pdk];
         const ptpAmt = parseAmt(r[pak]);
@@ -1498,19 +1507,19 @@ export default function App() {
     }
 
     // ── PTP Conversion Funnel ─────────────────────────────────────────────────
-    // Uses only local vars (rows, gc, T, ak, rk, oick) — not `an`
+    // Uses only local vars (rows, gc, T, accountKey, rk, oick) — not `an`
     let funnelAnalytics = null;
     {
       const rpcEfforts = (gc["RPC"]||0) + (gc["PTP"]||0) + (gc["KEPT"]||0) + (gc["POS"]||0);
       const ptpEfforts = gc["PTP"] || 0;
       const keptEfforts = gc["KEPT"] || 0;
 
-      if (ak) {
-        const totalAccts = new Set(rows.map(r => r[ak]).filter(Boolean));
+      if (accountKey) {
+        const totalAccts = new Set(rows.map(r => r[accountKey]).filter(Boolean));
         const totalUA = totalAccts.size;
         const rpcAccts = new Set(), ptpAccts = new Set(), keptAccts = new Set();
         rows.forEach(r => {
-          const acct = r[ak] ? String(r[ak]).trim() : null; if (!acct) return;
+          const acct = r[accountKey] ? String(r[accountKey]).trim() : null; if (!acct) return;
           const sg = r._d.sg;
           if (sg==="RPC"||sg==="PTP"||sg==="KEPT"||sg==="POS") rpcAccts.add(acct);
           if (sg==="PTP") ptpAccts.add(acct);
@@ -1537,7 +1546,7 @@ export default function App() {
         if (oick) {
           const bMap = {};
           rows.forEach(r => {
-            const b = r._bucket||"Unknown", acct = r[ak]?String(r[ak]).trim():null;
+            const b = r._bucket||"Unknown", acct = r[accountKey]?String(r[accountKey]).trim():null;
             if (!bMap[b]) bMap[b]={ total:new Set(), rpc:new Set(), ptp:new Set(), kept:new Set() };
             if (acct) {
               bMap[b].total.add(acct);
@@ -1561,7 +1570,7 @@ export default function App() {
         if (rk) {
           const cMap = {};
           rows.forEach(r => {
-            const col=r[rk]?String(r[rk]).trim():null, acct=r[ak]?String(r[ak]).trim():null;
+            const col=r[rk]?String(r[rk]).trim():null, acct=r[accountKey]?String(r[accountKey]).trim():null;
             if (!col) return;
             if (!cMap[col]) cMap[col]={ total:new Set(), rpc:new Set(), ptp:new Set(), kept:new Set() };
             if (acct) {
@@ -1599,8 +1608,8 @@ export default function App() {
       }
     }
     
-    return { sd, gd, td, ua, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, bpAnalytics, collectorBucketAnalytics, funnelAnalytics };
-  }, [data, activeClientFilter, globalDateFrom, globalDateTo]);
+    return { sd, gd, td, ua, accountKey, accountKeyLabel: accountKeyLabelValue, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, bpAnalytics, collectorBucketAnalytics, funnelAnalytics };
+  }, [data, activeClientFilter, globalDateFrom, globalDateTo, accountMapping]);
 
   const TS = { background: tk.bgTooltip, border: `1px solid ${tk.borderMed}`, borderRadius: 8, fontSize: 12, color: tk.textPrimary };
 
@@ -1766,6 +1775,8 @@ export default function App() {
             ))}
           </div>
 
+
+
           {/* Detected columns notice 
           <div style={{ background: isDark ? "#0f2a3f" : "#e0f2fe", border: `1px solid ${isDark ? "#1e4060" : "#bae6fd"}`, borderRadius: 8, padding: "8px 16px", marginBottom: 12, fontSize: 12, color: isDark ? "#7dd3fc" : "#0369a1", display: "flex", flexWrap: "wrap", gap: 12 }}>
             <span>🔍 Detected columns:</span>
@@ -1827,29 +1838,41 @@ export default function App() {
             const maxISO = allDatesISO[allDatesISO.length - 1];
             const hasFilter = !!(globalDateFrom || globalDateTo);
             return (
-              <div style={{ marginBottom: 10, background: tk.bgCard, border: `1px solid ${hasFilter ? "#3b82f6" : tk.borderMed}`, borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", transition: "border-color 0.2s" }}>
-                <span style={{ fontSize: 12, color: tk.textSub, fontWeight: 600, flexShrink: 0 }}>📅 Date Range:</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <label style={{ fontSize: 12, color: tk.textMuted }}>From</label>
-                  <input type="date" value={globalDateFrom} min={minISO} max={maxISO}
-                    onChange={e => setGlobalDateFrom(e.target.value)}
-                    style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
-                  <label style={{ fontSize: 12, color: tk.textMuted }}>To</label>
-                  <input type="date" value={globalDateTo} min={minISO} max={maxISO}
-                    onChange={e => setGlobalDateTo(e.target.value)}
-                    style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
+              <div style={{ flex: 1, background: tk.bgCard, border: `1px solid ${hasFilter ? "#3b82f6" : tk.borderMed}`, borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", transition: "border-color 0.2s", minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "nowrap", overflowX: "auto", minWidth: 0 }}>
+                  <span style={{ fontSize: 12, color: tk.textMuted, fontWeight: 600, whiteSpace: "nowrap" }}>🔧 Account mapping for analytics:</span>
+                  <select value={accountMapping} onChange={e => setAccountMapping(e.target.value)} style={{ padding: "5px 8px", fontSize: 12, borderRadius: 8, border: `1px solid ${tk.borderMed}`, background: tk.bgSurface, color: tk.textPrimary, whiteSpace: "nowrap" }}>
+                    <option value="auto">Auto-detect (Account No / Debtor ID / Old IC)</option>
+                    {data.ak && <option value={data.ak}>Account No ({data.ak})</option>}
+                    {data.dik && <option value={data.dik}>Debtor ID ({data.dik})</option>}
+                    {data.oick && <option value={data.oick}>Old IC / Bucket ({data.oick})</option>}
+                  </select>
+                  <span style={{ fontSize: 12, color: tk.textSub, whiteSpace: "nowrap" }}>Active key: <strong>{an.accountKeyLabel}</strong></span>
                 </div>
-                {hasFilter && (
-                  <button onClick={() => { setGlobalDateFrom(""); setGlobalDateTo(""); }}
-                    style={{ fontSize: 11, padding: "3px 12px", borderRadius: 6, background: isDark ? "#172554" : "#dbeafe", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}>
-                    ✕ Clear Filter
-                  </button>
-                )}
-                <span style={{ fontSize: 11, color: hasFilter ? "#60a5fa" : tk.textFaint, marginLeft: 4 }}>
-                  {hasFilter
-                    ? `Showing ${an?.T?.toLocaleString() ?? 0} of ${data.rows.length.toLocaleString()} records · ${minISO} → ${maxISO}`
-                    : `${allDatesISO.length} active dates · ${minISO} → ${maxISO}`}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "nowrap", overflowX: "auto", minWidth: 0 }}>
+                  <span style={{ fontSize: 12, color: tk.textSub, fontWeight: 600, flexShrink: 0 }}>📅 Date Range:</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <label style={{ fontSize: 12, color: tk.textMuted }}>From</label>
+                    <input type="date" value={globalDateFrom} min={minISO} max={maxISO}
+                      onChange={e => setGlobalDateFrom(e.target.value)}
+                      style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
+                    <label style={{ fontSize: 12, color: tk.textMuted }}>To</label>
+                    <input type="date" value={globalDateTo} min={minISO} max={maxISO}
+                      onChange={e => setGlobalDateTo(e.target.value)}
+                      style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
+                  </div>
+                  {hasFilter && (
+                    <button onClick={() => { setGlobalDateFrom(""); setGlobalDateTo(""); }}
+                      style={{ fontSize: 11, padding: "3px 12px", borderRadius: 6, background: isDark ? "#172554" : "#dbeafe", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}>
+                      ✕ Clear Filter
+                    </button>
+                  )}
+                  <span style={{ fontSize: 11, color: hasFilter ? "#60a5fa" : tk.textFaint, marginLeft: 4, whiteSpace: "nowrap" }}>
+                    {hasFilter
+                      ? `Showing ${an?.T?.toLocaleString() ?? 0} of ${data.rows.length.toLocaleString()} records · ${minISO} → ${maxISO}`
+                      : `${allDatesISO.length} active dates · ${minISO} → ${maxISO}`}
+                  </span>
+                </div>
               </div>
             );
           })()}
@@ -2359,11 +2382,19 @@ export default function App() {
                   : [];
 
                 // Build the flat event list: all rows for selected collector (or all), sorted newest→oldest
+                // Also apply global date filter
                 const ctRows = data.rows
                   .filter(r => {
                     if (!r[data.rk]) return false;
                     const name = String(r[data.rk]).trim();
                     if (collectorTimelineSelected && name !== collectorTimelineSelected) return false;
+                    // Apply global date filter
+                    if (globalDateFrom || globalDateTo) {
+                      const d = r._dateISO;
+                      if (!d) return false;
+                      if (globalDateFrom && d < globalDateFrom) return false;
+                      if (globalDateTo   && d > globalDateTo)   return false;
+                    }
                     return true;
                   })
                   .map(r => ({
@@ -2415,7 +2446,7 @@ export default function App() {
                 return (
                   <div className="card" style={{ gridColumn: "1/-1", border: `1px solid ${collectorTimelineSelected ? "#3b82f6" : tk.borderMed}` }}>
                     {/* Header */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: tk.textBright }}>🕐 Collector Activity Timeline</div>
                       <div style={{ fontSize: 12, color: tk.textMuted }}>
                         {collectorTimelineSelected
@@ -2428,6 +2459,7 @@ export default function App() {
                           label={collectorTimelineSelected ? `Export ${collectorTimelineSelected}` : "Export All"}
                           onClick={() => exportXlsx(
                             ctRows.map(e => ({
+                              "Collector": e.collector,
                               "Date": e.date || "–",
                               "Time": e.time || "–",
                               "Debtor ID": e.dik || "–",
@@ -2440,11 +2472,10 @@ export default function App() {
                               "Bucket": e.bucket || "–",
                               "Client": e.client || "–",
                               "Remark": e.remark || "–",
-                              "Remark By": e.collector,
                               "PTP Date": e.ptpDate || "–",
                               "PTP Amount": e.ptpAmt || "",
-                              "Claim Paid Date": e.claimDate || "–",
-                              "Claim Paid Amount": e.claimAmt || "",
+                              "Claim Date": e.claimDate || "–",
+                              "Claim Amount": e.claimAmt || "",
                             })),
                             collectorTimelineSelected
                               ? `collector_timeline_${collectorTimelineSelected.replace(/\s+/g,"_")}.xlsx`
@@ -2460,6 +2491,11 @@ export default function App() {
                         )}
                       </div>
                     </div>
+                    {(globalDateFrom || globalDateTo) && (
+                      <div style={{ fontSize:11, color:"#60a5fa", background: isDark?"#172554":"#dbeafe", border:"1px solid #3b82f6", borderRadius:6, padding:"4px 10px", marginBottom:8, display:"inline-block" }}>
+                        📅 Date filter active: <strong>{globalDateFrom||"start"}</strong> → <strong>{globalDateTo||"end"}</strong>
+                      </div>
+                    )}
 
                     {/* Collector search */}
                     <div style={{ position: "relative", maxWidth: 420, marginBottom: 12 }}>
@@ -2547,9 +2583,9 @@ export default function App() {
                                   <div style={{ fontSize: 13, fontWeight: 600, color: tk.textPrimary, marginBottom: 4 }}>{e.status}</div>
                                   {/* Row 3: metadata */}
                                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: tk.textMuted }}>
-                                    {e.dik && <span>🆔 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.dik}</span></span>}
-                                    {e.acctNo && <span>🗂 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.acctNo}</span></span>}
-                                    {e.oick && <span>🔖 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.oick}</span></span>}
+                                    {(e.acctNo || e.dik || e.oick) && (
+                                      <span>🗂 <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{e.acctNo || e.dik || e.oick}</span></span>
+                                    )}
                                     {e.debtor && <span>👤 {e.debtor}</span>}
                                     {e.bucket && <span>📍 {e.bucket}</span>}
                                     {e.client && <span>🏢 {e.client}</span>}
@@ -5066,20 +5102,39 @@ export default function App() {
                   <div style={{ fontWeight:700,fontSize:14,marginBottom:4,color:tk.textBright }}>
                      Broken Promise Account List — {bpAccounts.length.toLocaleString()} accounts
                   </div>
-                  <div style={{ fontSize:12,color:tk.textMuted,marginBottom:12 }}>
-                    Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded. Sorted by most recent PTP date first.
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize:12,color:tk.textMuted }}>
+                      Accounts with a PTP date but <strong style={{ color:"#ef4444" }}>no Claim Paid</strong> recorded. Sorted by most recent PTP date first.
+                    </div>
+                    <ExportBtn onClick={() => {
+                      const rows = filteredBP.map((b, i) => {
+                        const row = {
+                          "#": i+1,
+                          [data.ak ? "Account No." : data.dik ? "Debtor ID" : "Old IC"]: b.acct,
+                          "PTP Date": b.ptpDate,
+                          "PTP Amount": b.ptpAmt,
+                          "Last Claim Date": b.claimDate,
+                          "Collector (PTP)": b.collector,
+                          "Bucket": b.bucket,
+                        };
+                        if (data.dnk) row["Debtor"] = b.debtor;
+                        if (data.clk) row["Client"] = b.client;
+                        return row;
+                      });
+                      exportXlsx(rows, `Broken_Promises_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    }} />
                   </div>
-                  <SearchBar tk={tk} value={bpSearch} onChange={setBpSearch} placeholder="Filter by account, debtor, collector, or bucket..." />
+                  <SearchBar tk={tk} value={bpSearch} onChange={setBpSearch} placeholder="Filter by old IC, debtor ID, account, collector, or bucket..." />
                   <div style={{ overflowX:"auto", maxHeight:480, overflowY:"auto" }}>
                     <table>
                       <thead><tr>
                         <th>#</th>
-                        <th>Account No.</th>
+                        <th>{an.accountKeyLabel || (data.ak ? "Account No." : data.dik ? "Debtor ID" : "Old IC")}</th>
                         {data.dnk && <th>Debtor</th>}
                         <th style={{ color:"#ef4444" }}>PTP Date</th>
                         <th>PTP Amount</th>
                         <th style={{ color:tk.textMuted }}>Last Claim Date</th>
-                        <th>Collector</th>
+                        <th>Collector (PTP)</th>
                         <th>Bucket</th>
                         {data.clk && <th>Client</th>}
                       </tr></thead>
@@ -5286,39 +5341,34 @@ export default function App() {
               ── 🕐 ACCOUNT ACTIVITY TIMELINE TAB ──
           ════════════════════════════════════════════════════════════════ */}
           {tab === "timeline" && (() => {
-            const td = data?.ak || data?.dik; // primary account key
+            // Primary account key: prefer ak, fall back to dik, then oick
+            const td = data?.ak || data?.dik || data?.oick;
             const dnk = data?.dnk; // debtor name key
             const oick = data?.oick; // old IC key
-            const dik2 = data?.dik && data?.ak ? data?.dik : null; // debtor ID key (secondary)
-            if (!td && !dnk && !oick) return (
+            const dik2 = data?.dik && data?.ak ? data?.dik : null; // debtor ID (secondary, only if ak also exists)
+            const oick2 = data?.oick && (data?.ak || data?.dik) ? data?.oick : null; // oldIC secondary
+            if (!td && !dnk) return (
               <div className="card" style={{ textAlign:"center", padding:"48px 24px" }}>
                 <div style={{ fontSize:40, marginBottom:16 }}>🕐</div>
                 <div style={{ fontWeight:700, fontSize:18, color:tk.textBright, marginBottom:8 }}>Account Timeline Unavailable</div>
                 <div style={{ fontSize:13, color:tk.textMuted, maxWidth:480, margin:"0 auto" }}>
-                  Requires an <code style={{ color:"#60a5fa", background:tk.bgSurface, padding:"1px 6px", borderRadius:4 }}>Account No.</code> column to look up individual account histories.
+                  Requires an <code style={{ color:"#60a5fa", background:tk.bgSurface, padding:"1px 6px", borderRadius:4 }}>Account No.</code>, <code style={{ color:"#60a5fa", background:tk.bgSurface, padding:"1px 6px", borderRadius:4 }}>Old IC</code>, or <code style={{ color:"#60a5fa", background:tk.bgSurface, padding:"1px 6px", borderRadius:4 }}>Debtor ID</code> column.
                 </div>
               </div>
             );
 
-            // Build search index: for each row, collect all searchable fields
-            const buildKey = r => [
-              td ? String(r[td] || "").trim() : "",
-              dnk ? String(r[dnk] || "").trim() : "",
-              oick ? String(r[oick] || "").trim() : "",
-              dik2 ? String(r[dik2] || "").trim() : "",
-            ].filter(Boolean).join("|");
-
+            // Build search index — all unique accounts from all rows (not date-filtered, so search works across all)
             const allAccounts = [...new Map(
               data.rows
                 .map(r => ({
-                  acctNo: td ? String(r[td] || "").trim() : "",
-                  debtor: dnk ? String(r[dnk] || "").trim() : "",
-                  oldIc:  oick ? String(r[oick] || "").trim() : "",
-                  debtorId: dik2 ? String(r[dik2] || "").trim() : "",
+                  acctNo:   data.ak   ? String(r[data.ak]   || "").trim() : "",
+                  debtor:   dnk       ? String(r[dnk]       || "").trim() : "",
+                  oldIc:    oick      ? String(r[oick]      || "").trim() : "",
+                  debtorId: data.dik  ? String(r[data.dik]  || "").trim() : "",
                 }))
                 .filter(x => x.acctNo || x.debtor || x.oldIc || x.debtorId)
                 .map(x => [x.acctNo || x.debtorId || x.oldIc, x])
-            ).values()].sort((a,b) => (a.acctNo||a.debtorId||"").localeCompare(b.acctNo||b.debtorId||""));
+            ).values()].sort((a,b) => (a.acctNo||a.debtorId||a.oldIc||"").localeCompare(b.acctNo||b.debtorId||b.oldIc||""));
 
             const suggestions = timelineSearch.trim().length >= 2
               ? allAccounts.filter(a => {
@@ -5330,13 +5380,23 @@ export default function App() {
                 }).slice(0, 12)
               : [];
 
-            // When an account is selected, match by the primary key value
+            // When an account is selected, match by primary key; apply global date filter
             const timeline = timelineAccount
               ? data.rows
                   .filter(r => {
-                    const acctVal = td ? String(r[td] || "").trim() : "";
-                    const diVal = dik2 ? String(r[dik2] || "").trim() : "";
-                    return acctVal === timelineAccount || diVal === timelineAccount;
+                    const acctVal  = data.ak   ? String(r[data.ak]  || "").trim() : "";
+                    const diVal    = data.dik  ? String(r[data.dik] || "").trim() : "";
+                    const oiVal    = data.oick ? String(r[data.oick]|| "").trim() : "";
+                    const matches  = acctVal === timelineAccount || diVal === timelineAccount || oiVal === timelineAccount;
+                    if (!matches) return false;
+                    // Apply global date filter
+                    if (globalDateFrom || globalDateTo) {
+                      const d = r._dateISO;
+                      if (!d) return false;
+                      if (globalDateFrom && d < globalDateFrom) return false;
+                      if (globalDateTo   && d > globalDateTo)   return false;
+                    }
+                    return true;
                   })
                   .map(r => {
                     const dateKey = data.datек || data.dtk;
@@ -5388,10 +5448,15 @@ export default function App() {
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:6, color:tk.textBright }}>
                     🕐 Account Activity Timeline
                   </div>
-                  <div style={{ fontSize:12, color:tk.textMuted, marginBottom:12 }}>
+                  <div style={{ fontSize:12, color:tk.textMuted, marginBottom: (globalDateFrom||globalDateTo) ? 6 : 12 }}>
                     Search by account number, debtor name, old IC, or debtor ID to see its complete activity log.
                     {allAccounts.length > 0 && <span style={{ color:tk.textFaint }}> {allAccounts.length.toLocaleString()} unique accounts in file.</span>}
                   </div>
+                  {(globalDateFrom || globalDateTo) && (
+                    <div style={{ fontSize:11, color:"#60a5fa", background: isDark?"#172554":"#dbeafe", border:"1px solid #3b82f6", borderRadius:6, padding:"4px 10px", marginBottom:10, display:"inline-block" }}>
+                      📅 Date filter active: <strong>{globalDateFrom||"start"}</strong> → <strong>{globalDateTo||"end"}</strong> — activity log will only show entries within this range
+                    </div>
+                  )}
                   <div style={{ position:"relative", maxWidth:500 }}>
                     <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:tk.textFaint, fontSize:14 }}>🔍</span>
                     <input
@@ -5434,14 +5499,15 @@ export default function App() {
                     {/* Account Identity Card */}
                     {(() => {
                       const matchedRow = data.rows.find(r => {
-                        const acctVal = td ? String(r[td] || "").trim() : "";
-                        const diVal = dik2 ? String(r[dik2] || "").trim() : "";
-                        return acctVal === timelineAccount || diVal === timelineAccount;
+                        const acctVal  = data.ak   ? String(r[data.ak]  || "").trim() : "";
+                        const diVal    = data.dik  ? String(r[data.dik] || "").trim() : "";
+                        const oiVal    = data.oick ? String(r[data.oick]|| "").trim() : "";
+                        return acctVal === timelineAccount || diVal === timelineAccount || oiVal === timelineAccount;
                       });
-                      const debtorName = dnk && matchedRow ? String(matchedRow[dnk] || "").trim() : "";
-                      const oldIcVal   = oick && matchedRow ? String(matchedRow[oick] || "").trim() : "";
-                      const debtorIdVal= dik2 && matchedRow ? String(matchedRow[dik2] || "").trim() : "";
-                      const acctNoVal  = td && matchedRow ? String(matchedRow[td] || "").trim() : "";
+                      const debtorName  = dnk       && matchedRow ? String(matchedRow[dnk]       || "").trim() : "";
+                      const oldIcVal    = data.oick && matchedRow ? String(matchedRow[data.oick] || "").trim() : "";
+                      const debtorIdVal = data.dik  && matchedRow ? String(matchedRow[data.dik]  || "").trim() : "";
+                      const acctNoVal   = data.ak   && matchedRow ? String(matchedRow[data.ak]   || "").trim() : "";
                       return (
                         <div style={{ background: tk.bgCard, border: `1px solid ${tk.borderMed}`, borderRadius: 12, padding: "14px 18px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
                           <div style={{ flex: 1, minWidth: 240 }}>
@@ -5969,4 +6035,4 @@ export default function App() {
       </div>
     </div>
   );
-}   
+}

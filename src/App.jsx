@@ -1165,13 +1165,14 @@ export default function App() {
         return tb - ta;
       });
 
-      // Heatmap data: array of { collector, h0..h23, total, peakHour }
+      // Heatmap data: array of { collector, h6..h23, total, peakHour }
       const heatmapRows = allCollectors.slice(0, 30).map(col => {
         const hours = collectorHourMap[col];
         const total = Object.values(hours).reduce((s, v) => s + v, 0);
-        const peakHour = Object.entries(hours).sort((a, b) => b[1] - a[1])[0]?.[0];
+        // Peak hour only from 6-23
+        const peakHour = Object.entries(hours).filter(([h]) => parseInt(h) >= 6 && parseInt(h) < 24).sort((a, b) => b[1] - a[1])[0]?.[0];
         const row = { collector: col, total, peakHour: peakHour != null ? `${String(peakHour).padStart(2, "0")}:00` : "–" };
-        for (let h = 0; h < 24; h++) row[`h${h}`] = hours[h] || 0;
+        for (let h = 6; h < 24; h++) row[`h${h}`] = hours[h] || 0;
         return row;
       });
 
@@ -1198,7 +1199,7 @@ export default function App() {
       // Max value for heatmap normalization
       let heatmapMax = 0;
       heatmapRows.forEach(r => {
-        for (let h = 0; h < 24; h++) { if (r[`h${h}`] > heatmapMax) heatmapMax = r[`h${h}`]; }
+        for (let h = 6; h < 24; h++) { if (r[`h${h}`] > heatmapMax) heatmapMax = r[`h${h}`]; }
       });
 
       // Summary by shift: early (6-9), morning (9-12), afternoon (12-17), evening (17-21), night (21-24, 0-6)
@@ -4434,11 +4435,14 @@ export default function App() {
                               <th style={{ position: "sticky", left: 0, background: tk.bgSurface, minWidth: 130, zIndex: 2, textAlign: "left" }}>Collector</th>
                               <th style={{ color: "#22c55e", minWidth: 60 }}>Total</th>
                               <th style={{ color: "#a78bfa", minWidth: 60 }}>Peak Hr</th>
-                              {Array.from({ length: 24 }, (_, h) => (
-                                <th key={h} style={{ color: tk.textFaint, minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
-                                  {String(h).padStart(2,"0")}
-                                </th>
-                              ))}
+                              {Array.from({ length: 18 }, (_, i) => {
+                                const h = i + 6;
+                                return (
+                                  <th key={h} style={{ color: tk.textFaint, minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
+                                    {String(h).padStart(2,"0")}
+                                  </th>
+                                );
+                              })}
                             </tr>
                           </thead>
                           <tbody>
@@ -4447,7 +4451,8 @@ export default function App() {
                                 <td style={{ position: "sticky", left: 0, background: tk.bgCard, fontWeight: 600, color: tk.textPrimary, padding: "4px 8px", zIndex: 1 }}>{row.collector}</td>
                                 <td style={{ color: "#22c55e", fontWeight: 700, textAlign: "center" }}>{row.total.toLocaleString()}</td>
                                 <td style={{ color: "#a78bfa", textAlign: "center" }}>{row.peakHour}</td>
-                                {Array.from({ length: 24 }, (_, h) => {
+                                {Array.from({ length: 18 }, (_, i) => {
+                                  const h = i + 6;
                                   const val = row[`h${h}`] || 0;
                                   const bg = hourlyColor(val, heatmapMax);
                                   return (
@@ -4531,7 +4536,7 @@ export default function App() {
                         <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 9 }} interval={2} />
                         <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} formatter={v => [v + " collectors"]} />
-                        <Bar dataKey="collectors" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#f59e0b" radius={[3, 3, 0, 0]} name="Collectors peaking" />
+                        <Bar dataKey="collectors" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#f59e0b" radius={[3, 3, 0, 0]} name="Collectors peaking" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

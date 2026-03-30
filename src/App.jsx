@@ -790,7 +790,7 @@ export default function App() {
     const accountKey = accountMapping === "auto"
       ? (ak || oick || dik || null)
       : (accountCandidates.includes(accountMapping) ? accountMapping : (ak || oick || dik  || null));
-    const ua = accountKey ? new Set(allRows.map(r => r[accountKey]).filter(Boolean)).size : null;
+    let ua = null;
 
     const accountKeyLabelValue = accountKey === ak ? "Account No." : accountKey === dik ? "Debtor ID" : accountKey === oick ? "Old IC" : "Account";
 
@@ -805,6 +805,7 @@ export default function App() {
       }
       return true;
     });
+    ua = accountKey ? new Set(rows.map(r => r[accountKey]).filter(Boolean)).size : null;
     const sc = {}, gc = {}, tc = {};
     rows.forEach(r => {
       sc[r._status] = (sc[r._status] || 0) + 1;
@@ -2039,7 +2040,7 @@ export default function App() {
                           <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                           <Tooltip contentStyle={TS} />
                           <Legend wrapperStyle={{ fontSize:11 }} />
-                          {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
+                          {SG_GROUPS.map(sg=><Bar key={sg}  dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                         </BarChart>
                       </ResponsiveContainer>
                     </>
@@ -2056,8 +2057,8 @@ export default function App() {
                         <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
                         <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
-                        <Legend wrapperStyle={{ fontSize:11 }} />
-                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
+                        <Legend wrapperStyle={{ fontSize:11 }}/>
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg}  stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                       </BarChart>
                     </ResponsiveContainer>
                   ) : <NoData label="No monthly data" icon="📆" hint="Requires a Date column with multiple months" />}
@@ -2065,15 +2066,15 @@ export default function App() {
 
                 {/* ── Field Visits by Bucket ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f9fafb" }}>Field Visits by Bucket</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright  }}>Field Visits by Bucket</div>
                   {hasField ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <LineChart data={ovFieldVisits} margin={{ left:0, right:16, bottom: ovFieldVisits.length>4?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <XAxis dataKey="name" tick={{ fill:tk.textMuted, fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
-                        <Line type="monotone" dataKey="visits" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
+                        <Line type="monotone" dataKey="visits" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : <NoData label="No field visit data" icon="🚗" hint="No FIELD touch point records for this filter" />}
@@ -2245,7 +2246,7 @@ export default function App() {
                     <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
                     <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
-                    <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Efforts" />
+                    <Bar dataKey="total" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#3b82f6" radius={[4, 4, 0, 0]} name="Efforts" />
                   </BarChart>
                 </ResponsiveContainer>}
             </div>
@@ -2637,7 +2638,7 @@ export default function App() {
                   <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
                   <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="PTP Records" />
+                  <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#3b82f6" radius={[4, 4, 0, 0]} name="PTP Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
@@ -2649,7 +2650,7 @@ export default function App() {
                   <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
                   <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} name="Claim Records" />
+                  <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#f97316" radius={[4, 4, 0, 0]} name="Claim Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
@@ -2976,7 +2977,7 @@ export default function App() {
                       <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
                       <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
-                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={dateSorted.length < 40} name="Total Records" />
+                      <Line type="monotone" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={dateSorted.length < 40} name="Total Records" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -2989,7 +2990,7 @@ export default function App() {
                       <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
+                      {SG_GROUPS.map(sg => <Bar key={sg}  dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -3002,7 +3003,7 @@ export default function App() {
                         <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 10 }} interval={1} />
                         <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" fill="#a78bfa" radius={[3, 3, 0, 0]} name="Records" />
+                        <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#a78bfa" radius={[3, 3, 0, 0]} name="Records" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -3066,7 +3067,7 @@ export default function App() {
           {tab === "monthly" && an.monthlyAnalytics && (() => {
             const { monthlySorted, monthList, clientMonthMap } = an.monthlyAnalytics;
             const activeTPs_m = ALL_TP.filter(tp => monthlySorted.some(m => m.byTP[tp]));
-            const allClients_m = data.clients;
+            const allClients_m = selectedClient ? data.clients.filter(c => c === selectedClient) : data.clients;
             const bestMonth = monthlySorted.length ? monthlySorted.reduce((a,b)=>b.total>a.total?b:a, monthlySorted[0]) : null;
             const bestPTPMonth = monthlySorted.length ? monthlySorted.reduce((a,b)=>b.ptpAmt>a.ptpAmt?b:a, monthlySorted[0]) : null;
 
@@ -3088,23 +3089,23 @@ export default function App() {
 
                 {/* Monthly total trend */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Total Efforts Trend</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Total Efforts Trend</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
-                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2.5} dot={{ r:4,fill:"#3b82f6" }} name="Total Efforts" />
+                      <Line type="monotone" dataKey="total" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  stroke="#3b82f6" strokeWidth={2.5} dot={{ r:4,fill:"#3b82f6" }} name="Total Efforts" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Monthly Group Comparison */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Outcome Group Breakdown</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Outcome Group Breakdown</div>
                   <div style={{ display:"flex", gap:6, marginBottom:12, flexWrap:"wrap" }}>
-                    <span style={{ fontSize:12, color:"#6b7280" }}>Show:</span>
+                    <span style={{ fontSize:12, color:tk.textMuted }}>Show:</span>
                     {["total",...SG_GROUPS].map(m=>(
                       <button key={m} className={`mode-btn${monthCompareMetric===m?" active":""}`} onClick={()=>setMonthCompareMetric(m)}>{m==="total"?"All":m}</button>
                     ))}
@@ -3112,8 +3113,8 @@ export default function App() {
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:11 }} />
                       {monthCompareMetric === "total"
@@ -3127,14 +3128,14 @@ export default function App() {
                 {/* Monthly PTP Amount trend */}
                 {monthlySorted.some(m=>m.ptpAmt>0) && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly PTP Amount</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly PTP Amount</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
                         <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"PTP Amount"]} />
-                        <Bar dataKey="ptpAmt" fill="#22c55e" radius={[3,3,0,0]} name="PTP Amount" />
+                        <Bar dataKey="ptpAmt" label={{ position:"middle", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  fill="#22c55e" radius={[3,3,0,0]} name="PTP Amount" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -3143,14 +3144,14 @@ export default function App() {
                 {/* Monthly Claim Amount trend */}
                 {monthlySorted.some(m=>m.claimAmt>0) && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Claim Paid Amount</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Claim Paid Amount</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
                         <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"Claim Amount"]} />
-                        <Bar dataKey="claimAmt" fill="#f97316" radius={[3,3,0,0]} name="Claim Amount" />
+                        <Bar dataKey="claimAmt" label={{ position:"middle", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  fill="#f97316" radius={[3,3,0,0]} name="Claim Amount" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -3158,12 +3159,12 @@ export default function App() {
 
                 {/* Monthly Touch Point Mix */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Touch Point Mix</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Touch Point Mix</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={monthlySorted.map(m=>({ month:m.month,...m.byTP }))} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:11 }} />
                       {activeTPs_m.map(tp=><Bar key={tp} dataKey={tp} stackId="tp" fill={TP_COLORS[tp]||"#6b7280"} name={tp} />)}
@@ -3174,7 +3175,7 @@ export default function App() {
                 {/* Monthly Data Table */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:8 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:"#f9fafb" }}>Monthly Summary Table</div>
+                    <div style={{ fontWeight:700, fontSize:14, color:tk.textBright }}>Monthly Summary Table</div>
                     <ExportBtn onClick={() => exportXlsx(monthlySorted.map(m=>({
                       Month:m.month, Total:m.total,
                       ...Object.fromEntries(SG_GROUPS.map(sg=>[sg,m[sg]||0])),
@@ -3212,14 +3213,14 @@ export default function App() {
                 {/* Client × Month heatmap */}
                 {allClients_m.length > 0 && Object.keys(clientMonthMap).length > 0 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Client × Month Volume Heatmap</div>
-                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:12 }}>How many efforts were made per client per month.</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Client × Month Volume Heatmap</div>
+                    <div style={{ fontSize:12, color: tk.textMuted, marginBottom:12 }}>How many efforts were made per client per month.</div>
                     <div style={{ overflowX:"auto" }}>
                       <table style={{ fontSize:11 }}>
                         <thead>
                           <tr>
-                            <th style={{ position:"sticky",left:0,background:"#0b0f1a",zIndex:2,minWidth:150 }}>Client</th>
-                            {monthList.map(m=><th key={m} style={{ textAlign:"center",minWidth:70,color:"#6b7280" }}>{m}</th>)}
+                            <th style={{ position:"sticky",left:0,background: tk.bgTableHead,zIndex:2,minWidth:150 }}>Client</th>
+                            {monthList.map(m=><th key={m} style={{ textAlign:"center",minWidth:70,color: tk.textMuted }}>{m}</th>)}
                             <th style={{ color:"#22c55e" }}>Total</th>
                           </tr>
                         </thead>
@@ -3230,14 +3231,14 @@ export default function App() {
                             const maxVal = Math.max(...monthList.map(m=>mData[m]||0));
                             return (
                               <tr key={cl}>
-                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:tk.textPrimary,zIndex:1 }}>{cl}</td>
+                                <td style={{ position:"sticky",left:0,background: tk.bgTableHead,fontWeight:600,color: tk.textBright,zIndex:1 }}>{cl}</td>
                                 {monthList.map(m=>{
                                   const val = mData[m]||0;
                                   const intensity = maxVal>0?val/maxVal:0;
-                                  const bg = val===0?"#0b0f1a":`rgba(167,139,250,${0.08+intensity*0.82})`;
+                                  const bg = val===0?tk.bgCard:`rgba(167,139,250,${0.08+intensity*0.82})`;
                                   return (
                                     <td key={m} style={{ textAlign:"center", padding:"4px 6px" }}>
-                                      <div style={{ background:bg,color:intensity>0.5?"#fff":"#6b7280",borderRadius:4,padding:"3px 4px",fontWeight:600,minWidth:54,border:"1px solid #1f2937" }}>
+                                      <div style={{ background:bg,color:intensity>0.5?tk.textBright:tk.textMuted,borderRadius:4,padding:"3px 4px",fontWeight:600,minWidth:54,border:`1px solid ${tk.border}` }}>
                                         {val>0?val.toLocaleString():"–"}
                                       </div>
                                     </td>
@@ -4142,7 +4143,7 @@ export default function App() {
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {bucketList.map(b => (
-                        <Bar key={b.name} dataKey={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} name={b.name} radius={[2, 2, 0, 0]} />
+                        <Bar key={b.name} dataKey={b.name} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name] || tk.textMuted} name={b.name} radius={[2, 2, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
@@ -4160,7 +4161,7 @@ export default function App() {
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {activeTPs.map(tp => (
-                        <Bar key={tp} dataKey={tp} fill={TP_COLORS[tp] || tk.textMuted} name={tp} radius={[2, 2, 0, 0]} />
+                        <Bar key={tp} dataKey={tp} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={TP_COLORS[tp] || tk.textMuted} name={tp} radius={[2, 2, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
@@ -4606,16 +4607,16 @@ export default function App() {
 
                 {/* Visits per Bucket */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Visits per Bucket</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Field Visits per Bucket</div>
                   <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Total field visit count by delinquency bucket.</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={fa.bucketVisitData} layout="vertical" margin={{ left:0, right:20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:11 }} width={110} />
+                      <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill:tk.textMuted, fontSize:11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={(v,n)=>[v.toLocaleString(),n]} />
                       <Bar dataKey="visits" radius={[0,4,4,0]} name="Visits">
-                        {fa.bucketVisitData.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                        {fa.bucketVisitData.map(b=><Cell key={b.name} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -4623,12 +4624,12 @@ export default function App() {
 
                 {/* % Visits from Total per Bucket */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>% Visits from Total (Bucket Share)</div>
-                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Each bucket's share of all field visits.</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>% Visits from Total (Bucket Share)</div>
+                  <div style={{ fontSize:12, color:tk.textMuted, marginBottom:14 }}>Each bucket's share of all field visits.</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie data={fa.bucketVisitData.map(b=>({name:b.name,value:b.visits}))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95} label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
-                        {fa.bucketVisitData.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                        {fa.bucketVisitData.map(b=><Cell key={b.name} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
                       </Pie>
                       <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
                       <Legend wrapperStyle={{ fontSize:11 }} />
@@ -4639,8 +4640,8 @@ export default function App() {
                 {/* % of Accounts Visited per Bucket (penetration) */}
                 {fa.hasAccounts && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Penetration: % of Accounts Visited per Bucket</div>
-                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Field Penetration: % of Accounts Visited per Bucket</div>
+                    <div style={{ fontSize:12, color:tk.textMuted, marginBottom:14 }}>
                       What % of unique accounts in each bucket received at least one field visit.
                       {" "}<span style={{ color:"#f59e0b" }}>Higher = more thorough field coverage.</span>
                     </div>
@@ -4649,7 +4650,7 @@ export default function App() {
                         <div key={b.name} style={{ background:"#0b0f1a", border:`1px solid ${BUCKET_COLORS[b.name]||"#1f2937"}44`, borderRadius:8, padding:"10px 14px", minWidth:130 }}>
                           <div style={{ fontSize:11, color:BUCKET_COLORS[b.name]||"#9ca3af", fontWeight:700 }}>{b.name}</div>
                           <div style={{ fontSize:22, fontWeight:800, color:"#f9fafb", fontFamily:"'Syne',sans-serif" }}>{b.pctOfAccts}%</div>
-                          <div style={{ fontSize:11, color:"#4b5563" }}>{b.visitedAccts.toLocaleString()} / {b.totalAccts.toLocaleString()} accts</div>
+                          <div style={{ fontSize:11, color:tk.textMuted }}>{b.visitedAccts.toLocaleString()} / {b.totalAccts.toLocaleString()} accts</div>
                           <Pb tk={tk} pct={parseFloat(b.pctOfAccts)} c={BUCKET_COLORS[b.name]||"#3b82f6"} />
                         </div>
                       ))}
@@ -4657,11 +4658,11 @@ export default function App() {
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.bucketVisitData.filter(b=>b.totalAccts>0)} margin={{ bottom:30 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={fa.bucketVisitData.length>5?-20:0} textAnchor={fa.bucketVisitData.length>5?"end":"middle"} interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} unit="%" domain={[0,100]} />
+                        <XAxis dataKey="name" tick={{ fill:tk.textMuted, fontSize:11 }} angle={fa.bucketVisitData.length>5?-20:0} textAnchor={fa.bucketVisitData.length>5?"end":"middle"} interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} unit="%" domain={[0,100]} />
                         <Tooltip contentStyle={TS} formatter={v=>[v+"%","Penetration"]} />
                         <Bar dataKey="pctOfAccts" radius={[4,4,0,0]} name="% Accounts Visited">
-                          {fa.bucketVisitData.filter(b=>b.totalAccts>0).map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                          {fa.bucketVisitData.filter(b=>b.totalAccts>0).map(b=><Cell key={b.name} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -4670,9 +4671,9 @@ export default function App() {
 
                 {/* Bucket visit details table */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>
                     Bucket Visit Details
-                    {fieldBucketDrilldown && <button onClick={()=>setFieldBucketDrilldown(null)} style={{ marginLeft:10, background:"#374151",border:"none",color:"#9ca3af",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:11 }}>✕ Clear</button>}
+                    {fieldBucketDrilldown && <button onClick={()=>setFieldBucketDrilldown(null)} style={{ marginLeft:10, background:tk.background, border:"none", color:tk.textMuted, borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:11 }}>✕ Clear</button>}
                   </div>
                   <div style={{ overflowX:"auto" }}>
                     <table>
@@ -4683,13 +4684,13 @@ export default function App() {
                       </tr></thead>
                       <tbody>{fa.bucketVisitData.map((b,i)=>(
                         <tr key={b.name} className="dr" style={{ cursor:"default" }}>
-                          <td style={{ color:"#4b5563" }}>{i+1}</td>
+                          <td style={{ color:tk.textMuted }}>{i+1}</td>
                           <td><span className="bdg" style={{ background:(BUCKET_COLORS[b.name]||"#6b7280")+"33", color:BUCKET_COLORS[b.name]||"#9ca3af" }}>{b.name}</span></td>
                           <td style={{ fontWeight:700, color:BUCKET_COLORS[b.name]||"#22c55e" }}>{b.visits.toLocaleString()}</td>
-                          <td style={{ color:"#60a5fa" }}>{b.pctOfTotal}%</td>
+                          <td style={{ color:tk.textMuted }}>{b.pctOfTotal}%</td>
                           {fa.hasAccounts && <>
-                            <td style={{ color:"#a78bfa" }}>{b.visitedAccts.toLocaleString()}</td>
-                            <td style={{ color:"#9ca3af" }}>{b.totalAccts.toLocaleString()}</td>
+                            <td style={{ color:tk.textMuted }}>{b.visitedAccts.toLocaleString()}</td>
+                            <td style={{ color:tk.textMuted }}>{b.totalAccts.toLocaleString()}</td>
                             <td style={{ fontWeight:700, color: parseFloat(b.pctOfAccts)>50?"#22c55e":parseFloat(b.pctOfAccts)>25?"#f59e0b":"#ef4444" }}>{b.pctOfAccts}%</td>
                           </>}
                           <td><Pb tk={tk} pct={(b.visits/fa.bucketVisitData[0].visits)*100} c={BUCKET_COLORS[b.name]||"#3b82f6"} /></td>
@@ -4701,7 +4702,7 @@ export default function App() {
 
                 {/* Field Outcome Groups */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f9fafb" }}>Field Visit Outcomes</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color: tk.textBright }}>Field Visit Outcomes</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                       <Pie data={fa.fieldSGData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
@@ -4715,7 +4716,7 @@ export default function App() {
 
                 {/* Field visit sub-type */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f9fafb" }}>Field Type (FIELD vs CARAVAN)</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color: tk.textBright }}>Field Type (FIELD vs CARAVAN)</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                       <Pie data={subtypeArr} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
@@ -4730,15 +4731,15 @@ export default function App() {
                 {/* Field dates trend */}
                 {fa.hasDate && fa.fieldDateSorted.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Visits by Date</div>
-                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Daily field activity — {fa.fieldDateSorted.length} active field dates</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Field Visits by Date</div>
+                    <div style={{ fontSize:12, color: tk.textMuted, marginBottom:14 }}>Daily field activity — {fa.fieldDateSorted.length} active field dates</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.fieldDateSorted} margin={{ left:0, right:16, bottom:fa.fieldDateSorted.length>20?70:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="date" tick={{ fill:"#6b7280",fontSize:10 }} angle={fa.fieldDateSorted.length>15?-35:0} textAnchor={fa.fieldDateSorted.length>15?"end":"middle"} interval={fa.fieldDateSorted.length>30?Math.floor(fa.fieldDateSorted.length/20):0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <XAxis dataKey="date" tick={{ fill:tk.textMuted, fontSize:10 }} angle={fa.fieldDateSorted.length>15?-35:0} textAnchor={fa.fieldDateSorted.length>15?"end":"middle"} interval={fa.fieldDateSorted.length>30?Math.floor(fa.fieldDateSorted.length/20):0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
-                        <Bar dataKey="count" fill="#22c55e" radius={[3,3,0,0]} name="Field Visits" />
+                        <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#22c55e" radius={[3,3,0,0]} name="Field Visits" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -4747,12 +4748,12 @@ export default function App() {
                 {/* Monthly field visits */}
                 {fa.fieldMonthSorted.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Field Visit Trend</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Monthly Field Visit Trend</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <LineChart data={fa.fieldMonthSorted} margin={{ left:0, right:16, bottom:fa.fieldMonthSorted.length>6?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
                         <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
                       </LineChart>
@@ -4763,14 +4764,14 @@ export default function App() {
                 {/* Top Field Collectors */}
                 {fa.fieldCollectorData.length > 0 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Collectors</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Top Field Collectors</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.fieldCollectorData.slice(0,10)} layout="vertical" margin={{ left:0, right:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:10 }} width={120} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textMuted, fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits" label={{ position:"right", fill:"#6b7280", fontSize:10, formatter:v=>v.toLocaleString() }}>
+                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                           {fa.fieldCollectorData.slice(0,10).map((_,i)=><Cell key={i} fill={PC[i%PC.length]} />)}
                         </Bar>
                       </BarChart>
@@ -4780,8 +4781,8 @@ export default function App() {
 
                 {/* Top Field Statuses */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Status Results</div>
-                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:8 }}>Breakdown of specific field dispositions recorded.</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Top Field Status Results</div>
+                  <div style={{ fontSize:12, color: tk.textMuted, marginBottom:8 }}>Breakdown of specific field dispositions recorded.</div>
                   <div style={{ overflowX:"auto", maxHeight:360, overflowY:"auto" }}>
                     <table>
                       <thead><tr><th>#</th><th>Status</th><th>Group</th><th>Count</th><th>%</th><th style={{ width:120 }}>Bar</th></tr></thead>

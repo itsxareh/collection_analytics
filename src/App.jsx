@@ -236,7 +236,7 @@ const DISP = {
   "VIBER - NO INTENTION TO PAY": { tp: "VIBER", sg: "RPC" },
   "VIBER - KEPT_REPO CLIENT": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_REPO 3RD PARTY": { tp: "VIBER", sg: "KEPT" },
-  "VIBER -  KEPT PAYOFF": { tp: "VIBER", sg: "KEPT" },
+  "VIBER - KEPT PAYOFF": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_FULL UPDATE": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_PUSH BACK": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_PARTIAL": { tp: "VIBER", sg: "KEPT" },

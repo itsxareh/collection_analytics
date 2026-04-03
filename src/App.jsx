@@ -3615,14 +3615,14 @@ export default function App() {
                 {/* Client × Month heatmap */}
                 {allClients_m.length > 0 && Object.keys(clientMonthMap).length > 0 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Client × Month Volume Heatmap</div>
-                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:12 }}>How many efforts were made per client per month.</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Client × Month Volume Heatmap</div>
+                    <div style={{ fontSize:12, color:tk.textMuted, marginBottom:12 }}>How many efforts were made per client per month.</div>
                     <div style={{ overflowX:"auto" }}>
                       <table style={{ fontSize:11 }}>
                         <thead>
                           <tr>
-                            <th style={{ position:"sticky",left:0,background:"#0b0f1a",zIndex:2,minWidth:150 }}>Client</th>
-                            {monthList.map(m=><th key={m} style={{ textAlign:"center",minWidth:70,color:"#6b7280" }}>{m}</th>)}
+                            <th style={{ position:"sticky",left:0,color:tk.textBright ,zIndex:2,minWidth:150 }}>Client</th>
+                            {monthList.map(m=><th key={m} style={{ textAlign:"center",minWidth:70,color:tk.textBright}}>{m}</th>)}
                             <th style={{ color:"#22c55e" }}>Total</th>
                           </tr>
                         </thead>
@@ -3633,7 +3633,7 @@ export default function App() {
                             const maxVal = Math.max(...monthList.map(m=>mData[m]||0));
                             return (
                               <tr key={cl}>
-                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:"#e2e8f0",zIndex:1 }}>{cl}</td>
+                                <td style={{ position:"sticky",left:0,fontWeight:600,color: tk.textBright,zIndex:1 }}>{cl}</td>
                                 {monthList.map(m=>{
                                   const val = mData[m]||0;
                                   const intensity = maxVal>0?val/maxVal:0;
@@ -3912,9 +3912,10 @@ export default function App() {
                 {/* KPI strip — only when we have real bucket data 
                 
                 { l: "Unmapped Rows", v: unmappedCount?.toLocaleString() || "0", i: "⚠️", c: tk.textMuted, sub: "no matching IC code" },
+                { l: "Total Buckets", v: bucketList.length, i: "📍", c: "#f97316" },
                  */}
                 {!bucketWarn && [
-                  { l: "Total Buckets", v: bucketList.length, i: "📍", c: "#f97316" },
+                  
                   { l: "Highest Volume", v: topBucket?.name || "–", i: "🔝", c: "#3b82f6", sub: topBucket?.total.toLocaleString() + " records" },
                   { l: "Best PTP Amount", v: bestPTP?.name || "–", i: "💰", c: "#f59e0b", sub: "₱" + fN(bestPTP?.ptpAmt || 0) },
                   { l: "Best KEPT Rate", v: bestKept?.name || "–", i: "✅", c: "#22c55e", sub: (bestKept?.bySG?.KEPT || 0).toLocaleString() + " kept" },
@@ -5627,7 +5628,7 @@ export default function App() {
                       <YAxis type="category" dataKey="bucket" tick={{ fill:tk.textSub,fontSize:10 }} width={110} />
                       <Tooltip contentStyle={TS} />
                       <Bar dataKey="totalEfforts" radius={[0,4,4,0]} name="Total Efforts">
-                        {bucketSummaryForCollectors.map((b,i)=><Cell key={i} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.bucket]||PC[i%PC.length]} />)}
+                        {bucketSummaryForCollectors.map((b,i)=><Cell key={i} label={{ position:"center", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.bucket]||PC[i%PC.length]} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -5644,7 +5645,7 @@ export default function App() {
                       <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:9 }} width={130} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:10 }} />
-                      {allBuckets.map((b,i)=><Bar key={b} dataKey={b} stackId="s" label={{ position:"center", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b]||PC[i%PC.length]} name={b} />)}
+                      {allBuckets.map((b,i)=><Bar key={b} dataKey={b} stackId="s" fill={BUCKET_COLORS[b]||PC[i%PC.length]} name={b} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

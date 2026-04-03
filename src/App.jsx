@@ -236,7 +236,7 @@ const DISP = {
   "VIBER - NO INTENTION TO PAY": { tp: "VIBER", sg: "RPC" },
   "VIBER - KEPT_REPO CLIENT": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_REPO 3RD PARTY": { tp: "VIBER", sg: "KEPT" },
-  "VIBER -  KEPT PAYOFF": { tp: "VIBER", sg: "KEPT" },
+  "VIBER - KEPT PAYOFF": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_FULL UPDATE": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_PUSH BACK": { tp: "VIBER", sg: "KEPT" },
   "VIBER - KEPT_PARTIAL": { tp: "VIBER", sg: "KEPT" },
@@ -338,9 +338,11 @@ const exportXlsx = (rows, filename = "export.xlsx") => {
 };
 
 const ExportBtn = ({ onClick, label = "Export Excel", style = {} }) => (
-  <button onClick={onClick} style={{ background:"#052e16", border:"1px solid #166534", color:"#22c55e", borderRadius:7, padding:"5px 13px", cursor:"pointer", fontSize:12, fontWeight:600, display:"inline-flex", alignItems:"center", gap:5, transition:"all .15s", ...style }}
-    onMouseOver={e=>e.currentTarget.style.background="#14532d"} onMouseOut={e=>e.currentTarget.style.background="#052e16"}>
-    📥 {label}
+  <button onClick={onClick}
+    style={{ background:"rgba(34,197,94,0.1)", border:"1.5px solid rgba(34,197,94,0.35)", color:"#22c55e", borderRadius:10, padding:"6px 14px", cursor:"pointer", fontSize:12, fontWeight:600, display:"inline-flex", alignItems:"center", gap:6, transition:"all .15s", fontFamily:"inherit", ...style }}
+    onMouseOver={e=>{ e.currentTarget.style.background="rgba(34,197,94,0.18)"; e.currentTarget.style.borderColor="rgba(34,197,94,0.6)"; }}
+    onMouseOut={e=>{ e.currentTarget.style.background="rgba(34,197,94,0.1)"; e.currentTarget.style.borderColor="rgba(34,197,94,0.35)"; }}>
+    ↓ {label}
   </button>
 );
 
@@ -483,88 +485,82 @@ export default function App() {
   const { theme, isDark } = useTheme();
 
   // ── Theme tokens ─────────────────────────────────────────────────────────
-  // All colours in this component are derived from these tokens so that
-  // switching theme re-renders every inline style automatically.
   const tk = isDark ? {
-    // backgrounds
-    bgPage:      "#0f172a",
-    bgHeader:    "#0f172a",
-    bgCard:      "#1e293b",
-    bgCardGrad:  "linear-gradient(135deg,#1e293b,#0f172a)",
-    bgSurface:   "#0f172a",
-    bgInput:     "#0f172a",
-    bgTag:       "#1e293b",
-    bgHover:     "#ffffff06",
-    bgTableHead: "#0f172a",
-    bgCode:      "#0f172a",
-    bgTooltip:   "#1e293b",
-    bgDZ:        "#1e293b44",
-    bgFieldCard: "linear-gradient(135deg,#0a1f0a,#0b0f1a)",
-    // borders
-    border:      "#1e293b",
-    borderMed:   "#334155",
+    // backgrounds — rich deep navy, not pure black
+    bgPage:      "#080e1a",
+    bgHeader:    "#0c1524",
+    bgCard:      "#111827",
+    bgCardGrad:  "linear-gradient(145deg,#131f30 0%,#0d1520 100%)",
+    bgSurface:   "#0c1524",
+    bgInput:     "#0c1524",
+    bgTag:       "#1a2740",
+    bgHover:     "rgba(255,255,255,0.04)",
+    bgTableHead: "#0c1524",
+    bgCode:      "#0c1524",
+    bgTooltip:   "#1a2740",
+    bgDZ:        "rgba(26,39,64,0.4)",
+    bgFieldCard: "linear-gradient(145deg,#091a0c,#0d1520)",
+    // borders — subtle blue-tinted dark
+    border:      "#1a2740",
+    borderMed:   "#253650",
     borderField: "#14532d",
-    // text
+    // text — warm whites
     textPrimary: "#e2e8f0",
-    textBright:  "#f1f5f9",
-    textSub:     "#94a3b8",
-    textMuted:   "#64748b",
-    textFaint:   "#475569",
-    textBody:    "#cbd5e1",
-    // row hover highlight tints
-    rowHoverBlue:  "#1e3a5f",
-    rowSelBlue:    "#172554",
-    rowHoverGreen: "#1a2e1a",
-    rowSelGreen:   "#0f2a0f",
-    rowHoverAmber: "#2e1a0f",
-    rowSelAmber:   "#2a1500",
-    rowHoverPurp:  "#1a1a2e",
-    rowSelPurp:    "#0d0d1f",
-    // heatmap empty cell
-    heatEmpty:   "#0f172a",
-    // misc
-    scrollTrack: "#1e293b",
-    scrollThumb: "#475569",
+    textBright:  "#f0f6ff",
+    textSub:     "#8ba2be",
+    textMuted:   "#5c7a99",
+    textFaint:   "#3a5470",
+    textBody:    "#c5d4e8",
+    // row hovers
+    rowHoverBlue:  "#1a2e50",
+    rowSelBlue:    "#132247",
+    rowHoverGreen: "#162a1c",
+    rowSelGreen:   "#0d2013",
+    rowHoverAmber: "#2a1a0a",
+    rowSelAmber:   "#221200",
+    rowHoverPurp:  "#18152e",
+    rowSelPurp:    "#100d24",
+    heatEmpty:   "#0c1524",
+    scrollTrack: "#111827",
+    scrollThumb: "#253650",
   } : {
-    // backgrounds
-    bgPage:      "#f1f5f9",
+    // backgrounds — clean cool white with subtle grey tones
+    bgPage:      "#f0f4f8",
     bgHeader:    "#ffffff",
     bgCard:      "#ffffff",
-    bgCardGrad:  "linear-gradient(135deg,#ffffff,#f8fafc)",
-    bgSurface:   "#f8fafc",
+    bgCardGrad:  "linear-gradient(145deg,#ffffff 0%,#f9fbfd 100%)",
+    bgSurface:   "#f6f9fc",
     bgInput:     "#ffffff",
-    bgTag:       "#e2e8f0",
-    bgHover:     "#00000008",
-    bgTableHead: "#f1f5f9",
-    bgCode:      "#e2e8f0",
+    bgTag:       "#e8eef5",
+    bgHover:     "rgba(0,0,0,0.03)",
+    bgTableHead: "#f6f9fc",
+    bgCode:      "#eaf0f6",
     bgTooltip:   "#ffffff",
-    bgDZ:        "#e2e8f044",
-    bgFieldCard: "linear-gradient(135deg,#f0fdf4,#f8fafc)",
-    // borders
-    border:      "#e2e8f0",
-    borderMed:   "#cbd5e1",
+    bgDZ:        "rgba(226,234,240,0.4)",
+    bgFieldCard: "linear-gradient(145deg,#f0fdf4,#f6f9fc)",
+    // borders — soft cool grey
+    border:      "#e4ecf3",
+    borderMed:   "#c8d9e8",
     borderField: "#86efac",
-    // text
-    textPrimary: "#1e293b",
-    textBright:  "#0f172a",
-    textSub:     "#475569",
-    textMuted:   "#64748b",
-    textFaint:   "#94a3b8",
-    textBody:    "#334155",
-    // row hover highlight tints
-    rowHoverBlue:  "#dbeafe",
-    rowSelBlue:    "#bfdbfe",
-    rowHoverGreen: "#dcfce7",
-    rowSelGreen:   "#bbf7d0",
-    rowHoverAmber: "#fef3c7",
-    rowSelAmber:   "#fde68a",
-    rowHoverPurp:  "#ede9fe",
+    // text — deep navy for contrast
+    textPrimary: "#1a2d42",
+    textBright:  "#0d1e30",
+    textSub:     "#4a6280",
+    textMuted:   "#6b849e",
+    textFaint:   "#96afc8",
+    textBody:    "#334455",
+    // row hovers — light tints
+    rowHoverBlue:  "#deeeff",
+    rowSelBlue:    "#c5e2ff",
+    rowHoverGreen: "#d9f5e7",
+    rowSelGreen:   "#b8f0d2",
+    rowHoverAmber: "#fef4d6",
+    rowSelAmber:   "#fde8a0",
+    rowHoverPurp:  "#edeaff",
     rowSelPurp:    "#ddd6fe",
-    // heatmap empty cell
-    heatEmpty:   "#f1f5f9",
-    // misc
-    scrollTrack: "#e2e8f0",
-    scrollThumb: "#94a3b8",
+    heatEmpty:   "#f0f4f8",
+    scrollTrack: "#e4ecf3",
+    scrollThumb: "#96afc8",
   };
   
   const [data, setData] = useState(null);
@@ -790,7 +786,7 @@ export default function App() {
     const accountKey = accountMapping === "auto"
       ? (ak || oick || dik || null)
       : (accountCandidates.includes(accountMapping) ? accountMapping : (ak || oick || dik  || null));
-    const ua = accountKey ? new Set(allRows.map(r => r[accountKey]).filter(Boolean)).size : null;
+    let ua = null;
 
     const accountKeyLabelValue = accountKey === ak ? "Account No." : accountKey === dik ? "Debtor ID" : accountKey === oick ? "Old IC" : "Account";
 
@@ -805,6 +801,7 @@ export default function App() {
       }
       return true;
     });
+    ua = accountKey ? new Set(rows.map(r => r[accountKey]).filter(Boolean)).size : null;
     const sc = {}, gc = {}, tc = {};
     rows.forEach(r => {
       sc[r._status] = (sc[r._status] || 0) + 1;
@@ -1164,13 +1161,14 @@ export default function App() {
         return tb - ta;
       });
 
-      // Heatmap data: array of { collector, h0..h23, total, peakHour }
+      // Heatmap data: array of { collector, h6..h23, total, peakHour }
       const heatmapRows = allCollectors.slice(0, 30).map(col => {
         const hours = collectorHourMap[col];
         const total = Object.values(hours).reduce((s, v) => s + v, 0);
-        const peakHour = Object.entries(hours).sort((a, b) => b[1] - a[1])[0]?.[0];
+        // Peak hour only from 6-23
+        const peakHour = Object.entries(hours).filter(([h]) => parseInt(h) >= 6 && parseInt(h) < 24).sort((a, b) => b[1] - a[1])[0]?.[0];
         const row = { collector: col, total, peakHour: peakHour != null ? `${String(peakHour).padStart(2, "0")}:00` : "–" };
-        for (let h = 0; h < 24; h++) row[`h${h}`] = hours[h] || 0;
+        for (let h = 6; h < 24; h++) row[`h${h}`] = hours[h] || 0;
         return row;
       });
 
@@ -1197,7 +1195,7 @@ export default function App() {
       // Max value for heatmap normalization
       let heatmapMax = 0;
       heatmapRows.forEach(r => {
-        for (let h = 0; h < 24; h++) { if (r[`h${h}`] > heatmapMax) heatmapMax = r[`h${h}`]; }
+        for (let h = 6; h < 24; h++) { if (r[`h${h}`] > heatmapMax) heatmapMax = r[`h${h}`]; }
       });
 
       // Summary by shift: early (6-9), morning (9-12), afternoon (12-17), evening (17-21), night (21-24, 0-6)
@@ -1611,7 +1609,7 @@ export default function App() {
     return { sd, gd, td, ua, accountKey, accountKeyLabel: accountKeyLabelValue, cd, pt, pc, ct, cc, pdd, cdd, T, dateAnalytics, monthlyAnalytics, clientAnalytics, bucketAnalytics, hourlyCollectorAnalytics, fieldAnalytics, tpBySG, ptpClaimByBucket, overallPenetrationData, bpAnalytics, collectorBucketAnalytics, funnelAnalytics };
   }, [data, activeClientFilter, globalDateFrom, globalDateTo, accountMapping]);
 
-  const TS = { background: tk.bgTooltip, border: `1px solid ${tk.borderMed}`, borderRadius: 8, fontSize: 12, color: tk.textPrimary };
+  const TS = { background: tk.bgTooltip, border: `1px solid ${tk.borderMed}`, borderRadius: 12, fontSize: 12, color: tk.textPrimary, boxShadow: isDark?"0 8px 24px rgba(0,0,0,0.4)":"0 8px 24px rgba(0,0,0,0.12)", padding:"10px 14px" };
 
   // ── Analytic insight description strip ──────────────────────────────────
   const Insight = ({ text, color = "#60a5fa", icon = "💡" }) => (
@@ -1665,26 +1663,144 @@ export default function App() {
     return `rgba(239,68,68,${0.5 + i * 0.5})`;
   };
 
+
+  // ── Sidebar collapsed state ────────────────────────────────────────────────
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const NAV_ITEMS = [
+    { id:"overview",    icon:"▣",  label:"Overview" },
+    { id:"status",      icon:"◈",  label:"Status Detail" },
+    { id:"ptp",         icon:"₱",  label:"PTP & Claims" },
+    { id:"funnel",      icon:"⬦",  label:"PTP Funnel" },
+    { id:"touch",       icon:"◉",  label:"Touch Points" },
+    { id:"penetration", icon:"⊕",  label:"Penetration",   cond: () => an?.bucketAnalytics?.hasAccountData },
+    { id:"field",       icon:"◎",  label:"Field Analytics", cond: () => an?.fieldAnalytics },
+    { id:"collectors",  icon:"⊞",  label:"Collectors" },
+    { id:"timeline",    icon:"◫",  label:"Account Timeline", cond: () => data?.ak ?? data?.dik },
+    { id:"datetime",    icon:"◷",  label:"Date & Time",   cond: () => an?.dateAnalytics },
+    { id:"monthly",     icon:"◰",  label:"Monthly",       cond: () => an?.monthlyAnalytics },
+    { id:"clients",     icon:"⊡",  label:"Clients",       cond: () => an?.clientAnalytics && activeClientFilter === "All" },
+    { id:"buckets",     icon:"◱",  label:"Buckets",       cond: () => an?.bucketAnalytics },
+    { id:"colbucket",   icon:"⊟",  label:"Collector × Bucket", cond: () => an?.collectorBucketAnalytics },
+    { id:"bp",          icon:"◻",  label:"Broken Promises", cond: () => an?.bpAnalytics },
+    { id:"hourly",      icon:"◶",  label:"Hourly Efforts", cond: () => an?.hourlyCollectorAnalytics },
+    { id:"predictive",  icon:"⬡",  label:"Predictive" },
+  ];
+
+  const visibleNav = NAV_ITEMS.filter(n => !n.cond || n.cond());
+
   return (
-    <div style={{ minHeight: "100vh", background: tk.bgPage, color: tk.textPrimary, fontFamily: "'DM Sans',sans-serif", transition: "background 0.3s, color 0.3s" }}>
+    <div style={{ width: "100svw", minHeight:"100svh", background:tk.bgPage, color:tk.textPrimary, fontFamily:"'Outfit',sans-serif", transition:"background 0.3s,color 0.3s", display:"flex", flexDirection:"column" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:${tk.scrollTrack}}::-webkit-scrollbar-thumb{background:${tk.scrollThumb};border-radius:3px}
-        .card{background:${tk.bgCard};border-radius:12px;padding:20px;border:1px solid ${tk.borderMed};transition:background 0.3s,border-color 0.3s}
-        .sc{background:${tk.bgCardGrad};border-radius:12px;padding:18px;border:1px solid ${tk.borderMed};transition:background 0.3s,border-color 0.3s}
-        .bdg{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+        ::-webkit-scrollbar{width:5px;height:5px}
+        ::-webkit-scrollbar-track{background:${tk.scrollTrack}}
+        ::-webkit-scrollbar-thumb{background:${tk.scrollThumb};border-radius:10px}
+        ::-webkit-scrollbar-thumb:hover{background:${isDark?"#64748b":"#94a3b8"}}
+
+        .card{
+          background:${tk.bgCard};
+          border-radius:18px;
+          padding:22px;
+          border:1px solid ${tk.border};
+          transition:background 0.3s,border-color 0.3s,box-shadow 0.25s,transform 0.2s;
+          box-shadow:${isDark?"0 1px 3px rgba(0,0,0,0.3)":"0 1px 4px rgba(0,0,0,0.06)"};
+        }
+        .card:hover{
+          box-shadow:${isDark?"0 4px 20px rgba(0,0,0,0.5)":"0 4px 20px rgba(0,0,0,0.1)"};
+          border-color:${isDark?"#334155":"#cbd5e1"};
+        }
+
+        .sc{
+          background:${tk.bgCardGrad};
+          border-radius:18px;
+          padding:20px;
+          border:1px solid ${tk.border};
+          transition:all 0.25s;
+          box-shadow:${isDark?"0 1px 3px rgba(0,0,0,0.3)":"0 1px 4px rgba(0,0,0,0.06)"};
+          cursor:default;
+          position:relative;
+          overflow:hidden;
+        }
+        .sc::after{
+          content:'';
+          position:absolute;
+          top:0;right:0;
+          width:60px;height:60px;
+          border-radius:50%;
+          background:radial-gradient(circle, var(--kpi-accent,#3b82f6)18 0%, transparent 70%);
+          opacity:0.07;
+          transform:translate(15px,-15px);
+        }
+        .sc:hover{
+          transform:translateY(-2px);
+          box-shadow:${isDark?"0 8px 24px rgba(0,0,0,0.5)":"0 8px 24px rgba(59,130,246,0.12)"};
+          border-color:${isDark?"#3b82f640":"#3b82f630"};
+        }
+
+        .bdg{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.02em}
+
         table{width:100%;border-collapse:collapse;font-size:13px}
-        th{background:${tk.bgTableHead};color:${tk.textSub};font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid ${tk.borderMed};font-size:11px;text-transform:uppercase;letter-spacing:.05em;transition:background 0.3s}
-        td{padding:9px 12px;border-bottom:1px solid ${tk.border};color:${tk.textBody};transition:background 0.3s,color 0.3s}
+        thead{position:sticky;top:0;z-index:2}
+        th{
+          background:${tk.bgTableHead};
+          color:${tk.textMuted};
+          font-weight:600;
+          text-align:left;
+          padding:11px 14px;
+          border-bottom:2px solid ${tk.borderMed};
+          font-size:11px;
+          text-transform:uppercase;
+          letter-spacing:.06em;
+          transition:background 0.3s;
+          white-space:nowrap;
+        }
+        td{
+          padding:10px 14px;
+          border-bottom:1px solid ${tk.border};
+          color:${tk.textBody};
+          transition:background 0.15s;
+          vertical-align:middle;
+        }
+        tr:last-child td{border-bottom:none}
         tr:hover td{background:${tk.bgHover}}
-        .dz{border:2px dashed ${tk.borderMed};border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s}
-        .dz:hover{border-color:#3b82f6;background:${tk.bgDZ}}
+
+        .dz{
+          border:2px dashed ${tk.borderMed};
+          border-radius:20px;
+          padding:56px 32px;
+          text-align:center;
+          cursor:pointer;
+          transition:all .25s;
+          background:${isDark?"rgba(30,41,59,0.3)":"rgba(248,250,252,0.8)"};
+        }
+        .dz:hover{
+          border-color:#3b82f6;
+          background:${isDark?"rgba(30,58,138,0.15)":"rgba(219,234,254,0.5)"};
+          transform:scale(1.01);
+        }
         input[type=file]{display:none}
-        .tb{background:none;border:none;cursor:pointer;padding:8px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s;color:${tk.textSub};white-space:nowrap}
-        .tb.ac{background:#1e40af;color:#fff}
-        .tb:hover:not(.ac){background:${tk.bgCard};color:${tk.textPrimary}}
-        .dr{cursor:pointer;transition:background .15s}
+
+        .tb{
+          background:none;
+          border:none;
+          cursor:pointer;
+          padding:0;
+          font-family:inherit;
+          font-size:13px;
+          font-weight:500;
+          transition:all .2s;
+          color:${tk.textMuted};
+          white-space:nowrap;
+          display:flex;
+          align-items:center;
+          gap:7px;
+        }
+        .tb.ac{color:${isDark?"#60a5fa":"#2563eb"}}
+        .tb:hover:not(.ac){color:${tk.textPrimary}}
+
+        .dr{cursor:pointer;transition:background .12s}
         .dr:hover td{background:${tk.rowHoverBlue} !important}
         .dr.sel td{background:${tk.rowSelBlue} !important}
         .dr2:hover td{background:${tk.rowHoverGreen} !important}
@@ -1693,227 +1809,513 @@ export default function App() {
         .dr3.sel td{background:${tk.rowSelAmber} !important}
         .dr4:hover td{background:${tk.rowHoverPurp} !important}
         .dr4.sel td{background:${tk.rowSelPurp} !important}
-        .mode-btn{background:none;border:1px solid ${tk.borderMed};cursor:pointer;padding:5px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;color:${tk.textMuted};transition:all .15s}
-        .mode-btn.active{background:#1e40af;border-color:#3b82f6;color:#fff}
-        .hm-cell{border-radius:3px;font-size:10px;font-weight:600;text-align:center;padding:3px 0;min-width:26px;transition:all .15s;cursor:default}
-        .field-card{background:${tk.bgFieldCard};border:1px solid ${tk.borderField};border-radius:12px;padding:18px;transition:background 0.3s}
+
+        .mode-btn{
+          background:none;
+          border:1px solid ${tk.borderMed};
+          cursor:pointer;
+          padding:5px 13px;
+          border-radius:8px;
+          font-family:inherit;
+          font-size:12px;
+          font-weight:500;
+          color:${tk.textMuted};
+          transition:all .15s;
+        }
+        .mode-btn:hover{border-color:${isDark?"#60a5fa":"#3b82f6"};color:${isDark?"#60a5fa":"#2563eb"}}
+        .mode-btn.active{
+          background:${isDark?"rgba(59,130,246,0.2)":"rgba(219,234,254,0.8)"};
+          border-color:${isDark?"#3b82f6":"#2563eb"};
+          color:${isDark?"#60a5fa":"#2563eb"};
+          font-weight:600;
+        }
+        .hm-cell{border-radius:4px;font-size:10px;font-weight:600;text-align:center;padding:3px 0;min-width:26px;transition:all .15s;cursor:default}
+        .field-card{background:${tk.bgFieldCard};border:1px solid ${tk.borderField};border-radius:18px;padding:20px;transition:background 0.3s}
+
+        .nav-item{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          padding:9px 14px;
+          border-radius:12px;
+          cursor:pointer;
+          transition:all .18s;
+          font-size:13px;
+          font-weight:500;
+          color:${tk.textMuted};
+          text-decoration:none;
+          border:none;
+          background:none;
+          width:100%;
+          text-align:left;
+          font-family:inherit;
+          white-space:nowrap;
+          overflow:hidden;
+        }
+        .nav-item:hover{
+          background:${isDark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.04)"};
+          color:${tk.textPrimary};
+        }
+        .nav-item.active{
+          background:${isDark?"rgba(59,130,246,0.15)":"rgba(219,234,254,0.7)"};
+          color:${isDark?"#60a5fa":"#2563eb"};
+          font-weight:600;
+        }
+        .nav-item.active .nav-icon{
+          color:${isDark?"#60a5fa":"#2563eb"};
+        }
+        .nav-icon{
+          font-size:16px;
+          width:20px;
+          text-align:center;
+          flex-shrink:0;
+          font-style:normal;
+          font-family:'DM Mono',monospace;
+          opacity:0.7;
+        }
+        .nav-item.active .nav-icon{opacity:1}
+
+        .sidebar-section-label{
+          font-size:10px;
+          font-weight:700;
+          text-transform:uppercase;
+          letter-spacing:0.1em;
+          color:${tk.textFaint};
+          padding:6px 14px 4px;
+          margin-top:8px;
+        }
+
+        .pill-tab{
+          display:inline-flex;
+          align-items:center;
+          gap:6px;
+          padding:7px 16px;
+          border-radius:10px;
+          cursor:pointer;
+          font-size:13px;
+          font-weight:500;
+          transition:all .18s;
+          color:${tk.textMuted};
+          background:none;
+          border:1px solid transparent;
+          font-family:inherit;
+          white-space:nowrap;
+        }
+        .pill-tab:hover{
+          background:${isDark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.04)"};
+          color:${tk.textPrimary};
+        }
+        .pill-tab.active{
+          background:${isDark?"rgba(59,130,246,0.18)":"#eff6ff"};
+          border-color:${isDark?"#3b82f640":"#bfdbfe"};
+          color:${isDark?"#60a5fa":"#2563eb"};
+          font-weight:600;
+        }
+
+        @media(max-width:768px){
+          .sidebar-wrap{transform:translateX(${sidebarCollapsed?"-100%":"0"});position:fixed!important;z-index:50;height:100vh}
+          .main-layout{margin-left:0!important}
+        }
+        @keyframes fadeSlideIn{
+          from{opacity:0;transform:translateY(8px)}
+          to{opacity:1;transform:translateY(0)}
+        }
+        .animate-in{animation:fadeSlideIn 0.25s ease forwards}
       `}</style>
 
-      {/* Header */}
-      <div style={{ background: tk.bgHeader, borderBottom: `1px solid ${tk.border}`, padding: "16px 32px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", transition: "background 0.3s" }}>
-        <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
-        <div>
-          <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: tk.textBright }}>SPM – Collections Analytics</div>
-          <div style={{ fontSize: 12, color: tk.textMuted }}>Status Disposition Intelligence System · 257 Recognized Dispositions</div>
+      {/* ── Top Bar ─────────────────────────────────────────────────────────── */}
+      <header style={{
+        position:"sticky", top:0, zIndex:40,
+        background:isDark?"rgba(15,23,42,0.92)":"rgba(255,255,255,0.92)",
+        backdropFilter:"blur(12px)",
+        borderBottom:`1px solid ${tk.border}`,
+        padding:"0 24px",
+        height:60,
+        display:"flex", alignItems:"center", gap:16,
+        transition:"background 0.3s",
+      }}>
+        {/* Hamburger / Logo */}
+        <button
+          onClick={() => setSidebarCollapsed(c => !c)}
+          style={{ background:"none", border:"none", cursor:"pointer", color:tk.textSub, fontSize:18, lineHeight:1, padding:"4px 6px", borderRadius:8, display:"flex", flexDirection:"column", gap:4, marginRight:4 }}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <span style={{ display:"block", width:18, height:2, background:"currentColor", borderRadius:2, transition:"all .2s", transform:sidebarCollapsed?"none":"none" }} />
+          <span style={{ display:"block", width:14, height:2, background:"currentColor", borderRadius:2, transition:"all .2s" }} />
+          <span style={{ display:"block", width:18, height:2, background:"currentColor", borderRadius:2, transition:"all .2s" }} />
+        </button>
+
+        {/* Brand */}
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{
+            width:32, height:32,
+            background:"linear-gradient(135deg,#3b82f6,#6366f1)",
+            borderRadius:10,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:15, flexShrink:0,
+            boxShadow:"0 2px 8px rgba(99,102,241,0.35)"
+          }}>📊</div>
+          <div>
+            <div style={{ fontWeight:700, fontSize:15, color:tk.textBright, letterSpacing:"-0.02em", lineHeight:1.2 }}>SPM Analytics</div>
+            <div style={{ fontSize:10, color:tk.textFaint, fontWeight:500 }}>Collections Intelligence · 257 Dispositions</div>
+          </div>
         </div>
-        {data && an && <div style={{ marginLeft: "auto", fontSize: 12, color: "#22c55e", background: "#052e16", padding: "4px 12px", borderRadius: 20, border: "1px solid #166534" }}>✓ {an.T.toLocaleString()} valid records loaded</div>}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-        <ThemeToggle size="md" />
-      </div>
-        {data && an && <div style={{ textAlign: "right"}}>
-          <button onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }} style={{ background: tk.bgCard, border: `1px solid ${tk.borderMed}`, color: tk.textSub, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, transition: "background 0.3s" }}>↩ Upload New File</button>
-        </div> }
-      
-      </div>
 
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
-        {!data && (
-          <div style={{ maxWidth: 540, margin: "80px auto" }}>
-            <div className="card">
-              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 8, color: tk.textBright }}>Upload Collections File</div>
-              <div style={{ fontSize: 13, color: tk.textMuted, marginBottom: 24 }}>
-                Upload an Excel file (.xlsx/.xls) with a <code style={{ color: "#60a5fa", background: tk.bgCode, padding: "1px 5px", borderRadius: 4 }}>Status</code> column.
-                Rows containing system remarks are automatically excluded.
-              </div>
-              <div className="dz"
-                onClick={() => fRef.current.click()}
-                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#3b82f6"; }}
-                onDragLeave={e => { e.currentTarget.style.borderColor = tk.borderMed; }}
-                onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = tk.borderMed; hf(e.dataTransfer.files[0]); }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📂</div>
-                <div style={{ fontWeight: 600, fontSize: 15, color: tk.textPrimary }}>Drop your Excel file here</div>
-                <div style={{ fontSize: 13, color: tk.textMuted, marginTop: 6 }}>or click to browse · .xlsx / .xls accepted</div>
-              </div>
-              <input ref={fRef} type="file" accept=".xlsx,.xls" onChange={e => hf(e.target.files[0])} />
-              {loading && <div style={{ marginTop: 16, textAlign: "center", color: "#60a5fa", fontSize: 14 }}>⏳ Processing file...</div>}
-              {err && <div style={{ marginTop: 16, background: isDark ? "#450a0a" : "#fef2f2", border: `1px solid ${isDark ? "#7f1d1d" : "#fecaca"}`, borderRadius: 8, padding: 12, color: isDark ? "#fca5a5" : "#dc2626", fontSize: 13 }}>{err}</div>}
-              <div style={{ marginTop: 20, padding: "12px 16px", background: tk.bgSurface, borderRadius: 8, fontSize: 12, color: tk.textFaint }}>
-                <div style={{ fontWeight: 600, color: tk.textMuted, marginBottom: 6 }}>Expected columns (auto-detected):</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {["Status","Account No.","Remark By","Remarks","PTP Amount","PTP Date","Claim Paid Amount","Claim Paid Date","Date","Time","Client","Old IC"].map(c => (
-                    <span key={c} style={{ background: tk.bgCard, padding: "2px 8px", borderRadius: 4, color: tk.textSub }}>{c}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {data && an && <>
-          {/* KPI Row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(155px,1fr))", gap: 12, marginBottom: 20 }}>
-            {[
-              { l: "Total Records", v: data.totalRaw.toLocaleString(), i: "📋", c: "#3b82f6" },
-              { l: "System Excluded", v: data.remarkExcludedCount.toLocaleString(), i: "🚫", c: tk.textSub, sub: "auto-filtered" },
-              { l: "Valid Records", v: an.T.toLocaleString(), i: "✅", c: "#22c55e" },
-              { l: "Clients", v: an.clientAnalytics ? an.clientAnalytics.clientList.length : "N/A", i: "🏢", c: "#a78bfa" },
-              { l: "Unique Accounts", v: an.ua?.toLocaleString() ?? "N/A", i: "👤", c: "#f59e0b" },
-              ...(an.fieldAnalytics ? [{ l: "Field Visits", v: an.fieldAnalytics.totalFieldVisits.toLocaleString(), i: "🚗", c: "#22c55e" }] : []),
-              { l: "Collectors", v: an.cd.length, i: "👥", c: "#06b6d4" },
-              { l: "Buckets", v: an.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A", i: "📍", c: "#f97316" },
-              { l: "PTP Amount", v: "₱" + fN(an.pt), i: "💰", c: "#22c55e" },
-              { l: "Claim Paid", v: "₱" + fN(an.ct), i: "💳", c: "#f97316" },
-              { l: "Converstion Rate", v: an.pt > 0 ? ((an.ct / an.pt) * 100).toFixed(1) + "%" : "N/A", i: "📈", c: "#a21caf" },
-              { l: "Field Rate", v: an.fieldAnalytics?.fieldRate != null ? an.fieldAnalytics.fieldRate + "%" : "N/A", i: "💹", c: "#06b6d4" }
-            ].map(k => (
-              <div key={k.l} className="sc">
-                <div style={{ fontSize: 20, marginBottom: 6 }}>{k.i}</div>
-                <div style={{ fontSize: 11, color: tk.textMuted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{k.l}</div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: k.c, fontFamily: "'Space Grotesk',sans-serif", marginTop: 2, wordBreak: "auto-phrase" }}>{k.v}</div>
-                {k.sub && <div style={{ fontSize: 10, color: tk.textFaint, marginTop: 2 }}>{k.sub}</div>}
-              </div>
-            ))}
-          </div>
-
-
-
-          {/* Detected columns notice 
-          <div style={{ background: isDark ? "#0f2a3f" : "#e0f2fe", border: `1px solid ${isDark ? "#1e4060" : "#bae6fd"}`, borderRadius: 8, padding: "8px 16px", marginBottom: 12, fontSize: 12, color: isDark ? "#7dd3fc" : "#0369a1", display: "flex", flexWrap: "wrap", gap: 12 }}>
-            <span>🔍 Detected columns:</span>
-            {data.datек && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>📅 Date: <strong>{data.datек}</strong></span>}
-            {data.timek && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>⏰ Time: <strong>{data.timek}</strong></span>}
-            {data.dtk && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>📅⏰ DateTime: <strong>{data.dtk}</strong></span>}
-            {data.clk && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>🏢 Client: <strong>{data.clk}</strong></span>}
-            {data.oick && <span style={{ background: isDark ? "#1e3a5f" : "#dbeafe", padding: "1px 8px", borderRadius: 4 }}>📍 Bucket/IC: <strong>{data.oick}</strong></span>}
-            {!data.datек && !data.timek && !data.dtk && <span style={{ color: tk.textMuted }}>No date/time columns detected</span>}
-            {!data.clk && <span style={{ color: tk.textMuted }}>No client column detected</span>}
-            {!data.oick && <span style={{ color: tk.textMuted }}>No Old IC/Bucket column detected</span>}
-          </div>
-          
-
-          {data.remarkExcludedCount > 0 && (
-            <div style={{ background: tk.bgSurface, border: `1px solid ${tk.border}`, borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: tk.textSub, display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16 }}>🚫</span>
-              <span><strong style={{ color: tk.textPrimary }}>{data.remarkExcludedCount.toLocaleString()} rows</strong> excluded — system-generated remarks</span>
-            </div>
-          )}
-          */}
-          {/* ── Client Filter Strip (shown when multiple clients exist) ── */}
-          {data?.clients?.length > 1 && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: tk.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>
-                🏢 Viewing data for:
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["All", ...data.clients].map(cl => (
-                  <button
-                    key={cl}
-                    onClick={() => { setActiveClientFilter(cl); setSelectedDate(null); setSelectedCollector(null); setSelectedBucket(null); }}
-                    style={{
-                      padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                      border: activeClientFilter === cl ? "1px solid #3b82f6" : `1px solid ${tk.borderMed}`,
-                      background: activeClientFilter === cl ? "#1e40af" : tk.border,
-                      color: activeClientFilter === cl ? "#fff" : tk.textSub,
-                      transition: "all .15s",
-                    }}
-                  >
-                    {cl === "All" ? `🌐 All Clients (${data.clients.length})` : `🏢 ${cl}`}
-                  </button>
-                ))}
-              </div>
-              {activeClientFilter !== "All" && (
-                <div style={{ marginTop: 6, fontSize: 11, color: "#f59e0b", background: isDark ? "#1c1400" : "#fffbeb", border: `1px solid ${isDark ? "#92400e" : "#fcd34d"}`, borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
-                  ⚠️ All charts and tables below show data for <strong>{activeClientFilter}</strong> only.
-                </div>
+        {/* Center: page title */}
+        <div style={{ flex:1, paddingLeft:16 }}>
+          {data && an && (
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:14, fontWeight:600, color:tk.textPrimary }}>
+                {visibleNav.find(n => n.id === tab)?.label || "Dashboard"}
+              </span>
+              <span style={{ fontSize:12, color:tk.textFaint }}>·</span>
+              <span style={{
+                fontSize:11, fontWeight:600, color:"#22c55e",
+                background:isDark?"rgba(34,197,94,0.1)":"rgba(220,252,231,0.9)",
+                border:"1px solid rgba(34,197,94,0.3)",
+                padding:"2px 10px", borderRadius:20,
+              }}>✓ {an.T.toLocaleString()} records</span>
+              {(globalDateFrom || globalDateTo) && (
+                <span style={{ fontSize:11, color:"#f59e0b", background:isDark?"rgba(245,158,11,0.1)":"rgba(254,243,199,0.9)", border:"1px solid rgba(245,158,11,0.3)", padding:"2px 10px", borderRadius:20, fontWeight:600 }}>
+                  📅 Filtered
+                </span>
               )}
             </div>
           )}
+        </div>
 
-          {/* ── Global Date Range Filter ── */}
-          {(data?.datек || data?.dtk) && (() => {
-            // Use _dateISO (YYYY-MM-DD) so it works correctly with input[type="date"]
-            const allDatesISO = [...new Set(data.rows.map(r => r._dateISO).filter(Boolean))].sort();
-            if (allDatesISO.length === 0) return null;
-            const minISO = allDatesISO[0];
-            const maxISO = allDatesISO[allDatesISO.length - 1];
-            const hasFilter = !!(globalDateFrom || globalDateTo);
-            return (
-              <div style={{ flex: 1, background: tk.bgCard, border: `1px solid ${hasFilter ? "#3b82f6" : tk.borderMed}`, borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", transition: "border-color 0.2s", minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "nowrap", overflowX: "auto", minWidth: 0 }}>
-                  <span style={{ fontSize: 12, color: tk.textMuted, fontWeight: 600, whiteSpace: "nowrap" }}>🔧 Account mapping for analytics:</span>
-                  <select value={accountMapping} onChange={e => setAccountMapping(e.target.value)} style={{ padding: "5px 8px", fontSize: 12, borderRadius: 8, border: `1px solid ${tk.borderMed}`, background: tk.bgSurface, color: tk.textPrimary, whiteSpace: "nowrap" }}>
-                    <option value="auto">Auto-detect (Account No / Debtor ID / Old IC)</option>
-                    {data.ak && <option value={data.ak}>Account No ({data.ak})</option>}
-                    {data.dik && <option value={data.dik}>Debtor ID ({data.dik})</option>}
-                    {data.oick && <option value={data.oick}>Old IC / Bucket ({data.oick})</option>}
-                  </select>
-                  <span style={{ fontSize: 12, color: tk.textSub, whiteSpace: "nowrap" }}>Active key: <strong>{an.accountKeyLabel}</strong></span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "nowrap", overflowX: "auto", minWidth: 0 }}>
-                  <span style={{ fontSize: 12, color: tk.textSub, fontWeight: 600, flexShrink: 0 }}>📅 Date Range:</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <label style={{ fontSize: 12, color: tk.textMuted }}>From</label>
-                    <input type="date" value={globalDateFrom} min={minISO} max={maxISO}
-                      onChange={e => setGlobalDateFrom(e.target.value)}
-                      style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
-                    <label style={{ fontSize: 12, color: tk.textMuted }}>To</label>
-                    <input type="date" value={globalDateTo} min={minISO} max={maxISO}
-                      onChange={e => setGlobalDateTo(e.target.value)}
-                      style={{ background: tk.bgSurface, border: `1px solid ${tk.borderMed}`, borderRadius: 6, color: tk.textPrimary, fontSize: 12, padding: "4px 8px", fontFamily: "inherit", outline: "none", cursor: "pointer" }} />
-                  </div>
-                  {hasFilter && (
-                    <button onClick={() => { setGlobalDateFrom(""); setGlobalDateTo(""); }}
-                      style={{ fontSize: 11, padding: "3px 12px", borderRadius: 6, background: isDark ? "#172554" : "#dbeafe", border: "1px solid #3b82f6", color: "#60a5fa", cursor: "pointer", fontWeight: 600 }}>
-                      ✕ Clear Filter
+        {/* Right actions */}
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          {data && an && (
+            <button
+              onClick={() => { setData(null); setErr(""); setSelectedDate(null); setSelectedCollector(null); setSelectedClient(null); setSelectedBucket(null); }}
+              style={{
+                background:"none", border:`1px solid ${tk.borderMed}`,
+                color:tk.textSub, borderRadius:10, padding:"6px 14px",
+                cursor:"pointer", fontSize:12, fontWeight:500,
+                fontFamily:"inherit", transition:"all .18s",
+                display:"flex", alignItems:"center", gap:6,
+              }}
+              onMouseOver={e => { e.currentTarget.style.borderColor="#3b82f6"; e.currentTarget.style.color=isDark?"#60a5fa":"#2563eb"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor=tk.borderMed; e.currentTarget.style.color=tk.textSub; }}
+            >
+              ↩ New File
+            </button>
+          )}
+          <ThemeToggle size="md" />
+        </div>
+      </header>
+
+      {/* ── Body layout ──────────────────────────────────────────────────────── */}
+      <div style={{ display:"flex", flex:1, minHeight:0 }}>
+
+        {/* ── Sidebar ───────────────────────────────────────────────────── */}
+        <aside className="sidebar-wrap" style={{
+          width: sidebarCollapsed ? 60 : 224,
+          flexShrink:0,
+          background:isDark?"#0b1220":"#ffffff",
+          position:"sticky", top:60, height:"calc(100vh - 60px)", zIndex:30,
+          borderRight:`1px solid ${tk.border}`,
+          transition:"width 0.25s cubic-bezier(.4,0,.2,1)",
+          overflowX:"hidden",
+          overflowY:"auto",
+          display:"flex", flexDirection:"column",
+          paddingTop:12,
+          paddingBottom:24,
+        }}>
+          {/* Toggle button inside sidebar
+          <div style={{ padding:"0 8px 12px", display:"flex", justifyContent: sidebarCollapsed?"center":"flex-end" }}>
+            <button
+              onClick={() => setSidebarCollapsed(c => !c)}
+              style={{
+                background:"none", border:`1px solid ${tk.border}`,
+                cursor:"pointer", color:tk.textFaint,
+                borderRadius:8, padding:"4px 8px", fontSize:11,
+                fontFamily:"inherit", transition:"all .18s",
+              }}
+              title={sidebarCollapsed ? "Expand" : "Collapse"}
+            >
+              {sidebarCollapsed ? "›" : "‹"}
+            </button>
+          </div>
+          */}
+          {/* Nav sections */}
+          {data && an ? (
+            <nav style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
+              {!sidebarCollapsed && <div className="sidebar-section-label">Analytics</div>}
+              {visibleNav.slice(0, 8).map(n => (
+                <button
+                  key={n.id}
+                  className={`nav-item${tab === n.id ? " active" : ""}`}
+                  onClick={() => setTab(n.id)}
+                  title={sidebarCollapsed ? n.label : ""}
+                  style={{ justifyContent: sidebarCollapsed ? "center" : "flex-start" }}
+                >
+                  <i className="nav-icon">{n.icon}</i>
+                  {!sidebarCollapsed && <span>{n.label}</span>}
+                </button>
+              ))}
+              {visibleNav.length > 8 && (
+                <>
+                  {!sidebarCollapsed && <div className="sidebar-section-label" style={{ marginTop:12 }}>Advanced</div>}
+                  {sidebarCollapsed && <div style={{ height:1, background:tk.border, margin:"8px 6px" }} />}
+                  {visibleNav.slice(8).map(n => (
+                    <button
+                      key={n.id}
+                      className={`nav-item${tab === n.id ? " active" : ""}`}
+                      onClick={() => setTab(n.id)}
+                      title={sidebarCollapsed ? n.label : ""}
+                      style={{ justifyContent: sidebarCollapsed ? "center" : "flex-start" }}
+                    >
+                      <i className="nav-icon">{n.icon}</i>
+                      {!sidebarCollapsed && <span>{n.label}</span>}
                     </button>
-                  )}
-                  <span style={{ fontSize: 11, color: hasFilter ? "#60a5fa" : tk.textFaint, marginLeft: 4, whiteSpace: "nowrap" }}>
-                    {hasFilter
-                      ? `Showing ${an?.T?.toLocaleString() ?? 0} of ${data.rows.length.toLocaleString()} records · ${minISO} → ${maxISO}`
-                      : `${allDatesISO.length} active dates · ${minISO} → ${maxISO}`}
-                  </span>
+                  ))}
+                </>
+              )}
+            </nav>
+          ) : (
+            <div style={{ padding:"0 8px" }}>
+              {!sidebarCollapsed && <div className="sidebar-section-label">Menu</div>}
+              {visibleNav.slice(0,3).map(n => (
+                <div key={n.id} style={{ padding:"9px 14px", borderRadius:12, opacity:0.3, display:"flex", alignItems:"center", gap:10 }}>
+                  <i className="nav-icon">{n.icon}</i>
+                  {!sidebarCollapsed && <span style={{ fontSize:13, color:tk.textFaint }}>—</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Bottom info */}
+          {!sidebarCollapsed && (
+            <div style={{ marginTop:"auto", padding:"16px 14px 0", borderTop:`1px solid ${tk.border}`, marginLeft:8, marginRight:8 }}>
+              <div style={{ fontSize:10, color:tk.textFaint, fontWeight:500, lineHeight:1.6 }}>
+                <div style={{ color:tk.textMuted, fontWeight:700, marginBottom:4 }}>SPM Analytics v2</div>
+                Status Disposition Intelligence
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* ── Main content ──────────────────────────────────────────────── */}
+        <main className="main-layout" style={{
+          flex:1, minWidth:0,
+          overflowY:"auto",
+          padding:"24px",
+          transition:"margin-left 0.25s",
+        }}>
+
+          {/* ── Upload screen ── */}
+          {!data && (
+            <div style={{ maxWidth:520, margin:"60px auto" }} className="animate-in">
+              <div className="card" style={{ padding:36 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
+                  <div style={{ width:48, height:48, background:"linear-gradient(135deg,#3b82f6,#6366f1)", borderRadius:16, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, boxShadow:"0 4px 12px rgba(99,102,241,0.3)" }}>📊</div>
+                  <div>
+                    <div style={{ fontWeight:800, fontSize:22, color:tk.textBright, letterSpacing:"-0.03em" }}>Upload Collections File</div>
+                    <div style={{ fontSize:12, color:tk.textMuted, marginTop:2 }}>Drag & drop your Excel file to begin</div>
+                  </div>
+                </div>
+
+                <div className="dz"
+                  onClick={() => fRef.current.click()}
+                  onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor="#3b82f6"; }}
+                  onDragLeave={e => { e.currentTarget.style.borderColor=tk.borderMed; }}
+                  onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor=tk.borderMed; hf(e.dataTransfer.files[0]); }}>
+                  <div style={{ fontSize:44, marginBottom:14 }}>📂</div>
+                  <div style={{ fontWeight:700, fontSize:16, color:tk.textPrimary, marginBottom:6 }}>Drop your Excel file here</div>
+                  <div style={{ fontSize:13, color:tk.textMuted }}>or click to browse · .xlsx / .xls accepted</div>
+                </div>
+                <input ref={fRef} type="file" accept=".xlsx,.xls" onChange={e => hf(e.target.files[0])} />
+
+                {loading && (
+                  <div style={{ marginTop:20, display:"flex", alignItems:"center", justifyContent:"center", gap:10, color:"#60a5fa", fontSize:14 }}>
+                    <span style={{ display:"inline-block", animation:"spin 1s linear infinite" }}>⏳</span>
+                    Processing file…
+                  </div>
+                )}
+                {err && (
+                  <div style={{ marginTop:16, background:isDark?"rgba(127,29,29,0.3)":"#fef2f2", border:`1px solid ${isDark?"#7f1d1d":"#fecaca"}`, borderRadius:12, padding:"12px 16px", color:isDark?"#fca5a5":"#dc2626", fontSize:13 }}>
+                    ⚠️ {err}
+                  </div>
+                )}
+
+                <div style={{ marginTop:24, padding:"14px 18px", background:isDark?"rgba(15,23,42,0.5)":"#f8fafc", borderRadius:14, border:`1px solid ${tk.border}` }}>
+                  <div style={{ fontWeight:600, fontSize:11, color:tk.textMuted, textTransform:"uppercase", letterSpacing:".06em", marginBottom:10 }}>Expected columns (auto-detected)</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {["Status","Account No.","Remark By","Remarks","PTP Amount","PTP Date","Claim Paid Amount","Claim Paid Date","Date","Time","Client","Old IC"].map(c => (
+                      <span key={c} style={{ background:isDark?"rgba(51,65,85,0.5)":"white", border:`1px solid ${tk.borderMed}`, padding:"3px 10px", borderRadius:8, color:tk.textSub, fontSize:12, fontFamily:"'DM Mono',monospace" }}>{c}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            );
-          })()}
+            </div>
+          )}
 
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 4, marginBottom: 8, background: tk.bgSurface, padding: 4, borderRadius: 12, width: "fit-content", flexWrap: "wrap" }}>
+          {data && an && (
+            <div className="animate-in">
+
+              {/* ── Top filters / client selector ── */}
+              <div style={{ marginBottom:20 }}>
+
+                {/* Client filter pills */}
+                {data?.clients?.length > 1 && (
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ fontSize:11, color:tk.textFaint, fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", marginBottom:8 }}>Viewing data for</div>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {["All", ...data.clients].map(cl => (
+                        <button
+                          key={cl}
+                          onClick={() => { setActiveClientFilter(cl); setSelectedDate(null); setSelectedCollector(null); setSelectedBucket(null); }}
+                          style={{
+                            padding:"5px 16px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer",
+                            border: activeClientFilter === cl ? "1.5px solid #3b82f6" : `1px solid ${tk.borderMed}`,
+                            background: activeClientFilter === cl
+                              ? (isDark?"rgba(59,130,246,0.2)":"rgba(219,234,254,0.8)")
+                              : (isDark?"rgba(30,41,59,0.5)":"rgba(248,250,252,0.8)"),
+                            color: activeClientFilter === cl ? (isDark?"#60a5fa":"#2563eb") : tk.textSub,
+                            transition:"all .15s", fontFamily:"inherit",
+                          }}
+                        >
+                          {cl === "All" ? `All Clients (${data.clients.length})` : cl}
+                        </button>
+                      ))}
+                    </div>
+                    {activeClientFilter !== "All" && (
+                      <div style={{ marginTop:8, fontSize:11, color:"#f59e0b", background:isDark?"rgba(28,20,0,0.5)":"rgba(255,251,235,0.9)", border:"1px solid rgba(245,158,11,0.3)", borderRadius:8, padding:"5px 12px", display:"inline-block" }}>
+                        ⚠️ Showing data for <strong>{activeClientFilter}</strong> only
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Date range filter */}
+                {(data?.datек || data?.dtk) && (() => {
+                  const allDatesISO = [...new Set(data.rows.map(r => r._dateISO).filter(Boolean))].sort();
+                  if (allDatesISO.length === 0) return null;
+                  const minISO = allDatesISO[0];
+                  const maxISO = allDatesISO[allDatesISO.length - 1];
+                  const hasFilter = !!(globalDateFrom || globalDateTo);
+                  return (
+                    <div style={{
+                      background:isDark?"rgba(30,41,59,0.5)":"white",
+                      border:`1.5px solid ${hasFilter?"#3b82f6":tk.border}`,
+                      borderRadius:14, padding:"12px 18px",
+                      display:"flex", alignItems:"center", gap:16, flexWrap:"wrap",
+                      transition:"border-color 0.2s",
+                      boxShadow:hasFilter?(isDark?"0 0 0 3px rgba(59,130,246,0.1)":"0 0 0 3px rgba(219,234,254,0.6)"):"none",
+                    }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+                        <span style={{ fontSize:11, fontWeight:700, color:tk.textMuted, textTransform:"uppercase", letterSpacing:".06em" }}>Account Key</span>
+                        <select value={accountMapping} onChange={e => setAccountMapping(e.target.value)}
+                          style={{ padding:"5px 10px", fontSize:12, borderRadius:8, border:`1px solid ${tk.borderMed}`, background:isDark?"#0f172a":"#f8fafc", color:tk.textPrimary, fontFamily:"inherit", outline:"none" }}>
+                          <option value="auto">Auto-detect</option>
+                          {data.ak && <option value={data.ak}>Account No ({data.ak})</option>}
+                          {data.dik && <option value={data.dik}>Debtor ID ({data.dik})</option>}
+                          {data.oick && <option value={data.oick}>Old IC ({data.oick})</option>}
+                        </select>
+                      </div>
+                      <div style={{ width:1, height:24, background:tk.border, flexShrink:0 }} />
+                      <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                        <span style={{ fontSize:11, fontWeight:700, color:tk.textMuted, textTransform:"uppercase", letterSpacing:".06em" }}>Date Range</span>
+                        <input type="date" value={globalDateFrom} min={minISO} max={maxISO}
+                          onChange={e => setGlobalDateFrom(e.target.value)}
+                          style={{ background:isDark?"#0f172a":"#f8fafc", border:`1px solid ${tk.borderMed}`, borderRadius:8, color:tk.textPrimary, fontSize:12, padding:"5px 10px", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
+                        <span style={{ color:tk.textFaint, fontSize:12 }}>→</span>
+                        <input type="date" value={globalDateTo} min={minISO} max={maxISO}
+                          onChange={e => setGlobalDateTo(e.target.value)}
+                          style={{ background:isDark?"#0f172a":"#f8fafc", border:`1px solid ${tk.borderMed}`, borderRadius:8, color:tk.textPrimary, fontSize:12, padding:"5px 10px", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
+                        {hasFilter && (
+                          <button onClick={() => { setGlobalDateFrom(""); setGlobalDateTo(""); }}
+                            style={{ fontSize:11, padding:"4px 12px", borderRadius:8, background:"none", border:"1.5px solid #3b82f6", color:isDark?"#60a5fa":"#2563eb", cursor:"pointer", fontWeight:600, fontFamily:"inherit" }}>
+                            ✕ Clear
+                          </button>
+                        )}
+                      </div>
+                      {hasFilter && (
+                        <span style={{ marginLeft:"auto", fontSize:11, color:isDark?"#60a5fa":"#2563eb", fontWeight:600 }}>
+                          {an?.T?.toLocaleString()} of {data.rows.length.toLocaleString()} records
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+                  {/* l:"Total Records",    v:data.totalRaw.toLocaleString(),                                             i:"📋", c:"#3b82f6" },
+                  { l:"System Excluded",  v:data.remarkExcludedCount.toLocaleString(),                                  i:"🚫", c:tk.textSub, sub:"auto-filtered" },
+                  { l:"Valid Records",    v:an?.T?.toLocaleString() ?? "N/A",                                           i:"✅", c:"#22c55e" }, */}
+              {/* ── KPI Strip ── */}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12, marginBottom:24 }}>
+                {[
+                  { l:"Clients",          v:an?.clientAnalytics ? an.clientAnalytics.clientList.length : "N/A",         i:"🏢", c:"#a78bfa" },
+                  { l:"Unique Accounts",  v:an?.ua?.toLocaleString() ?? "N/A",                                          i:"👤", c:"#f59e0b" },
+                  { l:"Collectors",       v:an?.cd?.length ?? "N/A",                                                     i:"👥", c:"#06b6d4" },
+                  { l:"Buckets",          v:an?.bucketAnalytics ? an.bucketAnalytics.bucketList.length : "N/A",         i:"📍", c:"#f97316" },
+                  { l:"PTP Amount",       v:"₱"+fN(an?.pt ?? 0),                                                        i:"💰", c:"#22c55e" },
+                  { l:"Claim Paid",       v:"₱"+fN(an?.ct ?? 0),                                                        i:"💳", c:"#f97316" },
+                  { l:"Conversion Rate",  v:an?.pt>0?((an?.ct/an?.pt)*100).toFixed(1)+"%":"N/A",                        i:"📈", c:"#a21caf" },
+                  ...(an?.fieldAnalytics ? [{ l:"Field Visits", v:an.fieldAnalytics.totalFieldVisits.toLocaleString(),  i:"🚗", c:"#22c55e" }] : []),
+                  { l:"Field Rate",       v:an?.fieldAnalytics?.fieldRate!=null?an.fieldAnalytics.fieldRate+"%":"N/A",  i:"💹", c:"#06b6d4" },
+                ].map(k => (
+                  <div key={k.l} className="sc" style={{ "--kpi-accent":k.c }}>
+                    <div style={{ fontSize:22, marginBottom:8, lineHeight:1 }}>{k.i}</div>
+                    <div style={{ fontSize:10, color:tk.textFaint, textTransform:"uppercase", letterSpacing:".07em", fontWeight:700, marginBottom:4 }}>{k.l}</div>
+                    <div style={{ fontSize:18, fontWeight:800, color:k.c, letterSpacing:"-0.02em", lineHeight:1.1 }}>{k.v}</div>
+                    {k.sub && <div style={{ fontSize:10, color:tk.textFaint, marginTop:4 }}>{k.sub}</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Tab content panels ── */}
+          {/* Tabs — horizontal scroll pill bar (hidden on mobile since sidebar handles nav) 
+          <div style={{
+            display:"flex", gap:4, marginBottom:20,
+            background:isDark?"rgba(15,23,42,0.6)":"rgba(241,245,249,0.8)",
+            padding:"5px 6px", borderRadius:14,
+            width:"100%", flexWrap:"wrap",
+            border:`1px solid ${tk.border}`,
+          }}>
             {[
-              ["overview", "📊 Overview"],
-              ["status", "🏷️ Status Detail"],
-              ["ptp", "💰 PTP & Claims"],
-              ["funnel", "🔽 PTP Funnel"],
-              ["touch", "📱 Touch Points"],
-              ...(an.bucketAnalytics?.hasAccountData ? [["penetration", "🎯 Penetration"]] : []),
-              ...(an?.fieldAnalytics ? [["field","🚗 Field Analytics"]] : []),
-              ["collectors", "👥 Collectors"],
-              ...(data?.ak ?? data?.dik ? [["timeline", "🕐 Account Timeline"]] : []),
-              ...(an.dateAnalytics ? [["datetime", "📅 Date & Time"]] : []),
-              ...(an?.monthlyAnalytics ? [["monthly","📆 Monthly"]] : []),
-              // Only show combined Clients tab when viewing All
-              ...(an.clientAnalytics && activeClientFilter === "All" ? [["clients", "🏢 Clients"]] : []),
-              ...(an.bucketAnalytics ? [["buckets", "📍 Buckets"]] : []),
-              ...(an.collectorBucketAnalytics ? [["colbucket", "👥📍 Collector × Bucket"]] : []),
-              ...(an.bpAnalytics ? [["bp", "💔 Broken Promises"]] : []),
-              ...(an.hourlyCollectorAnalytics ? [["hourly", "⏱️ Hourly Efforts"]] : []),
-              ["predictive", "🔮 Predictive"],
-            ].map(([t, l]) => (
-              <button key={t} className={`tb${tab === t ? " ac" : ""}`} onClick={() => setTab(t)}>{l}</button>
+              ["overview", "▣", "Overview"],
+              ["status", "◈", "Status Detail"],
+              ["ptp", "₱", "PTP & Claims"],
+              ["funnel", "⬦", "PTP Funnel"],
+              ["touch", "◉", "Touch Points"],
+              ...(an?.bucketAnalytics?.hasAccountData ? [["penetration", "⊕", "Penetration"]] : []),
+              ...(an?.fieldAnalytics ? [["field","◎","Field Analytics"]] : []),
+              ["collectors", "⊞", "Collectors"],
+              ...(data?.ak ?? data?.dik ? [["timeline", "◫", "Timeline"]] : []),
+              ...(an?.dateAnalytics ? [["datetime", "◷", "Date & Time"]] : []),
+              ...(an?.monthlyAnalytics ? [["monthly","◰","Monthly"]] : []),
+              ...(an?.clientAnalytics && activeClientFilter === "All" ? [["clients", "⊡", "Clients"]] : []),
+              ...(an?.bucketAnalytics ? [["buckets", "◱", "Buckets"]] : []),
+              ...(an?.collectorBucketAnalytics ? [["colbucket", "⊟", "Col × Bucket"]] : []),
+              ...(an?.bpAnalytics ? [["bp", "◻", "Broken Promises"]] : []),
+              ...(an?.hourlyCollectorAnalytics ? [["hourly", "◶", "Hourly"]] : []),
+              ["predictive", "⬡", "Predictive"],
+            ].map(([t, icon, l]) => (
+              <button
+                key={t}
+                className={`pill-tab${tab === t ? " active" : ""}`}
+                onClick={() => setTab(t)}
+              >
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, opacity:0.8 }}>{icon}</span>
+                {l}
+              </button>
             ))}
           </div>
-          
+          */}
 
           {/* ── Overview Tab ── */}
           {tab === "overview" && (() => {
-            const ovTopCollectors = an.cd.slice(0, 5);
-            const ovMonthly = an.monthlyAnalytics?.monthlySorted || [];
-            const ovDateTrend = an.dateAnalytics?.dateSorted || [];
-            const ovBuckets = an.bucketAnalytics?.bucketList || [];
-            const ovClients = an.clientAnalytics?.clientList || [];
-            const ovFieldVisits = an.fieldAnalytics?.bucketVisitData || [];
-            const hasPTP = an.pt > 0 || an.pc > 0;
-            const hasClaim = an.ct > 0 || an.cc > 0;
+            const ovTopCollectors = an?.cd?.slice(0, 5) || [];
+            const ovMonthly = an?.monthlyAnalytics?.monthlySorted || [];
+            const ovDateTrend = an?.dateAnalytics?.dateSorted || [];
+            const ovBuckets = an?.bucketAnalytics?.bucketList || [];
+            const ovClients = an?.clientAnalytics?.clientList || [];
+            const ovFieldVisits = an?.fieldAnalytics?.bucketVisitData || [];
+            const hasPTP = (an?.pt ?? 0) > 0 || (an?.pc ?? 0) > 0;
+            const hasClaim = (an?.ct ?? 0) > 0 || (an?.cc ?? 0) > 0;
             const hasDate = ovDateTrend.length > 0;
             const hasMonthly = ovMonthly.length > 0;
             const hasField = ovFieldVisits.length > 0;
@@ -1922,17 +2324,17 @@ export default function App() {
             const hasCollectors = ovTopCollectors.length > 0;
 
             const safeRate = (grp) => {
-              const entry = an.gd.find(g => g.name === grp);
+              const entry = an?.gd?.find(g => g.name === grp);
               return entry ? entry.pct + "%" : "N/A";
             };
 
             const rpcGroup = ["KEPT", "PTP", "RPC"];
             const rpcRate = rpcGroup.reduce((sum, grp) => {
-              const entry = an.gd.find(g => g.name === grp);
+              const entry = an?.gd?.find(g => g.name === grp);
               return sum + (entry ? Number(entry.pct) : 0);
             }, 0);
 
-            const convRate = an.pt > 0 ? ((an.ct / an.pt) * 100).toFixed(1) + "%" : "N/A";
+            const convRate = (an?.pt ?? 0) > 0 ? (((an?.ct ?? 0) / (an?.pt ?? 1)) * 100).toFixed(1) + "%" : "N/A";
 
             const NoData = ({ label, icon = "📭", hint }) => (
               <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6, padding:"28px 16px", background:tk.bgSurface, borderRadius:8, border:`1px dashed ${tk.borderMed}`, textAlign:"center" }}>
@@ -1947,14 +2349,14 @@ export default function App() {
 
                 {/* ── KPI strip ── */}
                 {[
-                  { l:"Conv. Rate",       v: convRate,                          c: an.pt > 0 ? "#a78bfa" : tk.textFaint, i:"📈", sub:"Claim / PTP" },
+                  { l:"Conv. Rate",       v: convRate,                          c: (an?.pt ?? 0) > 0 ? "#a78bfa" : tk.textFaint, i:"📈", sub:"Claim / PTP" },
                   { l:"PTP Rate",         v:safeRate("PTP"),  c:"#f59e0b", i:"🤝", sub:"Promise to Pay" },
                   { l:"RPC Rate",         v:rpcRate > 0 ? rpcRate.toFixed(1) + "%" : "N/A",  c:"#3b82f6", i:"📞", sub:"Right Party Contact" },
                   { l:"NEG Rate",         v:safeRate("NEG"),  c:"#ef4444", i:"❌", sub:"Negative Outcome" },
-                  { l:"PTP Amount",       v: hasPTP   ? "₱"+fN(an.pt) : "N/A", c: hasPTP   ? "#22c55e" : tk.textFaint, i:"💰", sub: hasPTP   ? an.pc+" records" : "No PTP column" },
-                  { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an.ct) : "N/A", c: hasClaim ? "#f97316" : tk.textFaint, i:"💳", sub: hasClaim ? an.cc+" records" : "No Claim column" },
-                  ...(an.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:an.cd.length+" Collectors" }] : []),
-                  ...(an.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"BP", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
+                  { l:"PTP Amount",       v: hasPTP   ? "₱"+fN(an?.pt ?? 0) : "N/A", c: hasPTP   ? "#22c55e" : tk.textFaint, i:"💰", sub: hasPTP   ? (an?.pc ?? 0)+" records" : "No PTP column" },
+                  { l:"Claim Paid",       v: hasClaim ? "₱"+fN(an?.ct ?? 0) : "N/A", c: hasClaim ? "#f97316" : tk.textFaint, i:"💳", sub: hasClaim ? (an?.cc ?? 0)+" records" : "No Claim column" },
+                  ...(an?.ua != null ? [{ l:"Unique Accounts", v:an.ua.toLocaleString(), c:"#06b6d4", i:"👤", sub:(an?.cd?.length ?? 0)+" Collectors" }] : []),
+                  ...(an?.bpAnalytics ? [{ l:"Broken PTPs", v:an.bpAnalytics.bpAccounts.length.toLocaleString(), c:"#ef4444", i:"BP", sub:an.bpAnalytics.bpRate+"% BP rate" }] : []),
                 ].map(k => (
                   <div key={k.l} className="sc">
                     <div style={{ fontSize:18, marginBottom:4 }}>{k.i}</div>
@@ -1967,26 +2369,26 @@ export default function App() {
                 {/* ── Outcome Group pie ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:6, color:tk.textBright }}>Outcome Group Distribution</div>
-                  {an.gd.length > 0 ? (
+                  {(an?.gd?.length ?? 0) > 0 ? (
                     <>
                       {(() => {
-                        const neg = an.gd.find(g=>g.name==="NEG");
-                        const rpc = an.gd.find(g=>g.name==="RPC");
-                        const kept = an.gd.find(g=>g.name==="KEPT");
+                        const neg = an?.gd?.find(g=>g.name==="NEG");
+                        const rpc = an?.gd?.find(g=>g.name==="RPC");
+                        const kept = an?.gd?.find(g=>g.name==="KEPT");
                         const negPct = parseFloat(neg?.pct||0);
                         return <Insight icon="🥧" color={negPct>60?"#ef4444":"#22c55e"} text={`${negPct>60?`⚠️ <strong>NEG (${neg?.pct}%)</strong> is dominant — most efforts are uncontactable. Consider updating contact info.`:`✅ <strong>RPC rate is ${rpc?.pct||0}%</strong> of total efforts.`} ${kept?`<strong>KEPT (${kept.pct}%)</strong> reflects honored promises — aim to grow this group.`:""}`} />;
                       })()}
                       <div style={{ display:"flex", gap:12, alignItems:"center" }}>
                         <ResponsiveContainer width="55%" height={220}>
                           <PieChart>
-                            <Pie data={an.gd} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
-                              {an.gd.map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
+                            <Pie data={an?.gd || []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
+                              {(an?.gd || []).map((e,i)=><Cell key={i} fill={GC[e.name]||PC[i%PC.length]} />)}
                             </Pie>
                             <Tooltip formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} contentStyle={TS} />
                           </PieChart>
                         </ResponsiveContainer>
                         <div style={{ flex:1 }}>
-                          {an.gd.map(g=>(
+                          {(an?.gd || []).map(g=>(
                             <div key={g.name} style={{ marginBottom:8 }}>
                               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
                                 <span className="bdg" style={{ background:(GC[g.name]||"#3b82f6")+"33", color:GC[g.name]||tk.textSub }}>{g.name}</span>
@@ -2004,17 +2406,17 @@ export default function App() {
                 {/* ── Touch Point Mix ── */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright }}>Touch Point Mix</div>
-                  {an.td.length > 0 ? (
+                  {(an?.td?.length ?? 0) > 0 ? (
                     <>
-                      <Insight icon="📱" color="#3b82f6" text={`<strong>${an.td[0]?.name}</strong> is the most-used channel with <strong>${an.td[0]?.count?.toLocaleString()}</strong> efforts (${an.td[0]?.pct}% of total). ${an.td.length > 1 ? `Combined top-2 channels cover ${(parseFloat(an.td[0]?.pct||0)+parseFloat(an.td[1]?.pct||0)).toFixed(1)}% of all activity.` : ""}`} />
+                      <Insight icon="📱" color="#3b82f6" text={`<strong>${an?.td?.[0]?.name}</strong> is the most-used channel with <strong>${an?.td?.[0]?.count?.toLocaleString()}</strong> efforts (${an?.td?.[0]?.pct}% of total). ${(an?.td?.length ?? 0) > 1 ? `Combined top-2 channels cover ${(parseFloat(an?.td?.[0]?.pct||0)+parseFloat(an?.td?.[1]?.pct||0)).toFixed(1)}% of all activity.` : ""}`} />
                       <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={an.td} layout="vertical" margin={{ left:0, right:50 }}>
+                        <BarChart data={an?.td || []} layout="vertical" margin={{ left:0, right:50 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
                           <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:10 }} />
                           <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub, fontSize:10 }} width={120} />
                           <Tooltip contentStyle={TS} formatter={(v,n,p)=>[`${v.toLocaleString()} (${p.payload.pct}%)`,n]} />
                           <Bar dataKey="count" radius={[0,4,4,0]} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
-                            {an.td.map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
+                            {(an?.td || []).map((e,i)=><Cell key={i} fill={TP_COLORS[e.name]||PC[i%PC.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -2039,7 +2441,7 @@ export default function App() {
                           <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                           <Tooltip contentStyle={TS} />
                           <Legend wrapperStyle={{ fontSize:11 }} />
-                          {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
+                          {SG_GROUPS.map(sg=><Bar key={sg}  dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                         </BarChart>
                       </ResponsiveContainer>
                     </>
@@ -2056,8 +2458,8 @@ export default function App() {
                         <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-20} textAnchor="end" interval={0} />
                         <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} />
-                        <Legend wrapperStyle={{ fontSize:11 }} />
-                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
+                        <Legend wrapperStyle={{ fontSize:11 }}/>
+                        {SG_GROUPS.map(sg=><Bar key={sg} dataKey={sg}  stackId="a" fill={GC[sg]||tk.textMuted} name={sg} />)}
                       </BarChart>
                     </ResponsiveContainer>
                   ) : <NoData label="No monthly data" icon="📆" hint="Requires a Date column with multiple months" />}
@@ -2065,15 +2467,15 @@ export default function App() {
 
                 {/* ── Field Visits by Bucket ── */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:"#f9fafb" }}>Field Visits by Bucket</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:tk.textBright  }}>Field Visits by Bucket</div>
                   {hasField ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <LineChart data={ovFieldVisits} margin={{ left:0, right:16, bottom: ovFieldVisits.length>4?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <XAxis dataKey="name" tick={{ fill:tk.textMuted, fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
-                        <Line type="monotone" dataKey="visits" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
+                        <Line type="monotone" dataKey="visits" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : <NoData label="No field visit data" icon="🚗" hint="No FIELD touch point records for this filter" />}
@@ -2234,7 +2636,8 @@ export default function App() {
           })()}
 
           {/* ── Collectors Tab ── */}
-          {tab === "collectors" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          {tab === "collectors" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="card" style={{ gridColumn: "1/-1" }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: tk.textBright }}>Top 20 Collectors by Total Efforts</div>
               {an.cd.length === 0
@@ -2245,7 +2648,7 @@ export default function App() {
                     <XAxis dataKey="name" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-40} textAnchor="end" interval={0} />
                     <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                     <Tooltip contentStyle={TS} />
-                    <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Efforts" />
+                    <Bar dataKey="total" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#3b82f6" radius={[4, 4, 0, 0]} name="Efforts" />
                   </BarChart>
                 </ResponsiveContainer>}
             </div>
@@ -2614,8 +3017,8 @@ export default function App() {
                   </div>
                 );
               })()}
-            </>}
-          </div>}
+          </>}
+          </div>)}
 
           {/* ── PTP & Claims Tab ── */}
           {tab === "ptp" && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -2637,7 +3040,7 @@ export default function App() {
                   <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
                   <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="PTP Records" />
+                  <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#3b82f6" radius={[4, 4, 0, 0]} name="PTP Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
@@ -2649,7 +3052,7 @@ export default function App() {
                   <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
                   <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                   <Tooltip contentStyle={TS} />
-                  <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} name="Claim Records" />
+                  <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#f97316" radius={[4, 4, 0, 0]} name="Claim Records" />
                 </BarChart>
               </ResponsiveContainer>
             </div>}
@@ -2976,7 +3379,7 @@ export default function App() {
                       <XAxis dataKey="date" tick={{ fill: tk.textMuted, fontSize: 10 }} angle={dateSorted.length > 15 ? -35 : 0} textAnchor={dateSorted.length > 15 ? "end" : "middle"} interval={dateSorted.length > 30 ? Math.floor(dateSorted.length / 20) : 0} />
                       <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
-                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={dateSorted.length < 40} name="Total Records" />
+                      <Line type="monotone" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={dateSorted.length < 40} name="Total Records" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -2989,7 +3392,7 @@ export default function App() {
                       <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {SG_GROUPS.map(sg => <Bar key={sg} dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
+                      {SG_GROUPS.map(sg => <Bar key={sg}  dataKey={sg} stackId="a" fill={GC[sg] || tk.textMuted} name={sg} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -3002,7 +3405,7 @@ export default function App() {
                         <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 10 }} interval={1} />
                         <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" fill="#a78bfa" radius={[3, 3, 0, 0]} name="Records" />
+                        <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#a78bfa" radius={[3, 3, 0, 0]} name="Records" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -3066,7 +3469,7 @@ export default function App() {
           {tab === "monthly" && an.monthlyAnalytics && (() => {
             const { monthlySorted, monthList, clientMonthMap } = an.monthlyAnalytics;
             const activeTPs_m = ALL_TP.filter(tp => monthlySorted.some(m => m.byTP[tp]));
-            const allClients_m = data.clients;
+            const allClients_m = selectedClient ? data.clients.filter(c => c === selectedClient) : data.clients;
             const bestMonth = monthlySorted.length ? monthlySorted.reduce((a,b)=>b.total>a.total?b:a, monthlySorted[0]) : null;
             const bestPTPMonth = monthlySorted.length ? monthlySorted.reduce((a,b)=>b.ptpAmt>a.ptpAmt?b:a, monthlySorted[0]) : null;
 
@@ -3088,23 +3491,23 @@ export default function App() {
 
                 {/* Monthly total trend */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Total Efforts Trend</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Total Efforts Trend</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
-                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2.5} dot={{ r:4,fill:"#3b82f6" }} name="Total Efforts" />
+                      <Line type="monotone" dataKey="total" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  stroke="#3b82f6" strokeWidth={2.5} dot={{ r:4,fill:"#3b82f6" }} name="Total Efforts" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Monthly Group Comparison */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Outcome Group Breakdown</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Outcome Group Breakdown</div>
                   <div style={{ display:"flex", gap:6, marginBottom:12, flexWrap:"wrap" }}>
-                    <span style={{ fontSize:12, color:"#6b7280" }}>Show:</span>
+                    <span style={{ fontSize:12, color:tk.textMuted }}>Show:</span>
                     {["total",...SG_GROUPS].map(m=>(
                       <button key={m} className={`mode-btn${monthCompareMetric===m?" active":""}`} onClick={()=>setMonthCompareMetric(m)}>{m==="total"?"All":m}</button>
                     ))}
@@ -3112,8 +3515,8 @@ export default function App() {
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:11 }} />
                       {monthCompareMetric === "total"
@@ -3127,14 +3530,14 @@ export default function App() {
                 {/* Monthly PTP Amount trend */}
                 {monthlySorted.some(m=>m.ptpAmt>0) && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly PTP Amount</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly PTP Amount</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
                         <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"PTP Amount"]} />
-                        <Bar dataKey="ptpAmt" fill="#22c55e" radius={[3,3,0,0]} name="PTP Amount" />
+                        <Bar dataKey="ptpAmt" label={{ position:"middle", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  fill="#22c55e" radius={[3,3,0,0]} name="PTP Amount" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -3143,14 +3546,14 @@ export default function App() {
                 {/* Monthly Claim Amount trend */}
                 {monthlySorted.some(m=>m.claimAmt>0) && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Claim Paid Amount</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Claim Paid Amount</div>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={monthlySorted} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:10 }} tickFormatter={v=>v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(0)+"K":v} />
                         <Tooltip contentStyle={TS} formatter={v=>["₱"+fN(v),"Claim Amount"]} />
-                        <Bar dataKey="claimAmt" fill="#f97316" radius={[3,3,0,0]} name="Claim Amount" />
+                        <Bar dataKey="claimAmt" label={{ position:"middle", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}  fill="#f97316" radius={[3,3,0,0]} name="Claim Amount" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -3158,12 +3561,12 @@ export default function App() {
 
                 {/* Monthly Touch Point Mix */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Touch Point Mix</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:tk.textBright }}>Monthly Touch Point Mix</div>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={monthlySorted.map(m=>({ month:m.month,...m.byTP }))} margin={{ left:0, right:16, bottom:monthlySorted.length>8?40:10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
-                      <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                      <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={monthlySorted.length>8?-25:0} textAnchor={monthlySorted.length>8?"end":"middle"} interval={0} />
+                      <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:11 }} />
                       {activeTPs_m.map(tp=><Bar key={tp} dataKey={tp} stackId="tp" fill={TP_COLORS[tp]||"#6b7280"} name={tp} />)}
@@ -3174,7 +3577,7 @@ export default function App() {
                 {/* Monthly Data Table */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:8 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:"#f9fafb" }}>Monthly Summary Table</div>
+                    <div style={{ fontWeight:700, fontSize:14, color:tk.textBright }}>Monthly Summary Table</div>
                     <ExportBtn onClick={() => exportXlsx(monthlySorted.map(m=>({
                       Month:m.month, Total:m.total,
                       ...Object.fromEntries(SG_GROUPS.map(sg=>[sg,m[sg]||0])),
@@ -3230,7 +3633,7 @@ export default function App() {
                             const maxVal = Math.max(...monthList.map(m=>mData[m]||0));
                             return (
                               <tr key={cl}>
-                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:tk.textPrimary,zIndex:1 }}>{cl}</td>
+                                <td style={{ position:"sticky",left:0,background:"#111827",fontWeight:600,color:"#e2e8f0",zIndex:1 }}>{cl}</td>
                                 {monthList.map(m=>{
                                   const val = mData[m]||0;
                                   const intensity = maxVal>0?val/maxVal:0;
@@ -4142,7 +4545,7 @@ export default function App() {
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {bucketList.map(b => (
-                        <Bar key={b.name} dataKey={b.name} fill={BUCKET_COLORS[b.name] || tk.textMuted} name={b.name} radius={[2, 2, 0, 0]} />
+                        <Bar key={b.name} dataKey={b.name} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name] || tk.textMuted} name={b.name} radius={[2, 2, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
@@ -4160,7 +4563,7 @@ export default function App() {
                       <Tooltip contentStyle={TS} formatter={v => [v.toFixed(1) + "%"]} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {activeTPs.map(tp => (
-                        <Bar key={tp} dataKey={tp} fill={TP_COLORS[tp] || tk.textMuted} name={tp} radius={[2, 2, 0, 0]} />
+                        <Bar key={tp} dataKey={tp} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={TP_COLORS[tp] || tk.textMuted} name={tp} radius={[2, 2, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
@@ -4333,7 +4736,7 @@ export default function App() {
                             : intensity > 0.4 ? "#f59e0b"
                             : intensity > 0.2 ? "#3b82f6"
                             : "#1d4ed8";
-                          return <Cell key={i} fill={color} />;
+                          return <Cell key={i} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={color} />;
                         })}
                       </Bar>
                     </BarChart>
@@ -4352,7 +4755,7 @@ export default function App() {
                         <YAxis type="category" dataKey="name" tick={{ fill: tk.textSub, fontSize: 11 }} width={120} />
                         <Tooltip contentStyle={TS} />
                         <Bar dataKey="count" fill="#a78bfa" radius={[0, 4, 4, 0]} name="Efforts">
-                          {shiftData.map((s, i) => <Cell key={i} fill={PC[i % PC.length]} />)}
+                          {shiftData.map((s, i) => <Cell key={i} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={PC[i % PC.length]} />)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -4433,11 +4836,14 @@ export default function App() {
                               <th style={{ position: "sticky", left: 0, background: tk.bgSurface, minWidth: 130, zIndex: 2, textAlign: "left" }}>Collector</th>
                               <th style={{ color: "#22c55e", minWidth: 60 }}>Total</th>
                               <th style={{ color: "#a78bfa", minWidth: 60 }}>Peak Hr</th>
-                              {Array.from({ length: 24 }, (_, h) => (
-                                <th key={h} style={{ color: tk.textFaint, minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
-                                  {String(h).padStart(2,"0")}
-                                </th>
-                              ))}
+                              {Array.from({ length: 18 }, (_, i) => {
+                                const h = i + 6;
+                                return (
+                                  <th key={h} style={{ color: tk.textFaint, minWidth: 28, textAlign: "center", padding: "4px 2px" }}>
+                                    {String(h).padStart(2,"0")}
+                                  </th>
+                                );
+                              })}
                             </tr>
                           </thead>
                           <tbody>
@@ -4446,7 +4852,8 @@ export default function App() {
                                 <td style={{ position: "sticky", left: 0, background: tk.bgCard, fontWeight: 600, color: tk.textPrimary, padding: "4px 8px", zIndex: 1 }}>{row.collector}</td>
                                 <td style={{ color: "#22c55e", fontWeight: 700, textAlign: "center" }}>{row.total.toLocaleString()}</td>
                                 <td style={{ color: "#a78bfa", textAlign: "center" }}>{row.peakHour}</td>
-                                {Array.from({ length: 24 }, (_, h) => {
+                                {Array.from({ length: 18 }, (_, i) => {
+                                  const h = i + 6;
                                   const val = row[`h${h}`] || 0;
                                   const bg = hourlyColor(val, heatmapMax);
                                   return (
@@ -4530,7 +4937,7 @@ export default function App() {
                         <XAxis dataKey="hour" tick={{ fill: tk.textMuted, fontSize: 9 }} interval={2} />
                         <YAxis tick={{ fill: tk.textMuted, fontSize: 11 }} />
                         <Tooltip contentStyle={TS} formatter={v => [v + " collectors"]} />
-                        <Bar dataKey="collectors" fill="#f59e0b" radius={[3, 3, 0, 0]} name="Collectors peaking" />
+                        <Bar dataKey="collectors" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#f59e0b" radius={[3, 3, 0, 0]} name="Collectors peaking" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -4606,16 +5013,16 @@ export default function App() {
 
                 {/* Visits per Bucket */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Visits per Bucket</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Field Visits per Bucket</div>
                   <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Total field visit count by delinquency bucket.</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={fa.bucketVisitData} layout="vertical" margin={{ left:0, right:20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                      <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:11 }} width={110} />
+                      <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill:tk.textMuted, fontSize:11 }} width={110} />
                       <Tooltip contentStyle={TS} formatter={(v,n)=>[v.toLocaleString(),n]} />
                       <Bar dataKey="visits" radius={[0,4,4,0]} name="Visits">
-                        {fa.bucketVisitData.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                        {fa.bucketVisitData.map(b=><Cell key={b.name} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -4623,12 +5030,12 @@ export default function App() {
 
                 {/* % Visits from Total per Bucket */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>% Visits from Total (Bucket Share)</div>
-                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Each bucket's share of all field visits.</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>% Visits from Total (Bucket Share)</div>
+                  <div style={{ fontSize:12, color:tk.textMuted, marginBottom:14 }}>Each bucket's share of all field visits.</div>
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie data={fa.bucketVisitData.map(b=>({name:b.name,value:b.visits}))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95} label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
-                        {fa.bucketVisitData.map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                        {fa.bucketVisitData.map(b=><Cell key={b.name} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
                       </Pie>
                       <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
                       <Legend wrapperStyle={{ fontSize:11 }} />
@@ -4639,8 +5046,8 @@ export default function App() {
                 {/* % of Accounts Visited per Bucket (penetration) */}
                 {fa.hasAccounts && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Penetration: % of Accounts Visited per Bucket</div>
-                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Field Penetration: % of Accounts Visited per Bucket</div>
+                    <div style={{ fontSize:12, color:tk.textMuted, marginBottom:14 }}>
                       What % of unique accounts in each bucket received at least one field visit.
                       {" "}<span style={{ color:"#f59e0b" }}>Higher = more thorough field coverage.</span>
                     </div>
@@ -4649,7 +5056,7 @@ export default function App() {
                         <div key={b.name} style={{ background:"#0b0f1a", border:`1px solid ${BUCKET_COLORS[b.name]||"#1f2937"}44`, borderRadius:8, padding:"10px 14px", minWidth:130 }}>
                           <div style={{ fontSize:11, color:BUCKET_COLORS[b.name]||"#9ca3af", fontWeight:700 }}>{b.name}</div>
                           <div style={{ fontSize:22, fontWeight:800, color:"#f9fafb", fontFamily:"'Syne',sans-serif" }}>{b.pctOfAccts}%</div>
-                          <div style={{ fontSize:11, color:"#4b5563" }}>{b.visitedAccts.toLocaleString()} / {b.totalAccts.toLocaleString()} accts</div>
+                          <div style={{ fontSize:11, color:tk.textMuted }}>{b.visitedAccts.toLocaleString()} / {b.totalAccts.toLocaleString()} accts</div>
                           <Pb tk={tk} pct={parseFloat(b.pctOfAccts)} c={BUCKET_COLORS[b.name]||"#3b82f6"} />
                         </div>
                       ))}
@@ -4657,11 +5064,11 @@ export default function App() {
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.bucketVisitData.filter(b=>b.totalAccts>0)} margin={{ bottom:30 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="name" tick={{ fill:"#6b7280",fontSize:11 }} angle={fa.bucketVisitData.length>5?-20:0} textAnchor={fa.bucketVisitData.length>5?"end":"middle"} interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} unit="%" domain={[0,100]} />
+                        <XAxis dataKey="name" tick={{ fill:tk.textMuted, fontSize:11 }} angle={fa.bucketVisitData.length>5?-20:0} textAnchor={fa.bucketVisitData.length>5?"end":"middle"} interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} unit="%" domain={[0,100]} />
                         <Tooltip contentStyle={TS} formatter={v=>[v+"%","Penetration"]} />
                         <Bar dataKey="pctOfAccts" radius={[4,4,0,0]} name="% Accounts Visited">
-                          {fa.bucketVisitData.filter(b=>b.totalAccts>0).map(b=><Cell key={b.name} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
+                          {fa.bucketVisitData.filter(b=>b.totalAccts>0).map(b=><Cell key={b.name} label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.name]||"#6b7280"} />)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -4670,9 +5077,9 @@ export default function App() {
 
                 {/* Bucket visit details table */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>
                     Bucket Visit Details
-                    {fieldBucketDrilldown && <button onClick={()=>setFieldBucketDrilldown(null)} style={{ marginLeft:10, background:"#374151",border:"none",color:"#9ca3af",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:11 }}>✕ Clear</button>}
+                    {fieldBucketDrilldown && <button onClick={()=>setFieldBucketDrilldown(null)} style={{ marginLeft:10, background:tk.background, border:"none", color:tk.textMuted, borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:11 }}>✕ Clear</button>}
                   </div>
                   <div style={{ overflowX:"auto" }}>
                     <table>
@@ -4683,13 +5090,13 @@ export default function App() {
                       </tr></thead>
                       <tbody>{fa.bucketVisitData.map((b,i)=>(
                         <tr key={b.name} className="dr" style={{ cursor:"default" }}>
-                          <td style={{ color:"#4b5563" }}>{i+1}</td>
+                          <td style={{ color:tk.textMuted }}>{i+1}</td>
                           <td><span className="bdg" style={{ background:(BUCKET_COLORS[b.name]||"#6b7280")+"33", color:BUCKET_COLORS[b.name]||"#9ca3af" }}>{b.name}</span></td>
                           <td style={{ fontWeight:700, color:BUCKET_COLORS[b.name]||"#22c55e" }}>{b.visits.toLocaleString()}</td>
-                          <td style={{ color:"#60a5fa" }}>{b.pctOfTotal}%</td>
+                          <td style={{ color:tk.textMuted }}>{b.pctOfTotal}%</td>
                           {fa.hasAccounts && <>
-                            <td style={{ color:"#a78bfa" }}>{b.visitedAccts.toLocaleString()}</td>
-                            <td style={{ color:"#9ca3af" }}>{b.totalAccts.toLocaleString()}</td>
+                            <td style={{ color:tk.textMuted }}>{b.visitedAccts.toLocaleString()}</td>
+                            <td style={{ color:tk.textMuted }}>{b.totalAccts.toLocaleString()}</td>
                             <td style={{ fontWeight:700, color: parseFloat(b.pctOfAccts)>50?"#22c55e":parseFloat(b.pctOfAccts)>25?"#f59e0b":"#ef4444" }}>{b.pctOfAccts}%</td>
                           </>}
                           <td><Pb tk={tk} pct={(b.visits/fa.bucketVisitData[0].visits)*100} c={BUCKET_COLORS[b.name]||"#3b82f6"} /></td>
@@ -4701,7 +5108,7 @@ export default function App() {
 
                 {/* Field Outcome Groups */}
                 <div className="card" style={{ gridColumn:"1/3" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f9fafb" }}>Field Visit Outcomes</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color: tk.textBright }}>Field Visit Outcomes</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                       <Pie data={fa.fieldSGData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
@@ -4715,7 +5122,7 @@ export default function App() {
 
                 {/* Field visit sub-type */}
                 <div className="card" style={{ gridColumn:"3/5" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color:"#f9fafb" }}>Field Type (FIELD vs CARAVAN)</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:14, color: tk.textBright }}>Field Type (FIELD vs CARAVAN)</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                       <Pie data={subtypeArr} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({name,pct})=>`${name} ${pct}%`} labelLine={false}>
@@ -4730,15 +5137,15 @@ export default function App() {
                 {/* Field dates trend */}
                 {fa.hasDate && fa.fieldDateSorted.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/-1" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Field Visits by Date</div>
-                    <div style={{ fontSize:12, color:"#6b7280", marginBottom:14 }}>Daily field activity — {fa.fieldDateSorted.length} active field dates</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Field Visits by Date</div>
+                    <div style={{ fontSize:12, color: tk.textMuted, marginBottom:14 }}>Daily field activity — {fa.fieldDateSorted.length} active field dates</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.fieldDateSorted} margin={{ left:0, right:16, bottom:fa.fieldDateSorted.length>20?70:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="date" tick={{ fill:"#6b7280",fontSize:10 }} angle={fa.fieldDateSorted.length>15?-35:0} textAnchor={fa.fieldDateSorted.length>15?"end":"middle"} interval={fa.fieldDateSorted.length>30?Math.floor(fa.fieldDateSorted.length/20):0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <XAxis dataKey="date" tick={{ fill:tk.textMuted, fontSize:10 }} angle={fa.fieldDateSorted.length>15?-35:0} textAnchor={fa.fieldDateSorted.length>15?"end":"middle"} interval={fa.fieldDateSorted.length>30?Math.floor(fa.fieldDateSorted.length/20):0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
-                        <Bar dataKey="count" fill="#22c55e" radius={[3,3,0,0]} name="Field Visits" />
+                        <Bar dataKey="count" label={{ position:"top", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill="#22c55e" radius={[3,3,0,0]} name="Field Visits" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -4747,12 +5154,12 @@ export default function App() {
                 {/* Monthly field visits */}
                 {fa.fieldMonthSorted.length > 0 && (
                   <div className="card" style={{ gridColumn:"1/3" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Monthly Field Visit Trend</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Monthly Field Visit Trend</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <LineChart data={fa.fieldMonthSorted} margin={{ left:0, right:16, bottom:fa.fieldMonthSorted.length>6?40:10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis dataKey="month" tick={{ fill:"#6b7280",fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
-                        <YAxis tick={{ fill:"#6b7280",fontSize:11 }} />
+                        <XAxis dataKey="month" tick={{ fill:tk.textMuted, fontSize:11 }} angle={-20} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fill:tk.textMuted, fontSize:11 }} />
                         <Tooltip contentStyle={TS} formatter={v=>[v.toLocaleString()+" visits"]} />
                         <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2.5} dot={{ r:4,fill:"#22c55e" }} name="Field Visits" />
                       </LineChart>
@@ -4763,14 +5170,14 @@ export default function App() {
                 {/* Top Field Collectors */}
                 {fa.fieldCollectorData.length > 0 && (
                   <div className="card" style={{ gridColumn:"3/5" }}>
-                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Collectors</div>
+                    <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Top Field Collectors</div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={fa.fieldCollectorData.slice(0,10)} layout="vertical" margin={{ left:0, right:20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={tk.border} />
-                        <XAxis type="number" tick={{ fill:"#6b7280",fontSize:11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fill:"#9ca3af",fontSize:10 }} width={120} />
+                        <XAxis type="number" tick={{ fill:tk.textMuted, fontSize:11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill:tk.textMuted, fontSize:10 }} width={120} />
                         <Tooltip contentStyle={TS} />
-                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits" label={{ position:"right", fill:"#6b7280", fontSize:10, formatter:v=>v.toLocaleString() }}>
+                        <Bar dataKey="count" radius={[0,4,4,0]} fill="#22c55e" name="Visits" label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }}>
                           {fa.fieldCollectorData.slice(0,10).map((_,i)=><Cell key={i} fill={PC[i%PC.length]} />)}
                         </Bar>
                       </BarChart>
@@ -4780,8 +5187,8 @@ export default function App() {
 
                 {/* Top Field Statuses */}
                 <div className="card" style={{ gridColumn:"1/-1" }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color:"#f9fafb" }}>Top Field Status Results</div>
-                  <div style={{ fontSize:12, color:"#6b7280", marginBottom:8 }}>Breakdown of specific field dispositions recorded.</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:4, color: tk.textBright }}>Top Field Status Results</div>
+                  <div style={{ fontSize:12, color: tk.textMuted, marginBottom:8 }}>Breakdown of specific field dispositions recorded.</div>
                   <div style={{ overflowX:"auto", maxHeight:360, overflowY:"auto" }}>
                     <table>
                       <thead><tr><th>#</th><th>Status</th><th>Group</th><th>Count</th><th>%</th><th style={{ width:120 }}>Bar</th></tr></thead>
@@ -5220,7 +5627,7 @@ export default function App() {
                       <YAxis type="category" dataKey="bucket" tick={{ fill:tk.textSub,fontSize:10 }} width={110} />
                       <Tooltip contentStyle={TS} />
                       <Bar dataKey="totalEfforts" radius={[0,4,4,0]} name="Total Efforts">
-                        {bucketSummaryForCollectors.map((b,i)=><Cell key={i} fill={BUCKET_COLORS[b.bucket]||PC[i%PC.length]} />)}
+                        {bucketSummaryForCollectors.map((b,i)=><Cell key={i} label={{ position:"right", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b.bucket]||PC[i%PC.length]} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -5237,7 +5644,7 @@ export default function App() {
                       <YAxis type="category" dataKey="name" tick={{ fill:tk.textSub,fontSize:9 }} width={130} />
                       <Tooltip contentStyle={TS} />
                       <Legend wrapperStyle={{ fontSize:10 }} />
-                      {allBuckets.map((b,i)=><Bar key={b} dataKey={b} stackId="s" fill={BUCKET_COLORS[b]||PC[i%PC.length]} name={b} />)}
+                      {allBuckets.map((b,i)=><Bar key={b} dataKey={b} stackId="s" label={{ position:"center", fill:tk.textMuted, fontSize:10, formatter:v=>v.toLocaleString() }} fill={BUCKET_COLORS[b]||PC[i%PC.length]} name={b} />)}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -6031,7 +6438,10 @@ export default function App() {
             );
           })()}
 
-        </>}
+              </div>
+            )}
+
+        </main>
       </div>
     </div>
   );
